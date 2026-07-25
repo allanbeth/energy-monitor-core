@@ -40,9 +40,9 @@ class SensorDataStore:
             return {}
 
         data = payload if isinstance(payload, dict) else {}
-        watts = _safe_float(data.get("watts", data.get("power")))
-        voltage = _safe_float(data.get("voltage", data.get("rating")))
-        current = _safe_float(data.get("current"))
+        watts = _safe_float(data.get("watts", data.get("power", data.get("power_w", 0.0))))
+        voltage = _safe_float(data.get("voltage", data.get("voltage_v", 0.0)))
+        current = _safe_float(data.get("current", data.get("current_a", 0.0)))
         if current == 0.0 and voltage > 0:
             current = watts / voltage if voltage else 0.0
 
@@ -125,9 +125,9 @@ class SensorDataStore:
             sensor_type = normalize_sensor_type(sensor.get("type"))
             live = deepcopy(live_sensors.get(sensor_name, {})) if isinstance(live_sensors, dict) else {}
             connected = bool(live.get("connected", False))
-            watts = _safe_float(live.get("watts", sensor.get("max_power"))) if connected else _safe_float(live.get("watts", 0.0))
-            voltage = _safe_float(live.get("voltage", sensor.get("rating"))) if connected else _safe_float(live.get("voltage", 0.0))
-            current = _safe_float(live.get("current")) if connected else _safe_float(live.get("current", 0.0))
+            watts = _safe_float(live.get("watts", 0.0))
+            voltage = _safe_float(live.get("voltage", 0.0))
+            current = _safe_float(live.get("current", 0.0))
             if connected and current == 0.0 and voltage > 0:
                 current = watts / voltage if voltage else 0.0
 
