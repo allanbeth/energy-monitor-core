@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="auth-shell d-flex align-items-center justify-content-center">
+  <div class="auth-card card shadow-lg">
+    <div class="card-body p-4 p-md-5">
+      <div class="mb-4">
+        <div class="eyebrow">Secure access</div>
+        <h2 class="mb-2">Sign in to Energy Monitor Core</h2>
+        <p class="text-secondary mb-0">Authentication is required before any module data or configuration can be viewed.</p>
+      </div>
+      <form id="login-form" class="vstack gap-3">
+        <div>
+          <label class="form-label">Username</label>
+          <input id="login-username" class="form-control form-control-lg" type="text" autocomplete="username" value="{{ public_auth.username }}" placeholder="{{ public_auth.username }}">
+        </div>
+        <div>
+          <label class="form-label">Password</label>
+          <input id="login-password" class="form-control form-control-lg" type="password" autocomplete="current-password" placeholder="••••••••">
+        </div>
+        <div id="login-error" class="text-danger small"></div>
+        <button type="submit" class="btn btn-primary btn-lg w-100">Authenticate</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

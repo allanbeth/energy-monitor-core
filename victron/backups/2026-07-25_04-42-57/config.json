@@ -1,0 +1,29 @@
+{
+  "bluetooth": {
+    "adapter": "hci0",
+    "connection_timeout": 15,
+    "scan_timeout": 10
+  },
+  "devices": [
+    {
+      "added_date": "2026-01-08T01:26:04.595748",
+      "device_type": "charger",
+      "enabled": true,
+      "id": "device_001",
+      "last_connected": "2026-07-25T02:49:06.623660",
+      "mac": "C7:68:C2:7E:D1:FD",
+      "name": "BSC IP67 12/25 HQ183142L7H",
+      "paired": true,
+      "passcode": "000000",
+      "puk_key": "F4E46B924939",
+      "last_modified": "2026-07-25T02:56:28.992634"
+    }
+  ],
+  "max_log": 10,
+  "max_readings": 20,
+  "poll_intervals": {
+    "Battery": 6,
+    "Solar": 8,
+    "Wind": 10
+  }
+}

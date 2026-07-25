@@ -1,0 +1,68 @@
+[
+  {
+    "name": "Garden Battery",
+    "address": 64,
+    "type": "Battery",
+    "variant": "INA219",
+    "max_power": 30.0,
+    "rating": 12.0,
+    "device_id": 1,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  },
+  {
+    "name": "Turbine 220W",
+    "address": 65,
+    "type": "Wind",
+    "variant": "INA219",
+    "max_power": 100.0,
+    "rating": 12.0,
+    "device_id": 1,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  },
+  {
+    "name": "Turbine 1000W",
+    "address": 68,
+    "type": "Wind",
+    "variant": "INA219",
+    "max_power": 100.0,
+    "rating": 12.0,
+    "device_id": 1,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  },
+  {
+    "name": "Solar Panel 200W",
+    "address": 69,
+    "type": "Solar",
+    "variant": "INA219",
+    "max_power": 100.0,
+    "rating": 12.0,
+    "device_id": 1,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  },
+  {
+    "name": "Solar Panel 6W",
+    "address": 64,
+    "type": "Solar",
+    "variant": "INA260",
+    "max_power": 100.0,
+    "rating": 12.0,
+    "device_id": 0,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  },
+  {
+    "name": "House Battery",
+    "address": 68,
+    "type": "Battery",
+    "variant": "INA226",
+    "max_power": 100.0,
+    "rating": 12.0,
+    "device_id": 0,
+    "variant_tuning": {},
+    "calibration_value": 4191
+  }
+]

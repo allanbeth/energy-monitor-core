@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+
+{% block header_actions %}
+<div class="d-flex flex-wrap gap-2 align-items-center">
+  <button id="save-core-settings-btn" class="btn btn-primary btn-sm">Save settings</button>
+  <button id="logout-btn" class="btn btn-outline-danger btn-sm">Logout</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<section class="row g-4 mb-4">
+  <div class="col-12 col-xl-7">
+    <div class="panel card shadow-sm h-100">
+      <div class="card-body">
+        <div class="section-heading">
+          <h2 class="section-title mb-0">Core Settings</h2>
+        </div>
+        <form id="core-settings-form" class="vstack gap-4">
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4">
+                <input type="hidden" name="auth[enabled]" value="false">
+                <input class="form-check-input" type="checkbox" name="auth[enabled]" value="true" {% if core_config.auth.enabled %}checked{% endif %}>
+                <label class="form-check-label">Authentication enabled</label>
+              </div>
+              <label class="form-label mt-3">Admin username</label>
+              <input class="form-control" type="text" name="auth[username]" value="{{ core_config.auth.username }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4">
+                <input type="hidden" name="webserver[enabled]" value="false">
+                <input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}>
+                <label class="form-check-label">Webserver enabled</label>
+              </div>
+              <label class="form-label mt-3">Host</label>
+              <input class="form-control" type="text" name="webserver[host]" value="{{ core_config.webserver.host }}">
+              <label class="form-label mt-3">Port</label>
+              <input class="form-control" type="number" name="webserver[port]" value="{{ core_config.webserver.port }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4">
+                <input type="hidden" name="mqtt[enabled]" value="false">
+                <input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}>
+                <label class="form-check-label">MQTT enabled</label>
+              </div>
+              <label class="form-label mt-3">Broker</label>
+              <input class="form-control" type="text" name="mqtt[broker]" value="{{ core_config.mqtt.broker }}">
+              <label class="form-label mt-3">Port</label>
+              <input class="form-control" type="number" name="mqtt[port]" value="{{ core_config.mqtt.port }}">
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">
+              <label class="form-label">MQTT username</label>
+              <input class="form-control" type="text" name="mqtt[username]" value="{{ core_config.mqtt.username }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">MQTT password</label>
+              <input class="form-control" type="password" name="mqtt[password]" value="{{ core_config.mqtt.password }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Client ID</label>
+              <input class="form-control" type="text" name="mqtt[client_id]" value="{{ core_config.mqtt.client_id }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Base topic</label>
+              <input class="form-control" type="text" name="mqtt[base_topic]" value="{{ core_config.mqtt.base_topic }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Discovery prefix</label>
+              <input class="form-control" type="text" name="mqtt[discovery_prefix]" value="{{ core_config.mqtt.discovery_prefix }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4">
+                <input type="hidden" name="mqtt[one_time_broker_sweep]" value="false">
+                <input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}>
+                <label class="form-check-label">One-time broker sweep</label>
+              </div>
+              <div class="form-check form-switch mt-3">
+                <input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false">
+                <input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}>
+                <label class="form-check-label">Aggressive sweep</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="row g-3">
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Config version</label>
+              <input class="form-control" type="text" name="general[version]" value="{{ core_config.general.version }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Auto backup frequency</label>
+              <input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Max backup files</label>
+              <input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}">
+            </div>
+            <div class="col-12 col-lg-4">
+              <div class="form-check form-switch mt-4">
+                <input type="hidden" name="general[auto_backup_enabled]" value="false">
+                <input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}>
+                <label class="form-check-label">Auto backup enabled</label>
+              </div>
+            </div>
+            <div class="col-12 col-lg-4">
+              <label class="form-label">Log size</label>
+              <input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}">
+            </div>
+          </div>
+
+          <div>
+            <div class="section-heading mb-2">
+              <h3 class="section-title h6 mb-0">Module activation</h3>
+            </div>
+            <div class="row g-2">
+              {% for module_name, module_state in status.modules.items() %}
+              <div class="col-12 col-md-4">
+                <div class="form-check form-switch">
+                  <input type="hidden" name="modules[{{ module_name }}][active]" value="false">
+                  <input class="form-check-input" type="checkbox" name="modules[{{ module_name }}][active]" value="true" {% if module_state.active %}checked{% endif %}>
+                  <label class="form-check-label">{{ module_name|title }}</label>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          </div>
+
+          <div id="core-settings-message" class="form-text"></div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-12 col-xl-5">
+    <div class="panel card shadow-sm h-100">
+      <div class="card-body">
+        <div class="section-heading">
+          <h2 class="section-title mb-0">Active Module Navigation</h2>
+        </div>
+        <div class="vstack gap-3">
+          {% for module_name, module_payload in modules.items() %}
+          <div class="module-settings-card card border-0 shadow-sm">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                  <div class="eyebrow">{{ module_name }}</div>
+                  <div class="text-secondary small">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</div>
+                </div>
+                <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}/settings">Open</a>
+              </div>
+              <div class="module-stats mb-3">
+                <div><span>Status</span><strong>{{ 'active' if module_payload.active else 'inactive' }}</strong></div>
+                <div><span>Devices</span><strong>{{ module_payload.runtime.folder }}</strong></div>
+                <div><span>Backups</span><strong>{{ module_payload.backups|default([])|length }}</strong></div>
+              </div>
+              <a class="btn btn-outline-secondary btn-sm" href="/module/{{ module_name }}">Live page</a>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+  
+    <section class="section-heading mb-3">
+      <h2 class="section-title mb-0">Active Module Settings</h2>
+    </section>
+  
+    <section class="row g-4 mb-4">
+      {% for module_name, module_payload in modules.items() %}
+      <div class="col-12 col-xxl-4">
+        <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+              <div>
+                <div class="eyebrow">{{ module_name }}</div>
+                <h3 class="section-title h5 mb-1">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h3>
+                <div class="text-secondary small">Visible only while the module is active.</div>
+              </div>
+              <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}">Live</a>
+            </div>
+  
+            <form id="module-core-settings-form-{{ module_name }}" class="vstack gap-3" data-module-name="{{ module_name }}">
+              {% if module_name == 'ina' %}
+              <div class="row g-3">
+                <div class="col-6">
+                  <label class="form-label">Solar poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Wind poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Battery poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
+                </div>
+                <div class="col-6">
+                  <label class="form-label">Max log</label>
+                  <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle module-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>ID</th>
+                      <th>Remote GPIO</th>
+                      <th>GPIO Address</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for device in module_payload.module_config.devices %}
+                    <tr>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
+                      <td><input class="form-control form-control-sm" type="number" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
+                      <td>
+                        <div class="form-check form-switch mt-2">
+                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="false">
+                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="true" {% if device.remote_gpio %}checked{% endif %}>
+                        </div>
+                      </td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][gpio_address]" value="{{ device.gpio_address }}"></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% elif module_name == 'victron' %}
+              <div class="row g-3">
+                <div class="col-4">
+                  <label class="form-label">Bluetooth adapter</label>
+                  <input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module_payload.module_config.bluetooth.adapter }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Connection timeout</label>
+                  <input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module_payload.module_config.bluetooth.connection_timeout }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Scan timeout</label>
+                  <input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module_payload.module_config.bluetooth.scan_timeout }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Battery poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Solar poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Wind poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle module-table">
+                  <thead>
+                    <tr>
+                      <th>Enabled</th>
+                      <th>Type</th>
+                      <th>Name</th>
+                      <th>MAC</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for device in module_payload.module_config.devices %}
+                    <tr>
+                      <td>
+                        <div class="form-check form-switch mt-2">
+                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
+                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
+                        </div>
+                      </td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][device_type]" value="{{ device.device_type }}"></td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][mac]" value="{{ device.mac }}"></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% elif module_name == 'mppt' %}
+              <div class="row g-3">
+                <div class="col-3">
+                  <label class="form-label">Solar poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
+                </div>
+                <div class="col-3">
+                  <label class="form-label">Wind poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
+                </div>
+                <div class="col-3">
+                  <label class="form-label">Battery poll interval</label>
+                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
+                </div>
+                <div class="col-3">
+                  <label class="form-label">Max log</label>
+                  <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
+                </div>
+              </div>
+              <div class="row g-3">
+                <div class="col-4">
+                  <label class="form-label">Log interval</label>
+                  <input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module_payload.module_config.monitoring.log_interval }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Overvoltage threshold</label>
+                  <input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module_payload.module_config.monitoring.overvoltage_threshold }}">
+                </div>
+                <div class="col-4">
+                  <label class="form-label">Undervoltage threshold</label>
+                  <input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module_payload.module_config.monitoring.undervoltage_threshold }}">
+                </div>
+              </div>
+              <div class="table-responsive">
+                <table class="table table-sm align-middle module-table">
+                  <thead>
+                    <tr>
+                      <th>Enabled</th>
+                      <th>ID</th>
+                      <th>Name</th>
+                      <th>Connection</th>
+                      <th>Serial port</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for device in module_payload.module_config.devices %}
+                    <tr>
+                      <td>
+                        <div class="form-check form-switch mt-2">
+                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
+                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
+                        </div>
+                      </td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][connection_type]" value="{{ device.connection_type }}"></td>
+                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][serial][port]" value="{{ device.serial.port }}"></td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              {% endif %}
+              <div class="d-flex flex-wrap gap-2">
+                <button type="button" class="btn btn-primary btn-sm" data-module-save="{{ module_name }}">Save module settings</button>
+                <a class="btn btn-outline-secondary btn-sm" href="/module/{{ module_name }}/settings">Open detailed page</a>
+              </div>
+              <div class="form-text" id="module-core-settings-message-{{ module_name }}"></div>
+            </form>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </section>
+</section>
+{% endblock %}

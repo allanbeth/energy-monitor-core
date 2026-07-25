@@ -1,0 +1,27 @@
+{
+  "module": "victron",
+  "system_dependencies": [
+    {
+      "apt": "bluez",
+      "command": "bluetoothctl",
+      "optional": false
+    },
+    {
+      "apt": "dbus",
+      "command": "dbus-daemon",
+      "optional": false
+    }
+  ],
+  "python_dependencies": [
+    {
+      "pip": "bleak",
+      "import": "bleak",
+      "optional": false
+    },
+    {
+      "pip": "pycryptodome",
+      "import": "Crypto",
+      "optional": true
+    }
+  ]
+}

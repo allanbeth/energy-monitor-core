@@ -1,0 +1,11 @@
+[
+  {
+    "name": "BSC IP67 12/25 HQ183142L7H Charger",
+    "address": "auto:device_001:charger:1",
+    "type": "Charger",
+    "max_power": 300.0,
+    "rating": 12.0,
+    "device_id": "device_001",
+    "source_device_type": "charger"
+  }
+]

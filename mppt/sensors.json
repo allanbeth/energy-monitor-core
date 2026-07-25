@@ -1,0 +1,29 @@
+[
+  {
+    "name": "MPPT Controller Solar",
+    "address": "auto:device_001:solar:1",
+    "type": "Solar",
+    "max_power": 3000.0,
+    "rating": 24.0,
+    "device_id": "device_001",
+    "source_device_type": "mppt"
+  },
+  {
+    "name": "MPPT Controller Battery",
+    "address": "auto:device_001:battery:2",
+    "type": "Battery",
+    "max_power": 3000.0,
+    "rating": 24.0,
+    "device_id": "device_001",
+    "source_device_type": "mppt"
+  },
+  {
+    "name": "MPPT Controller Charger",
+    "address": "auto:device_001:charger:3",
+    "type": "Charger",
+    "max_power": 3000.0,
+    "rating": 24.0,
+    "device_id": "device_001",
+    "source_device_type": "mppt"
+  }
+]

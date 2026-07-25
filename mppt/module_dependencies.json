@@ -1,0 +1,15 @@
+{
+  "module": "mppt",
+  "python_dependencies": [
+    {
+      "pip": "pymodbus",
+      "import": "pymodbus",
+      "optional": false
+    },
+    {
+      "pip": "pyserial",
+      "import": "serial",
+      "optional": false
+    }
+  ]
+}

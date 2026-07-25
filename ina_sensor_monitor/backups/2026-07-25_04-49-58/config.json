@@ -1,0 +1,45 @@
+{
+  "devices": [
+    {
+      "name": "Rpi 3B",
+      "id": 0,
+      "remote_gpio": 1,
+      "gpio_address": "192.168.1.138"
+    },
+    {
+      "name": "Rpi 4",
+      "id": 1,
+      "remote_gpio": 1,
+      "gpio_address": "192.168.1.123"
+    }
+  ],
+  "poll_intervals": {
+    "Wind": 7,
+    "Solar": 5,
+    "Battery": 10
+  },
+  "max_log": 11,
+  "max_readings": 20,
+  "mqtt_broker": "localhost",
+  "mqtt_port": 1883,
+  "strict_variant_mode": false,
+  "variant_profile_overrides": {
+    "INA219": {
+      "current_lsb": 9.765625e-05
+    },
+    "INA226": {
+      "current_lsb": 0.001,
+      "voltage_lsb": 0.00125
+    },
+    "INA228": {},
+    "INA237": {},
+    "INA238": {},
+    "INA260": {
+      "current_lsb": 0.00125,
+      "voltage_lsb": 0.00125
+    },
+    "INA3221": {
+      "shunt_resistance_ohms": 0.1
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "module": "ina",
+  "python_dependencies": [
+    {
+      "pip": "pigpio",
+      "import": "pigpio",
+      "optional": false
+    }
+  ]
+}

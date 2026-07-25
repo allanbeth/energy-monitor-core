@@ -1,0 +1,73 @@
+{
+  "ina_garden_battery": {
+    "state_topic": "energy_monitor_core/ina/sensors/garden_battery",
+    "availability_topic": "homeassistant/sensor/ina_garden_battery/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_garden_battery_voltage/config",
+      "homeassistant/sensor/ina_garden_battery_current/config",
+      "homeassistant/sensor/ina_garden_battery_power/config",
+      "homeassistant/sensor/ina_garden_battery_state_of_charge/config",
+      "homeassistant/sensor/ina_garden_battery_status/config"
+    ]
+  },
+  "ina_turbine_220w": {
+    "state_topic": "energy_monitor_core/ina/sensors/turbine_220w",
+    "availability_topic": "homeassistant/sensor/ina_turbine_220w/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_turbine_220w_voltage/config",
+      "homeassistant/sensor/ina_turbine_220w_current/config",
+      "homeassistant/sensor/ina_turbine_220w_power/config",
+      "homeassistant/sensor/ina_turbine_220w_output/config"
+    ]
+  },
+  "ina_turbine_1000w": {
+    "state_topic": "energy_monitor_core/ina/sensors/turbine_1000w",
+    "availability_topic": "homeassistant/sensor/ina_turbine_1000w/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_turbine_1000w_voltage/config",
+      "homeassistant/sensor/ina_turbine_1000w_current/config",
+      "homeassistant/sensor/ina_turbine_1000w_power/config",
+      "homeassistant/sensor/ina_turbine_1000w_output/config"
+    ]
+  },
+  "ina_solar_panel_200w": {
+    "state_topic": "energy_monitor_core/ina/sensors/solar_panel_200w",
+    "availability_topic": "homeassistant/sensor/ina_solar_panel_200w/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_solar_panel_200w_voltage/config",
+      "homeassistant/sensor/ina_solar_panel_200w_current/config",
+      "homeassistant/sensor/ina_solar_panel_200w_power/config",
+      "homeassistant/sensor/ina_solar_panel_200w_output/config"
+    ]
+  },
+  "ina_solar_panel_6w": {
+    "state_topic": "energy_monitor_core/ina/sensors/solar_panel_6w",
+    "availability_topic": "homeassistant/sensor/ina_solar_panel_6w/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_solar_panel_6w_voltage/config",
+      "homeassistant/sensor/ina_solar_panel_6w_current/config",
+      "homeassistant/sensor/ina_solar_panel_6w_power/config",
+      "homeassistant/sensor/ina_solar_panel_6w_output/config"
+    ]
+  },
+  "ina_house_battery": {
+    "state_topic": "energy_monitor_core/ina/sensors/house_battery",
+    "availability_topic": "homeassistant/sensor/ina_house_battery/availability",
+    "config_topics": [
+      "homeassistant/sensor/ina_house_battery_voltage/config",
+      "homeassistant/sensor/ina_house_battery_current/config",
+      "homeassistant/sensor/ina_house_battery_power/config",
+      "homeassistant/sensor/ina_house_battery_state_of_charge/config",
+      "homeassistant/sensor/ina_house_battery_status/config"
+    ]
+  },
+  "victron_bsc_ip67_12_25_hq183142l7h_charger": {
+    "state_topic": "energy_monitor_core/victron/sensors/bsc_ip67_12_25_hq183142l7h_charger",
+    "availability_topic": "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger/availability",
+    "config_topics": [
+      "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_voltage/config",
+      "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_current/config",
+      "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_power/config"
+    ]
+  }
+}
