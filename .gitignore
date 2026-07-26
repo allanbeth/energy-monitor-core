@@ -3,6 +3,12 @@ __pycache__/
 *.pyo
 *.pyd
 
+*.pyc
+*.log
+*.json
+*.service
+.cache/
+
 .venv/
 venv/
 env/
