@@ -1040,7 +1040,7 @@
       window.location.reload();
     });
     refreshAll().finally(hideLoadingScreen);
-    setInterval(refreshStatus, 15000);
+    setInterval(refreshStatus, 3000);
   }
 
   function bindCoreSettings() {
@@ -1183,7 +1183,7 @@
       }
       hideLoadingScreen();
     });
-    setInterval(refreshModuleSnapshot, 10000);
+    setInterval(refreshModuleSnapshot, 2000);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
