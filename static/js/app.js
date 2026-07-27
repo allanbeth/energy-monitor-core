@@ -42,6 +42,49 @@
     throw new Error("Server restarted; reloading session");
   }
 
+  function syncServerInstanceId() {
+    const currentServerInstanceId = String(window.EM_SERVER_INSTANCE_ID || "").trim();
+    if (!currentServerInstanceId) {
+      return;
+    }
+
+    const previousServerInstanceId = sessionStorage.getItem(serverInstanceKey);
+    if (!previousServerInstanceId) {
+      sessionStorage.setItem(serverInstanceKey, currentServerInstanceId);
+      return;
+    }
+
+    if (previousServerInstanceId !== currentServerInstanceId) {
+      sessionStorage.clear();
+      window.location.reload();
+    }
+  }
+
+  async function heartbeatServerInstance() {
+    try {
+      await request("/health", { method: "GET" });
+    } catch (error) {
+      void error;
+    }
+  }
+
+  let serverHeartbeatTimer = null;
+
+  function startServerHeartbeat() {
+    if (serverHeartbeatTimer !== null) {
+      return;
+    }
+
+    heartbeatServerInstance();
+    serverHeartbeatTimer = window.setInterval(heartbeatServerInstance, 10000);
+    window.addEventListener("focus", heartbeatServerInstance);
+    document.addEventListener("visibilitychange", () => {
+      if (!document.hidden) {
+        heartbeatServerInstance();
+      }
+    });
+  }
+
   async function request(path, options = {}) {
     const requestPath = resolvePath(path);
     const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
@@ -535,6 +578,93 @@
     }
   }
 
+  async function loadCoreBackups() {
+    const select = document.getElementById("core-backup-select");
+    if (!select) {
+      return;
+    }
+
+    try {
+      const payload = await request("/api/backups", { method: "GET" });
+      const backups = Array.isArray(payload?.core) ? payload.core : [];
+      if (!backups.length) {
+        select.innerHTML = '<option value="">No core backups found</option>';
+        select.disabled = true;
+        return;
+      }
+
+      select.disabled = false;
+      select.innerHTML = backups.map((entry) => {
+        const name = String(entry?.name || "").trim();
+        const label = String(entry?.created_at || name || "").trim();
+        return `<option value="${name}">${label}</option>`;
+      }).join("");
+    } catch (err) {
+      select.innerHTML = '<option value="">Failed to load backups</option>';
+      select.disabled = true;
+      void err;
+    }
+  }
+
+  async function restoreSelectedCoreBackup() {
+    const select = document.getElementById("core-backup-select");
+    const message = document.getElementById("core-settings-message");
+    const backupName = String(select?.value || "").trim();
+    if (!backupName) {
+      showMessage(message, "Select a backup to restore.", true);
+      return;
+    }
+
+    if (!window.confirm(`Restore core config from ${backupName}?`)) {
+      return;
+    }
+
+    showLoadingScreen("Restoring core backup...");
+    try {
+      await request(`/api/backups/core/${encodeURIComponent(backupName)}/restore`, { method: "POST" });
+      showMessage(message, `Restored ${backupName}. Reloading...`);
+      await loadCoreBackups();
+      window.setTimeout(() => window.location.reload(), 500);
+    } catch (err) {
+      hideLoadingScreen();
+      showMessage(message, err.message, true);
+    }
+  }
+
+  function exportCoreConfig() {
+    const form = document.getElementById("core-settings-form");
+    const message = document.getElementById("core-settings-message");
+    try {
+      const payload = form ? formToNestedJson(form, "") : {};
+      const content = JSON.stringify(payload, null, 2);
+      const blob = new Blob([content], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+      link.href = url;
+      link.download = `core-settings-export-${stamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showMessage(message, "Exported current settings JSON.");
+    } catch (err) {
+      showMessage(message, err.message || "Unable to export settings.", true);
+    }
+  }
+
+  async function runSelectedCoreBackup() {
+    const target = String(document.getElementById("core-backup-target")?.value || "core").toLowerCase();
+    if (target === "all") {
+      await backupAll();
+      await loadCoreBackups();
+      showMessage(document.getElementById("core-settings-message"), "Created backup for core and active modules.");
+      return;
+    }
+    await backupCore();
+    showMessage(document.getElementById("core-settings-message"), "Created core configuration backup.");
+  }
+
   async function saveInlineModuleSettings(moduleName, form, messageElement) {
     try {
       const payload = form ? formToNestedJson(form, "module_config") : {};
@@ -749,6 +879,7 @@
 
   async function backupCore() {
     await request("/api/backups/core", { method: "POST" });
+    await loadCoreBackups();
     await refreshAll();
   }
 
@@ -757,8 +888,44 @@
     await refreshAll();
   }
 
+  function setMqttPanelMode(mode) {
+    const mainPanel = document.getElementById("mqtt-main-panel");
+    const credentialsPanel = document.getElementById("mqtt-credentials-panel");
+    const advancedPanel = document.getElementById("mqtt-advanced-panel");
+    const backButton = document.getElementById("mqtt-back-btn");
+
+    if (!mainPanel || !credentialsPanel || !advancedPanel) {
+      return;
+    }
+
+    const normalized = String(mode || "main").toLowerCase();
+    mainPanel.classList.toggle("hidden", normalized !== "main");
+    credentialsPanel.classList.toggle("hidden", normalized !== "credentials");
+    advancedPanel.classList.toggle("hidden", normalized !== "advanced");
+    backButton?.classList.toggle("hidden", normalized === "main");
+  }
+
+  function toggleSystemOverviewModuleEdit() {
+    const panel = document.getElementById("system-overview-module-edit");
+    const button = document.getElementById("system-overview-toggle-btn");
+    if (!panel || !button) {
+      return;
+    }
+
+    const willShow = panel.classList.contains("hidden");
+    panel.classList.toggle("hidden", !willShow);
+
+    const icon = button.querySelector("i");
+    if (icon) {
+      icon.classList.toggle("fa-gear", !willShow);
+      icon.classList.toggle("fa-times", willShow);
+    }
+    button.title = willShow ? "Close module edit" : "Edit modules";
+  }
+
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
+    startServerHeartbeat();
     document.getElementById("refresh-btn")?.addEventListener("click", refreshAll);
     document.getElementById("backup-all-btn")?.addEventListener("click", backupAll);
     document.getElementById("update-credentials-btn")?.addEventListener("click", updateCredentials);
@@ -773,8 +940,36 @@
 
   function bindCoreSettings() {
     showLoadingScreen("Loading settings...");
-    document.getElementById("save-core-settings-btn")?.addEventListener("click", saveCoreSettings);
-    document.getElementById("backup-core-btn")?.addEventListener("click", backupCore);
+    startServerHeartbeat();
+    document.querySelectorAll('[data-core-action="save"]').forEach((button) => {
+      button.addEventListener("click", saveCoreSettings);
+    });
+    document.querySelectorAll('[data-core-action="backup"]').forEach((button) => {
+      button.addEventListener("click", runSelectedCoreBackup);
+    });
+    document.querySelectorAll('[data-core-action="restart"]').forEach((button) => {
+      button.addEventListener("click", restartWebserver);
+    });
+    document.querySelectorAll('[data-core-action="overview-toggle"]').forEach((button) => {
+      button.addEventListener("click", toggleSystemOverviewModuleEdit);
+    });
+    document.querySelectorAll('[data-core-action="credentials"]').forEach((button) => {
+      button.addEventListener("click", updateCredentials);
+    });
+    document.querySelectorAll('[data-core-action="export"]').forEach((button) => {
+      button.addEventListener("click", exportCoreConfig);
+    });
+    document.querySelectorAll('[data-core-action="mqtt-credentials"]').forEach((button) => {
+      button.addEventListener("click", () => setMqttPanelMode("credentials"));
+    });
+    document.querySelectorAll('[data-core-action="mqtt-advanced"]').forEach((button) => {
+      button.addEventListener("click", () => setMqttPanelMode("advanced"));
+    });
+    document.querySelectorAll('[data-core-action="mqtt-main"]').forEach((button) => {
+      button.addEventListener("click", () => setMqttPanelMode("main"));
+    });
+    document.getElementById("restore-core-btn")?.addEventListener("click", restoreSelectedCoreBackup);
+    document.getElementById("refresh-core-backups-btn")?.addEventListener("click", loadCoreBackups);
     document.querySelectorAll("[data-module-save]").forEach((button) => {
       button.addEventListener("click", async () => {
         const moduleName = button.getAttribute("data-module-save") || "";
@@ -787,11 +982,14 @@
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
     });
+    setMqttPanelMode("main");
+    loadCoreBackups();
     hideLoadingScreen();
   }
 
   function bindModulePage() {
     showLoadingScreen("Loading module data...");
+    startServerHeartbeat();
     document.getElementById("clear-module-filter-btn")?.addEventListener("click", () => applyModuleFilter(null));
     document.getElementById("add-sensor-btn")?.addEventListener("click", addSensorCardToGrid);
     document.querySelectorAll("[data-sensor-filter]").forEach((button) => {
@@ -863,6 +1061,8 @@
   }
 
   document.addEventListener("DOMContentLoaded", () => {
+    syncServerInstanceId();
+
     const loginForm = document.getElementById("login-form");
     if (loginForm) {
       loginForm.addEventListener("submit", handleLogin);

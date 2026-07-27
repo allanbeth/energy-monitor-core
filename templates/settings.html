@@ -5,162 +5,176 @@
 {% endblock %}
 
 {% block content %}
-<section class="row g-4 mb-4">
-  <div class="col-12">
-    <div class="panel card shadow-sm h-100">
-      <div class="card-body">
-        <div class="section-heading">
-          <h2 class="section-title mb-0">Core Settings</h2>
+<form id="core-settings-form" class="vstack gap-4">
+  <section class="settings-cards-grid">
+    <article class="panel card shadow-sm settings-card system-overview" id="system-overview-card">
+      <div class="card-header settings-card-header">
+        <div class="settings-card-icon"><i class="fa-solid fa-tachometer-alt"></i></div>
+        <div class="settings-card-title">
+          <h3>System Overview</h3>
+          <p>Current operational information</p>
         </div>
-        <form id="core-settings-form" class="vstack gap-4">
-          <div class="row g-3">
-            <div class="col-12 col-lg-4">
-              <div class="form-check form-switch mt-4">
-                <input type="hidden" name="auth[enabled]" value="false">
-                <input class="form-check-input" type="checkbox" name="auth[enabled]" value="true" {% if core_config.auth.enabled %}checked{% endif %}>
-                <label class="form-check-label">Authentication enabled</label>
-              </div>
-              <label class="form-label mt-3">Admin username</label>
-              <input class="form-control" type="text" name="auth[username]" value="{{ core_config.auth.username }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="form-check form-switch mt-4">
-                <input type="hidden" name="webserver[enabled]" value="false">
-                <input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}>
-                <label class="form-check-label">Webserver enabled</label>
-              </div>
-              <label class="form-label mt-3">Host</label>
-              <input class="form-control" type="text" name="webserver[host]" value="{{ core_config.webserver.host }}">
-              <label class="form-label mt-3">Port</label>
-              <input class="form-control" type="number" name="webserver[port]" value="{{ core_config.webserver.port }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="form-check form-switch mt-4">
-                <input type="hidden" name="mqtt[enabled]" value="false">
-                <input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}>
-                <label class="form-check-label">MQTT enabled</label>
-              </div>
-              <label class="form-label mt-3">Broker</label>
-              <input class="form-control" type="text" name="mqtt[broker]" value="{{ core_config.mqtt.broker }}">
-              <label class="form-label mt-3">Port</label>
-              <input class="form-control" type="number" name="mqtt[port]" value="{{ core_config.mqtt.port }}">
-            </div>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-12 col-lg-4">
-              <label class="form-label">MQTT username</label>
-              <input class="form-control" type="text" name="mqtt[username]" value="{{ core_config.mqtt.username }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">MQTT password</label>
-              <input class="form-control" type="password" name="mqtt[password]" value="{{ core_config.mqtt.password }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Client ID</label>
-              <input class="form-control" type="text" name="mqtt[client_id]" value="{{ core_config.mqtt.client_id }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Base topic</label>
-              <input class="form-control" type="text" name="mqtt[base_topic]" value="{{ core_config.mqtt.base_topic }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Discovery prefix</label>
-              <input class="form-control" type="text" name="mqtt[discovery_prefix]" value="{{ core_config.mqtt.discovery_prefix }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="form-check form-switch mt-4">
-                <input type="hidden" name="mqtt[one_time_broker_sweep]" value="false">
-                <input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}>
-                <label class="form-check-label">One-time broker sweep</label>
-              </div>
-              <div class="form-check form-switch mt-3">
-                <input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false">
-                <input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}>
-                <label class="form-check-label">Aggressive sweep</label>
-              </div>
-            </div>
-          </div>
-
-          <div class="row g-3">
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Config version</label>
-              <input class="form-control" type="text" name="general[version]" value="{{ core_config.general.version }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Auto backup frequency</label>
-              <input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Max backup files</label>
-              <input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}">
-            </div>
-            <div class="col-12 col-lg-4">
-              <div class="form-check form-switch mt-4">
-                <input type="hidden" name="general[auto_backup_enabled]" value="false">
-                <input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}>
-                <label class="form-check-label">Auto backup enabled</label>
-              </div>
-            </div>
-            <div class="col-12 col-lg-4">
-              <label class="form-label">Log size</label>
-              <input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}">
-            </div>
-          </div>
-
-          <div>
-            <div class="section-heading mb-2">
-              <h3 class="section-title h6 mb-0">Module activation</h3>
-            </div>
-            <div class="row g-2">
-              {% for module_name, module_state in status.modules.items() %}
-              <div class="col-12 col-md-4">
-                <div class="form-check form-switch">
-                  <input type="hidden" name="modules[{{ module_name }}][active]" value="false">
-                  <input class="form-check-input" type="checkbox" name="modules[{{ module_name }}][active]" value="true" {% if module_state.active %}checked{% endif %}>
-                  <label class="form-check-label">{{ module_name|title }}</label>
-                </div>
-              </div>
-              {% endfor %}
-            </div>
-          </div>
-
-          <div class="d-flex flex-wrap gap-2 align-items-center">
-            <button id="save-core-settings-btn" type="button" class="btn btn-primary btn-sm">Save settings</button>
-            <div id="core-settings-message" class="form-text"></div>
-          </div>
-        </form>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="overview-toggle" id="system-overview-toggle-btn" title="Edit Modules"><i class="fa-solid fa-cog"></i></button>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Changes"><i class="fa-solid fa-save"></i></button>
+        </div>
       </div>
-    </div>
-  </div>
-</section>
+      <div class="card-body settings-card-content">
+        <input type="hidden" name="auth[enabled]" value="true">
+        <div class="settings-entry"><label>System Status</label><span class="status-value status-connected">Running</span></div>
+        <div class="settings-entry"><label>Total Modules</label><span class="status-value">{{ status.modules|length }}</span></div>
+        <div class="settings-entry"><label>Active Modules</label><span class="status-value">{{ status.active_module_count }}</span></div>
+        <div class="settings-entry"><label>Authentication</label><span class="status-value status-connected">Required</span></div>
+        <div class="settings-edit hidden" id="system-overview-module-edit">
+          {% for module_name, module_state in status.modules.items() %}
+          <div class="settings-entry">
+            <label>{{ module_name|title }}</label>
+            <span>
+              <input type="hidden" name="modules[{{ module_name }}][active]" value="false">
+              <input class="form-check-input" type="checkbox" name="modules[{{ module_name }}][active]" value="true" {% if module_state.active %}checked{% endif %}>
+            </span>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+    </article>
+
+    <article class="panel card shadow-sm settings-card general-settings" id="general-settings-card">
+      <div class="card-header settings-card-header">
+        <div class="settings-card-icon"><i class="fa-solid fa-sliders"></i></div>
+        <div class="settings-card-title">
+          <h3>General Settings</h3>
+          <p>Core runtime preferences and storage path</p>
+        </div>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="export" title="Export Config"><i class="fa-solid fa-file-arrow-down"></i></button>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save General Settings"><i class="fa-solid fa-save"></i></button>
+        </div>
+      </div>
+      <div class="card-body settings-card-content">
+        <div class="settings-entry"><label>Config version</label><input class="form-control" type="text" name="general[version]" value="{{ core_config.general.version }}"></div>
+        <div class="settings-entry"><label>Auto backup frequency</label><input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}"></div>
+        <div class="settings-entry"><label>Max backup files</label><input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}"></div>
+        <div class="settings-entry"><label>Log size</label><input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}"></div>
+        <div class="settings-entry"><label>Auto backup enabled</label><span><input type="hidden" name="general[auto_backup_enabled]" value="false"><input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}></span></div>
+      </div>
+    </article>
+
+    <article class="panel card shadow-sm settings-card mqtt-settings" id="mqtt-settings-card">
+      <div class="card-header settings-card-header">
+        <div class="settings-card-icon"><i class="fa-solid fa-network-wired"></i></div>
+        <div class="settings-card-title">
+          <h3>MQTT Configuration</h3>
+          <p>Message broker connectivity</p>
+        </div>
+        <div class="settings-actions">
+          <span class="status-value {{ mqtt_connection_class }}">{{ mqtt_connection_state }}</span>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" id="mqtt-save-btn" data-core-action="mqtt-save-main" title="Save MQTT Settings"><i class="fa-solid fa-save"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" id="mqtt-edit-credentials-btn" data-core-action="mqtt-credentials" title="Edit MQTT Credentials"><i class="fa-solid fa-key"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" id="mqtt-edit-advanced-btn" data-core-action="mqtt-advanced" title="Edit MQTT Advanced Settings"><i class="fa-solid fa-gear"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="mqtt-cancel-credentials-btn" data-core-action="mqtt-main" title="Cancel MQTT Credentials Edit"><i class="fa-solid fa-times"></i></button>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="mqtt-save-credentials-btn" data-core-action="mqtt-save-credentials" title="Save MQTT Credentials"><i class="fa-solid fa-save"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="mqtt-cancel-advanced-btn" data-core-action="mqtt-main" title="Cancel MQTT Advanced Settings Edit"><i class="fa-solid fa-times"></i></button>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="mqtt-save-advanced-btn" data-core-action="mqtt-save-advanced" title="Save MQTT Advanced Settings"><i class="fa-solid fa-save"></i></button>
+        </div>
+      </div>
+      <div class="card-body settings-card-content">
+        <div id="mqtt-main-panel" class="settings-entries">
+          <div class="settings-entry"><label>MQTT enabled</label><span><input type="hidden" name="mqtt[enabled]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}></span></div>
+          <div class="settings-entry"><label>Broker</label><input class="form-control" type="text" name="mqtt[broker]" value="{{ core_config.mqtt.broker }}"></div>
+          <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="mqtt[port]" value="{{ core_config.mqtt.port }}"></div>
+        </div>
+        <div id="mqtt-credentials-panel" class="settings-edit hidden">
+          <div class="settings-entry"><label>MQTT username</label><input class="form-control" type="text" name="mqtt[username]" value="{{ core_config.mqtt.username }}"></div>
+          <div class="settings-entry"><label>MQTT password</label><input class="form-control" type="password" name="mqtt[password]" value="{{ core_config.mqtt.password }}"></div>
+          <div class="settings-entry"><label>Confirm password</label><input class="form-control" type="password" id="mqtt-password-confirm" value="{{ core_config.mqtt.password }}"></div>
+        </div>
+        <div id="mqtt-advanced-panel" class="settings-edit hidden">
+          <div class="settings-entry"><label>Client ID</label><input class="form-control" type="text" name="mqtt[client_id]" value="{{ core_config.mqtt.client_id }}"></div>
+          <div class="settings-entry"><label>Base topic</label><input class="form-control" type="text" name="mqtt[base_topic]" value="{{ core_config.mqtt.base_topic }}"></div>
+          <div class="settings-entry"><label>Discovery prefix</label><input class="form-control" type="text" name="mqtt[discovery_prefix]" value="{{ core_config.mqtt.discovery_prefix }}"></div>
+          <div class="settings-entry"><label>One-time broker sweep</label><span><input type="hidden" name="mqtt[one_time_broker_sweep]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}></span></div>
+          <div class="settings-entry"><label>Aggressive sweep</label><span><input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}></span></div>
+        </div>
+      </div>
+    </article>
+
+    <article class="panel card shadow-sm settings-card webserver-settings" id="webserver-settings-card">
+      <div class="card-header settings-card-header">
+        <div class="settings-card-icon"><i class="fa-solid fa-server"></i></div>
+        <div class="settings-card-title">
+          <h3>Web Server</h3>
+          <p>Webserver configuration</p>
+        </div>
+        <div class="settings-actions">
+          <span class="status-value {{ webserver_connection_class }}">{{ webserver_connection_state }}</span>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Web Server Settings"><i class="fa-solid fa-save"></i></button>
+        </div>
+      </div>
+      <div class="card-body settings-card-content">
+        <div class="settings-entry"><label>Webserver enabled</label><span><input type="hidden" name="webserver[enabled]" value="false"><input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}></span></div>
+        <div class="settings-entry"><label>Host</label><input class="form-control" type="text" name="webserver[host]" value="{{ core_config.webserver.host }}"></div>
+        <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="webserver[port]" value="{{ core_config.webserver.port }}"></div>
+      </div>
+    </article>
+
+    <article class="panel card shadow-sm settings-card core-backup-settings" id="core-backup-settings-card">
+      <div class="card-header settings-card-header">
+        <div class="settings-card-icon"><i class="fa-solid fa-floppy-disk"></i></div>
+        <div class="settings-card-title">
+          <h3>Configuration Backup</h3>
+          <p>Backup selected core and module configuration files</p>
+        </div>
+        <div class="settings-actions">
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="backup" title="Backup Selected Config Files"><i class="fa-solid fa-download"></i></button>
+          <button type="button" id="refresh-core-backups-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Browse Core Backups"><i class="fa-solid fa-folder-open"></i></button>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Core Settings"><i class="fa-solid fa-save"></i></button>
+        </div>
+      </div>
+      <div class="card-body settings-card-content">
+        <div class="settings-entry"><label>Backup target</label><select id="core-backup-target" class="form-select"><option value="core">Core configuration only</option><option value="all">Core + all active modules</option></select></div>
+        <div class="settings-entry"><label>Restore backup</label><select id="core-backup-select" class="form-select"><option value="">Loading backups...</option></select></div>
+        <div class="settings-entry"><label>Restore selected</label><span><button type="button" id="restore-core-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Restore selected backup"><i class="fa-solid fa-file-import"></i></button></span></div>
+        <div id="core-settings-message" class="form-text"></div>
+      </div>
+    </article>
+  </section>
+</form>
 
 <section class="section-heading mb-3">
   <h2 class="section-title mb-0">Active Module Settings</h2>
 </section>
 
-<section class="row g-4 mb-4">
+<section class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
   {% for module_name, module_payload in modules.items() %}
   <div class="col-12 col-lg-6 col-xxl-4" id="active-module-{{ module_name }}">
     <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}">
-      <div class="card-body d-flex flex-column gap-3">
-        <div class="d-flex justify-content-between align-items-start gap-2">
-          <div>
+      <div class="card-header d-flex justify-content-between align-items-center gap-3">
+        <div>
           <div class="eyebrow">{{ module_name }}</div>
-          <h3 class="section-title h5 mb-1">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h3>
-          <div class="text-secondary small">Module configuration and device controls.</div>
-          </div>
+          <h3 class="section-title h5 mb-0">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h3>
+        </div>
+        <div class="d-flex gap-2 align-items-center">
           <a class="btn btn-outline-primary btn-sm action-icon-btn" href="/settings/module/{{ module_name }}" title="Open module settings">
-            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <i class="fa-solid fa-arrow-right"></i>
           </a>
         </div>
-        <div class="d-flex gap-2 mt-auto">
-          <a class="btn btn-primary btn-sm" href="/settings/module/{{ module_name }}">
-            <i class="fa-solid fa-gear me-1"></i> Configure
-          </a>
-          <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}">
-            <i class="fa-solid fa-wave-square me-1"></i> Live
-          </a>
+      </div>
+      <div class="card-body d-flex flex-column gap-3">
+        <div class="text-secondary small">Module configuration and device controls.</div>
+        <div class="module-stats">
+          <div>
+            <span>Connected</span>
+            <strong data-module-connected-count>{{ module_payload.connected_sensor_count }}</strong>
+          </div>
+          <div>
+            <span>Status</span>
+            <strong data-module-connection>{{ module_payload.connection_status }}</strong>
+          </div>
+          <div>
+            <span>Type</span>
+            <strong>{{ module_payload.definitions.get('sensor-title', module_name|title) }}</strong>
+          </div>
         </div>
       </div>
     </div>

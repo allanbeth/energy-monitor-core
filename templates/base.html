@@ -80,6 +80,7 @@
     window.EM_BASE_HREF = {{ base_href|tojson }};
     window.EM_PAGE_NAME = {{ page_name|default('dashboard')|tojson }};
     window.EM_MODULE_NAME = {{ module_name|default('')|tojson }};
+    window.EM_SERVER_INSTANCE_ID = {{ server_instance_id|default('')|tojson }};
   </script>
   <script src="static/js/app.js"></script>
 </body>

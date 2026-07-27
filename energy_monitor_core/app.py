@@ -114,6 +114,7 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         active_modules = config_manager.get_active_modules()
         return {
             "base_href": app.config.get("BASE_HREF", "/"),
+            "server_instance_id": instance_id,
             "sensor_type_options": ["solar", "wind", "battery", "charger"],
             "module_nav": [
                 {
@@ -226,15 +227,38 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         if not _is_authenticated():
             return redirect(url_for("index"))
 
+        core_config = config_manager.get_config()
         active_modules = config_manager.get_active_modules()
+
+        mqtt_enabled = bool((core_config.get("mqtt") or {}).get("enabled", False))
+        mqtt_connection_state = "Disabled"
+        if mqtt_enabled:
+            mqtt_connection_state = "Disconnected"
+        if mqtt_publisher:
+            mqtt_connection_state = str((mqtt_publisher.get_connection_status() or {}).get("state") or mqtt_connection_state)
+
+        webserver_enabled = bool((core_config.get("webserver") or {}).get("enabled", True))
+        webserver_connection_state = "Connected" if webserver_enabled else "Disabled"
+
+        def _connection_class(state: str) -> str:
+            normalized = str(state or "").strip().lower()
+            if normalized == "connected":
+                return "status-connected"
+            if normalized in {"disabled", "partial", "warning"}:
+                return "status-partial"
+            return "status-disconnected"
 
         return render_template(
             "settings.html",
             app_title="Core Settings",
             page_name="core-settings",
-            core_config=config_manager.get_config(),
+            core_config=core_config,
             modules=active_modules,
             status=config_manager.get_public_status(runtime_manager),
+            mqtt_connection_state=mqtt_connection_state,
+            mqtt_connection_class=_connection_class(mqtt_connection_state),
+            webserver_connection_state=webserver_connection_state,
+            webserver_connection_class=_connection_class(webserver_connection_state),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             **_base_context(),
         )
