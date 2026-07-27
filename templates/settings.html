@@ -108,6 +108,7 @@
         </div>
         <div class="settings-actions">
           <span class="status-value {{ webserver_connection_class }}">{{ webserver_connection_state }}</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="credentials" title="Update Login Credentials"><i class="fa-solid fa-key"></i></button>
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Web Server Settings"><i class="fa-solid fa-save"></i></button>
         </div>
       </div>
@@ -145,7 +146,7 @@
   <h2 class="section-title mb-0">Active Module Settings</h2>
 </section>
 
-<section class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4">
+<section class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4 active-modules-grid">
   {% for module_name, module_payload in modules.items() %}
   <div class="col-12 col-lg-6 col-xxl-4" id="active-module-{{ module_name }}">
     <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}">

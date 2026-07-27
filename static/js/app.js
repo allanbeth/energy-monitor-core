@@ -841,27 +841,103 @@
     window.EM_MODULE_FILTER = normalized;
   }
 
+  function bindCredentialsModal() {
+    const overlay = document.getElementById("credentials-modal-overlay");
+    const form = document.getElementById("credentials-modal-form");
+    const saveButton = document.getElementById("credentials-modal-save-btn");
+    const closeButton = document.getElementById("credentials-modal-close-btn");
+    const message = document.getElementById("credentials-modal-message");
+    const currentPasswordInput = document.getElementById("credentials-current-password");
+    const usernameInput = document.getElementById("credentials-new-username");
+    const newPasswordInput = document.getElementById("credentials-new-password");
+    const confirmPasswordInput = document.getElementById("credentials-confirm-password");
+
+    if (!overlay || !form || !saveButton || !closeButton || !message || !currentPasswordInput || !usernameInput || !newPasswordInput || !confirmPasswordInput) {
+      return;
+    }
+
+    if (overlay.dataset.bound === "true") {
+      return;
+    }
+
+    const closeModal = () => {
+      overlay.classList.add("hidden");
+      overlay.setAttribute("aria-hidden", "true");
+      form.reset();
+      showMessage(message, "");
+    };
+
+    const openModal = () => {
+      const defaultUsername = String(document.body.dataset.username || "admin").trim() || "admin";
+      usernameInput.value = defaultUsername;
+      currentPasswordInput.value = "";
+      newPasswordInput.value = "";
+      confirmPasswordInput.value = "";
+      showMessage(message, "");
+      overlay.classList.remove("hidden");
+      overlay.setAttribute("aria-hidden", "false");
+      currentPasswordInput.focus();
+    };
+
+    const submitModal = async () => {
+      const currentPassword = String(currentPasswordInput.value || "");
+      const newUsername = String(usernameInput.value || "").trim();
+      const newPassword = String(newPasswordInput.value || "");
+      const confirmPassword = String(confirmPasswordInput.value || "");
+
+      if (!currentPassword || !newUsername || !newPassword || !confirmPassword) {
+        showMessage(message, "All fields are required.", true);
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        showMessage(message, "New password and confirm password must match.", true);
+        return;
+      }
+
+      showLoadingScreen("Updating credentials...");
+      try {
+        await request("/api/auth/credentials", {
+          method: "PUT",
+          body: JSON.stringify({
+            current_password: currentPassword,
+            new_username: newUsername,
+            new_password: newPassword,
+          }),
+        });
+        closeModal();
+        window.location.reload();
+      } catch (err) {
+        hideLoadingScreen();
+        showMessage(message, err.message, true);
+      }
+    };
+
+    saveButton.addEventListener("click", submitModal);
+    closeButton.addEventListener("click", closeModal);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      submitModal();
+    });
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) {
+        closeModal();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && !overlay.classList.contains("hidden")) {
+        closeModal();
+      }
+    });
+
+    overlay.dataset.bound = "true";
+    window.EM_OPEN_CREDENTIALS_MODAL = openModal;
+  }
+
   async function updateCredentials() {
-    const currentPassword = window.prompt("Current password");
-    if (currentPassword === null) return;
-    const newUsername = window.prompt("New username", String(document.body.dataset.username || "admin"));
-    if (newUsername === null) return;
-    const newPassword = window.prompt("New password");
-    if (newPassword === null) return;
-    showLoadingScreen("Updating credentials...");
-    try {
-      await request("/api/auth/credentials", {
-        method: "PUT",
-        body: JSON.stringify({
-          current_password: currentPassword,
-          new_username: newUsername,
-          new_password: newPassword,
-        }),
-      });
-      window.location.reload();
-    } catch (err) {
-      hideLoadingScreen();
-      alert(err.message);
+    const openModal = window.EM_OPEN_CREDENTIALS_MODAL;
+    if (typeof openModal === "function") {
+      openModal();
+      return;
     }
   }
 
@@ -892,7 +968,15 @@
     const mainPanel = document.getElementById("mqtt-main-panel");
     const credentialsPanel = document.getElementById("mqtt-credentials-panel");
     const advancedPanel = document.getElementById("mqtt-advanced-panel");
-    const backButton = document.getElementById("mqtt-back-btn");
+    const saveMainButton = document.getElementById("mqtt-save-btn");
+    const editCredentialsButton = document.getElementById("mqtt-edit-credentials-btn");
+    const editAdvancedButton = document.getElementById("mqtt-edit-advanced-btn");
+    const cancelCredentialsButton = document.getElementById("mqtt-cancel-credentials-btn");
+    const saveCredentialsButton = document.getElementById("mqtt-save-credentials-btn");
+    const cancelAdvancedButton = document.getElementById("mqtt-cancel-advanced-btn");
+    const saveAdvancedButton = document.getElementById("mqtt-save-advanced-btn");
+    const mqttPassword = document.querySelector('input[name="mqtt[password]"]');
+    const mqttPasswordConfirm = document.getElementById("mqtt-password-confirm");
 
     if (!mainPanel || !credentialsPanel || !advancedPanel) {
       return;
@@ -902,7 +986,27 @@
     mainPanel.classList.toggle("hidden", normalized !== "main");
     credentialsPanel.classList.toggle("hidden", normalized !== "credentials");
     advancedPanel.classList.toggle("hidden", normalized !== "advanced");
-    backButton?.classList.toggle("hidden", normalized === "main");
+
+    if (saveMainButton) saveMainButton.classList.toggle("hidden", normalized !== "main");
+    if (editCredentialsButton) editCredentialsButton.classList.toggle("hidden", normalized !== "main");
+    if (editAdvancedButton) editAdvancedButton.classList.toggle("hidden", normalized !== "main");
+    if (cancelCredentialsButton) cancelCredentialsButton.classList.toggle("hidden", normalized !== "credentials");
+    if (saveCredentialsButton) saveCredentialsButton.classList.toggle("hidden", normalized !== "credentials");
+    if (cancelAdvancedButton) cancelAdvancedButton.classList.toggle("hidden", normalized !== "advanced");
+    if (saveAdvancedButton) saveAdvancedButton.classList.toggle("hidden", normalized !== "advanced");
+
+    if (normalized === "main" && mqttPassword instanceof HTMLInputElement && mqttPasswordConfirm instanceof HTMLInputElement) {
+      mqttPasswordConfirm.value = mqttPassword.value;
+    }
+  }
+
+  function mqttCredentialsMatch() {
+    const mqttPassword = document.querySelector('input[name="mqtt[password]"]');
+    const mqttPasswordConfirm = document.getElementById("mqtt-password-confirm");
+    if (!(mqttPassword instanceof HTMLInputElement) || !(mqttPasswordConfirm instanceof HTMLInputElement)) {
+      return true;
+    }
+    return String(mqttPassword.value || "") === String(mqttPasswordConfirm.value || "");
   }
 
   function toggleSystemOverviewModuleEdit() {
@@ -926,6 +1030,7 @@
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
     startServerHeartbeat();
+    bindCredentialsModal();
     document.getElementById("refresh-btn")?.addEventListener("click", refreshAll);
     document.getElementById("backup-all-btn")?.addEventListener("click", backupAll);
     document.getElementById("update-credentials-btn")?.addEventListener("click", updateCredentials);
@@ -941,6 +1046,7 @@
   function bindCoreSettings() {
     showLoadingScreen("Loading settings...");
     startServerHeartbeat();
+    bindCredentialsModal();
     document.querySelectorAll('[data-core-action="save"]').forEach((button) => {
       button.addEventListener("click", saveCoreSettings);
     });
@@ -967,6 +1073,26 @@
     });
     document.querySelectorAll('[data-core-action="mqtt-main"]').forEach((button) => {
       button.addEventListener("click", () => setMqttPanelMode("main"));
+    });
+    document.querySelectorAll('[data-core-action="mqtt-save-main"]').forEach((button) => {
+      button.addEventListener("click", saveCoreSettings);
+    });
+    document.querySelectorAll('[data-core-action="mqtt-save-credentials"]').forEach((button) => {
+      button.addEventListener("click", async () => {
+        const message = document.getElementById("core-settings-message");
+        if (!mqttCredentialsMatch()) {
+          showMessage(message, "MQTT password confirmation does not match.", true);
+          return;
+        }
+        await saveCoreSettings();
+        setMqttPanelMode("main");
+      });
+    });
+    document.querySelectorAll('[data-core-action="mqtt-save-advanced"]').forEach((button) => {
+      button.addEventListener("click", async () => {
+        await saveCoreSettings();
+        setMqttPanelMode("main");
+      });
     });
     document.getElementById("restore-core-btn")?.addEventListener("click", restoreSelectedCoreBackup);
     document.getElementById("refresh-core-backups-btn")?.addEventListener("click", loadCoreBackups);
@@ -1062,6 +1188,7 @@
 
   document.addEventListener("DOMContentLoaded", () => {
     syncServerInstanceId();
+    bindCredentialsModal();
 
     const loginForm = document.getElementById("login-form");
     if (loginForm) {

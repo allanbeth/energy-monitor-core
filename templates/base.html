@@ -20,7 +20,7 @@
   <link href="static/css/app.css" rel="stylesheet">
   {% block head %}{% endblock %}
 </head>
-<body data-page="{{ page_name | default('dashboard') }}">
+<body data-page="{{ page_name | default('dashboard') }}" data-username="{{ username|default('admin') }}">
   {% if page_name != 'login' %}
   <div class="app-shell sidebar-collapsed">
     <aside class="app-sidebar">
@@ -74,6 +74,42 @@
       <div class="loading-spinner"></div>
       <div class="loading-title">Loading Energy Monitor Core</div>
       <div class="loading-message" id="loading-message">Preparing dashboard...</div>
+    </div>
+  </div>
+  <div id="credentials-modal-overlay" class="dialog-container hidden" aria-hidden="true">
+    <div id="credentials-modal-card" class="panel card shadow-sm settings-card">
+      <div class="card-header d-flex justify-content-between align-items-center gap-2">
+        <h3 class="section-title h5 mb-0">Update Credentials</h3>
+        <div class="d-flex gap-2 align-items-center">
+          <button type="button" id="credentials-modal-save-btn" class="btn btn-outline-primary btn-sm action-icon-btn" title="Save credentials">
+            <i class="fa-solid fa-save"></i>
+          </button>
+          <button type="button" id="credentials-modal-close-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Close credentials dialog">
+            <i class="fa-solid fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="card-body">
+        <form id="credentials-modal-form" class="vstack gap-2" autocomplete="off">
+          <div class="settings-entry">
+            <label for="credentials-current-password">Current password</label>
+            <input id="credentials-current-password" class="form-control" type="password" name="current_password" required>
+          </div>
+          <div class="settings-entry">
+            <label for="credentials-new-username">New username</label>
+            <input id="credentials-new-username" class="form-control" type="text" name="new_username" required>
+          </div>
+          <div class="settings-entry">
+            <label for="credentials-new-password">New password</label>
+            <input id="credentials-new-password" class="form-control" type="password" name="new_password" required>
+          </div>
+          <div class="settings-entry">
+            <label for="credentials-confirm-password">Confirm password</label>
+            <input id="credentials-confirm-password" class="form-control" type="password" name="confirm_password" required>
+          </div>
+          <div id="credentials-modal-message" class="form-text"></div>
+        </form>
+      </div>
     </div>
   </div>
   <script>
