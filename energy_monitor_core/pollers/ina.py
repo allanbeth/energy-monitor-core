@@ -11,6 +11,26 @@ except Exception:  # pragma: no cover - optional runtime dependency
 
 
 class ModulePoller(BaseModulePoller):
+    def _format_i2c_address(self, address: Any) -> str:
+        try:
+            if address is None or address == "":
+                return ""
+            if isinstance(address, str):
+                normalized = address.strip().lower()
+                if not normalized:
+                    return ""
+                if normalized.startswith("0x"):
+                    parsed = int(normalized, 16)
+                elif normalized.isdigit():
+                    parsed = int(normalized, 10)
+                else:
+                    parsed = int(normalized, 16)
+            else:
+                parsed = int(address)
+            return f"0x{parsed:02x}"
+        except Exception:
+            return str(address or "")
+
     def _device_map(self, module_config: dict[str, Any]) -> dict[str, dict[str, Any]]:
         devices = module_config.get("devices", []) if isinstance(module_config, dict) else []
         return {str(device.get("id")): device for device in devices if isinstance(device, dict) and device.get("id") is not None}
@@ -66,10 +86,12 @@ class ModulePoller(BaseModulePoller):
             if connected:
                 connected = self._probe_sensor(pi, sensor.get("address"))
 
+            formatted_address = self._format_i2c_address(sensor.get("address"))
+
             sensor_payload = {
                 "name": sensor.get("name"),
                 "type": sensor.get("type"),
-                "address": sensor.get("address"),
+                "address": formatted_address,
                 "device_id": sensor.get("device_id"),
                 "variant": sensor.get("variant"),
                 "max_power": sensor.get("max_power"),

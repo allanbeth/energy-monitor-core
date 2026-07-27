@@ -1,15 +1,12 @@
 {% extends "base.html" %}
 
-{% block header_actions %}
-<div class="d-flex flex-wrap gap-2 align-items-center">
-  <button id="save-core-settings-btn" class="btn btn-primary btn-sm">Save settings</button>
-  <button id="logout-btn" class="btn btn-outline-danger btn-sm">Logout</button>
-</div>
+{% block page_actions %}
+<button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
 {% endblock %}
 
 {% block content %}
 <section class="row g-4 mb-4">
-  <div class="col-12 col-xl-7">
+  <div class="col-12">
     <div class="panel card shadow-sm h-100">
       <div class="card-body">
         <div class="section-heading">
@@ -128,235 +125,46 @@
             </div>
           </div>
 
-          <div id="core-settings-message" class="form-text"></div>
+          <div class="d-flex flex-wrap gap-2 align-items-center">
+            <button id="save-core-settings-btn" type="button" class="btn btn-primary btn-sm">Save settings</button>
+            <div id="core-settings-message" class="form-text"></div>
+          </div>
         </form>
       </div>
     </div>
   </div>
+</section>
 
-  <div class="col-12 col-xl-5">
-    <div class="panel card shadow-sm h-100">
-      <div class="card-body">
-        <div class="section-heading">
-          <h2 class="section-title mb-0">Active Module Navigation</h2>
-        </div>
-        <div class="vstack gap-3">
-          {% for module_name, module_payload in modules.items() %}
-          <div class="module-settings-card card border-0 shadow-sm">
-            <div class="card-body">
-              <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
-                <div>
-                  <div class="eyebrow">{{ module_name }}</div>
-                  <div class="text-secondary small">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</div>
-                </div>
-                <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}/settings">Open</a>
-              </div>
-              <div class="module-stats mb-3">
-                <div><span>Status</span><strong>{{ 'active' if module_payload.active else 'inactive' }}</strong></div>
-                <div><span>Devices</span><strong>{{ module_payload.runtime.folder }}</strong></div>
-                <div><span>Backups</span><strong>{{ module_payload.backups|default([])|length }}</strong></div>
-              </div>
-              <a class="btn btn-outline-secondary btn-sm" href="/module/{{ module_name }}">Live page</a>
-            </div>
+<section class="section-heading mb-3">
+  <h2 class="section-title mb-0">Active Module Settings</h2>
+</section>
+
+<section class="row g-4 mb-4">
+  {% for module_name, module_payload in modules.items() %}
+  <div class="col-12 col-lg-6 col-xxl-4" id="active-module-{{ module_name }}">
+    <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}">
+      <div class="card-body d-flex flex-column gap-3">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div>
+          <div class="eyebrow">{{ module_name }}</div>
+          <h3 class="section-title h5 mb-1">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h3>
+          <div class="text-secondary small">Module configuration and device controls.</div>
           </div>
-          {% endfor %}
+          <a class="btn btn-outline-primary btn-sm action-icon-btn" href="/settings/module/{{ module_name }}" title="Open module settings">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+          </a>
+        </div>
+        <div class="d-flex gap-2 mt-auto">
+          <a class="btn btn-primary btn-sm" href="/settings/module/{{ module_name }}">
+            <i class="fa-solid fa-gear me-1"></i> Configure
+          </a>
+          <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}">
+            <i class="fa-solid fa-wave-square me-1"></i> Live
+          </a>
         </div>
       </div>
     </div>
   </div>
-  
-    <section class="section-heading mb-3">
-      <h2 class="section-title mb-0">Active Module Settings</h2>
-    </section>
-  
-    <section class="row g-4 mb-4">
-      {% for module_name, module_payload in modules.items() %}
-      <div class="col-12 col-xxl-4">
-        <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}">
-          <div class="card-body">
-            <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-              <div>
-                <div class="eyebrow">{{ module_name }}</div>
-                <h3 class="section-title h5 mb-1">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h3>
-                <div class="text-secondary small">Visible only while the module is active.</div>
-              </div>
-              <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}">Live</a>
-            </div>
-  
-            <form id="module-core-settings-form-{{ module_name }}" class="vstack gap-3" data-module-name="{{ module_name }}">
-              {% if module_name == 'ina' %}
-              <div class="row g-3">
-                <div class="col-6">
-                  <label class="form-label">Solar poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Wind poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Battery poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-                </div>
-                <div class="col-6">
-                  <label class="form-label">Max log</label>
-                  <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
-                </div>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle module-table">
-                  <thead>
-                    <tr>
-                      <th>Name</th>
-                      <th>ID</th>
-                      <th>Remote GPIO</th>
-                      <th>GPIO Address</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for device in module_payload.module_config.devices %}
-                    <tr>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                      <td><input class="form-control form-control-sm" type="number" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
-                      <td>
-                        <div class="form-check form-switch mt-2">
-                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="false">
-                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="true" {% if device.remote_gpio %}checked{% endif %}>
-                        </div>
-                      </td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][gpio_address]" value="{{ device.gpio_address }}"></td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% elif module_name == 'victron' %}
-              <div class="row g-3">
-                <div class="col-4">
-                  <label class="form-label">Bluetooth adapter</label>
-                  <input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module_payload.module_config.bluetooth.adapter }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Connection timeout</label>
-                  <input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module_payload.module_config.bluetooth.connection_timeout }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Scan timeout</label>
-                  <input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module_payload.module_config.bluetooth.scan_timeout }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Battery poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Solar poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Wind poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-                </div>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle module-table">
-                  <thead>
-                    <tr>
-                      <th>Enabled</th>
-                      <th>Type</th>
-                      <th>Name</th>
-                      <th>MAC</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for device in module_payload.module_config.devices %}
-                    <tr>
-                      <td>
-                        <div class="form-check form-switch mt-2">
-                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
-                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
-                        </div>
-                      </td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][device_type]" value="{{ device.device_type }}"></td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][mac]" value="{{ device.mac }}"></td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% elif module_name == 'mppt' %}
-              <div class="row g-3">
-                <div class="col-3">
-                  <label class="form-label">Solar poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-                </div>
-                <div class="col-3">
-                  <label class="form-label">Wind poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-                </div>
-                <div class="col-3">
-                  <label class="form-label">Battery poll interval</label>
-                  <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-                </div>
-                <div class="col-3">
-                  <label class="form-label">Max log</label>
-                  <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
-                </div>
-              </div>
-              <div class="row g-3">
-                <div class="col-4">
-                  <label class="form-label">Log interval</label>
-                  <input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module_payload.module_config.monitoring.log_interval }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Overvoltage threshold</label>
-                  <input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module_payload.module_config.monitoring.overvoltage_threshold }}">
-                </div>
-                <div class="col-4">
-                  <label class="form-label">Undervoltage threshold</label>
-                  <input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module_payload.module_config.monitoring.undervoltage_threshold }}">
-                </div>
-              </div>
-              <div class="table-responsive">
-                <table class="table table-sm align-middle module-table">
-                  <thead>
-                    <tr>
-                      <th>Enabled</th>
-                      <th>ID</th>
-                      <th>Name</th>
-                      <th>Connection</th>
-                      <th>Serial port</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {% for device in module_payload.module_config.devices %}
-                    <tr>
-                      <td>
-                        <div class="form-check form-switch mt-2">
-                          <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
-                          <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
-                        </div>
-                      </td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][connection_type]" value="{{ device.connection_type }}"></td>
-                      <td><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][serial][port]" value="{{ device.serial.port }}"></td>
-                    </tr>
-                    {% endfor %}
-                  </tbody>
-                </table>
-              </div>
-              {% endif %}
-              <div class="d-flex flex-wrap gap-2">
-                <button type="button" class="btn btn-primary btn-sm" data-module-save="{{ module_name }}">Save module settings</button>
-                <a class="btn btn-outline-secondary btn-sm" href="/module/{{ module_name }}/settings">Open detailed page</a>
-              </div>
-              <div class="form-text" id="module-core-settings-message-{{ module_name }}"></div>
-            </form>
-          </div>
-        </div>
-      </div>
-      {% endfor %}
-    </section>
+  {% endfor %}
 </section>
 {% endblock %}

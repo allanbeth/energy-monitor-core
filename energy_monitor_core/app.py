@@ -114,13 +114,14 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         active_modules = config_manager.get_active_modules()
         return {
             "base_href": app.config.get("BASE_HREF", "/"),
-            "sensor_type_options": ["solar", "wind", "battery"],
+            "sensor_type_options": ["solar", "wind", "battery", "charger"],
             "module_nav": [
                 {
                     "name": module_name,
                     "title": module_data.get("definitions", {}).get("sensor-title", module_name.title()),
+                    "icon": module_data.get("definitions", {}).get("icon", "fa-circle-dot"),
                     "module_url": f"/module/{module_name}",
-                    "settings_url": f"/module/{module_name}/settings",
+                    "settings_url": f"/settings/module/{module_name}",
                 }
                 for module_name, module_data in active_modules.items()
             ],
@@ -204,7 +205,7 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
                 **module_data,
                 "sensor_summary": module_snapshot.get("sensor_type_summary", {}),
                 "module_url": f"module/{module_name}",
-                "settings_url": f"module/{module_name}/settings",
+                "settings_url": f"settings/module/{module_name}",
                 "connection_status": module_snapshot.get("status", "disconnected"),
                 "connected_sensor_count": module_snapshot.get("connected_sensor_count", 0),
             })
@@ -214,6 +215,7 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             app_title="Energy Monitor Core",
             modules=dashboard_modules,
             status=config_manager.get_public_status(runtime_manager),
+            dashboard_trends=runtime_manager.get_aggregate_trends(),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             page_name="dashboard",
             **_base_context(),
@@ -256,29 +258,29 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             module_name=module_name,
             module_profile=module_profile,
             module_snapshot=module_snapshot,
+            module_history=runtime_manager.get_module_history(module_name),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             page_name="module",
             **_base_context(),
         )
 
-    @app.route("/module/<module_name>/settings")
-    def module_settings(module_name: str) -> Any:
+    @app.route("/settings/module/<module_name>")
+    def module_settings_page(module_name: str) -> Any:
         if not _is_authenticated():
             return redirect(url_for("index"))
 
-        if module_name not in config_manager.get_active_modules():
+        active_modules = config_manager.get_active_modules()
+        if module_name not in active_modules:
             return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
 
-        module_data = config_manager.get_module_payload(module_name)
-        module_profile = get_module_profile(module_name)
+        module_payload = active_modules[module_name]
+        module_title = module_payload.get("definitions", {}).get("settings-title", f"{module_name.title()} Settings")
         return render_template(
-            "settings.html",
-            app_title=f"{module_profile.get('title', module_name.title())} Settings",
+            "module_settings.html",
+            app_title=module_title,
             page_name="module-settings",
-            core_config=config_manager.get_config(),
-            module=module_data,
             module_name=module_name,
-            module_profile=module_profile,
+            module_payload=module_payload,
             status=config_manager.get_public_status(runtime_manager),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             **_base_context(),
@@ -356,6 +358,13 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         runtime_manager.refresh_module(module_name)
         return jsonify({"status": "success", "message": f"{module_name} updated"})
 
+    @app.route("/api/modules/<module_name>/history", methods=["GET"])
+    @require_auth
+    def module_history(module_name: str) -> Any:
+        if module_name not in config_manager.get_active_modules():
+            return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
+        return jsonify({"module": module_name, "history": runtime_manager.get_module_history(module_name)[-20:]})
+
     @app.route("/api/modules/<module_name>/snapshot", methods=["GET"])
     @require_auth
     def module_snapshot(module_name: str) -> Any:
@@ -428,6 +437,16 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
     @require_auth
     def backup_all() -> Any:
         return jsonify(backup_service.backup_all())
+
+    @app.route("/api/webserver/restart", methods=["POST"])
+    @require_auth
+    def restart_webserver() -> Any:
+        def _exit_later() -> None:
+            time.sleep(0.5)
+            os._exit(0)
+
+        threading.Thread(target=_exit_later, name="webserver-restart", daemon=True).start()
+        return jsonify({"status": "success", "message": "Webserver restarting"})
 
     @app.route("/api/backups/module/<module_name>", methods=["POST"])
     @require_auth

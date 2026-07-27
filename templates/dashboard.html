@@ -1,38 +1,146 @@
 {% extends "base.html" %}
 
-{% block header_actions %}
-<div class="d-flex flex-wrap gap-2 align-items-center">
-  <button id="refresh-btn" class="btn btn-outline-primary btn-sm">Refresh</button>
-  <button id="logout-btn" class="btn btn-outline-danger btn-sm">Logout</button>
-</div>
+{% block page_actions %}
+<button id="update-credentials-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Update user credentials"><i class="fa-solid fa-key"></i></button>
+<button id="restart-webserver-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Restart webserver"><i class="fa-solid fa-rotate-right"></i></button>
+<button id="refresh-btn" class="btn btn-outline-primary btn-sm action-icon-btn" title="Refresh dashboard"><i class="fa-solid fa-rotate"></i></button>
+<button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
 {% endblock %}
 
 {% block content %}
 <section class="hero-panel mb-4">
   <div class="row g-3">
-    {% for sensor_type in sensor_type_options %}
-    {% set summary = status.aggregate_totals.get(sensor_type, {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-{{ sensor_type }}">
-        <div class="metric-label">{{ sensor_type|title }}</div>
-        <div class="metric-value" data-aggregate-watts="{{ sensor_type }}">{{ summary.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="{{ sensor_type }}">{{ summary.get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="{{ sensor_type }}">{{ summary.get('current', 0) }}</span>
+      <div class="metric-card sensor-total dashboard-overview-card">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <div>
+            <div class="metric-label">Total Power</div>
+            <div class="metric-caption">Live aggregate output</div>
+          </div>
+          <div class="metric-icon"><i class="fa-solid fa-bolt"></i></div>
         </div>
-      </div>
-    </div>
-    {% endfor %}
-    <div class="col-12 col-md-3">
-      <div class="metric-card sensor-total">
-        <div class="metric-label">Total power</div>
         <div class="metric-value" data-aggregate-watts="overall">{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
           V <span data-aggregate-voltage="overall">{{ status.aggregate_totals.get('overall', {}).get('voltage', 0) }}</span> |
           A <span data-aggregate-current="overall">{{ status.aggregate_totals.get('overall', {}).get('current', 0) }}</span>
         </div>
+        {% set overall_trend = dashboard_trends.get('overall', []) %}
+        {% set overall_max = overall_trend | map(attribute='watts') | max if overall_trend else 0 %}
+        <div class="trend-strip" data-trend-series="overall">
+          {% for point in overall_trend %}
+          <span class="trend-bar" style="height: {{ ((point.watts / overall_max) * 100) if overall_max else 0 }}%"></span>
+          {% endfor %}
+        </div>
+        <div class="metric-footer">Sensors: <span data-aggregate-count="overall">{{ status.aggregate_totals.get('overall', {}).get('sensor_count', 0) }}</span></div>
+      </div>
+    </div>
+
+    {% set solar = status.aggregate_totals.get('solar', {}) %}
+    <div class="col-12 col-md-3">
+      <div class="metric-card sensor-solar dashboard-overview-card">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <div>
+            <div class="metric-label">Solar Power</div>
+            <div class="metric-caption">Live module output</div>
+          </div>
+          <div class="metric-icon"><i class="fa-solid fa-solar-panel"></i></div>
+        </div>
+        <div class="metric-value" data-aggregate-watts="solar">{{ solar.get('watts', 0) }}</div>
+        <div class="metric-subline">Watts</div>
+        <div class="metric-small">
+          V <span data-aggregate-voltage="solar">{{ solar.get('voltage', 0) }}</span> |
+          A <span data-aggregate-current="solar">{{ solar.get('current', 0) }}</span>
+        </div>
+        {% set solar_trend = dashboard_trends.get('solar', []) %}
+        {% set solar_max = solar_trend | map(attribute='watts') | max if solar_trend else 0 %}
+        <div class="trend-strip" data-trend-series="solar">
+          {% for point in solar_trend %}
+          <span class="trend-bar" style="height: {{ ((point.watts / solar_max) * 100) if solar_max else 0 }}%"></span>
+          {% endfor %}
+        </div>
+        <div class="metric-footer">Sensors: <span data-aggregate-count="solar">{{ solar.get('sensor_count', 0) }}</span></div>
+      </div>
+    </div>
+
+    {% set wind = status.aggregate_totals.get('wind', {}) %}
+    <div class="col-12 col-md-3">
+      <div class="metric-card sensor-wind dashboard-overview-card">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <div>
+            <div class="metric-label">Wind Power</div>
+            <div class="metric-caption">Live module output</div>
+          </div>
+          <div class="metric-icon"><i class="fa-solid fa-wind"></i></div>
+        </div>
+        <div class="metric-value" data-aggregate-watts="wind">{{ wind.get('watts', 0) }}</div>
+        <div class="metric-subline">Watts</div>
+        <div class="metric-small">
+          V <span data-aggregate-voltage="wind">{{ wind.get('voltage', 0) }}</span> |
+          A <span data-aggregate-current="wind">{{ wind.get('current', 0) }}</span>
+        </div>
+        {% set wind_trend = dashboard_trends.get('wind', []) %}
+        {% set wind_max = wind_trend | map(attribute='watts') | max if wind_trend else 0 %}
+        <div class="trend-strip" data-trend-series="wind">
+          {% for point in wind_trend %}
+          <span class="trend-bar" style="height: {{ ((point.watts / wind_max) * 100) if wind_max else 0 }}%"></span>
+          {% endfor %}
+        </div>
+        <div class="metric-footer">Sensors: <span data-aggregate-count="wind">{{ wind.get('sensor_count', 0) }}</span></div>
+      </div>
+    </div>
+
+    {% set battery = status.aggregate_totals.get('battery', {}) %}
+    <div class="col-12 col-md-3">
+      <div class="metric-card sensor-battery dashboard-overview-card">
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <div>
+            <div class="metric-label">Battery Power</div>
+            <div class="metric-caption">Live module output</div>
+          </div>
+          <div class="metric-icon"><i class="fa-solid fa-battery-full"></i></div>
+        </div>
+        <div class="metric-value" data-aggregate-watts="battery">{{ battery.get('watts', 0) }}</div>
+        <div class="metric-subline">Watts</div>
+        <div class="metric-small">
+          V <span data-aggregate-voltage="battery">{{ battery.get('voltage', 0) }}</span> |
+          A <span data-aggregate-current="battery">{{ battery.get('current', 0) }}</span>
+        </div>
+        {% set battery_trend = dashboard_trends.get('battery', []) %}
+        {% set battery_max = battery_trend | map(attribute='watts') | max if battery_trend else 0 %}
+        <div class="trend-strip" data-trend-series="battery">
+          {% for point in battery_trend %}
+          <span class="trend-bar" style="height: {{ ((point.watts / battery_max) * 100) if battery_max else 0 }}%"></span>
+          {% endfor %}
+        </div>
+        <div class="metric-footer">Sensors: <span data-aggregate-count="battery">{{ battery.get('sensor_count', 0) }}</span></div>
+      </div>
+    </div>
+
+    <div class="col-12 col-md-3">
+      {% set charger = status.aggregate_totals.get('charger', {}) %}
+      <div class="metric-card sensor-charger dashboard-overview-card {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
+        <div class="d-flex justify-content-between align-items-start gap-2 mb-1">
+          <div>
+            <div class="metric-label">Battery Charger</div>
+            <div class="metric-caption">Only shown while connected</div>
+          </div>
+          <div class="metric-icon"><i class="fa-solid fa-charging-station"></i></div>
+        </div>
+        <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
+        <div class="metric-subline">Watts</div>
+        <div class="metric-small">
+          V <span data-aggregate-voltage="charger">{{ charger.get('voltage', 0) }}</span> |
+          A <span data-aggregate-current="charger">{{ charger.get('current', 0) }}</span>
+        </div>
+        {% set charger_trend = dashboard_trends.get('charger', []) %}
+        {% set charger_max = charger_trend | map(attribute='watts') | max if charger_trend else 0 %}
+        <div class="trend-strip" data-trend-series="charger">
+          {% for point in charger_trend %}
+          <span class="trend-bar" style="height: {{ ((point.watts / charger_max) * 100) if charger_max else 0 }}%"></span>
+          {% endfor %}
+        </div>
+        <div class="metric-footer">Sensors: <span data-aggregate-count="charger">{{ charger.get('sensor_count', 0) }}</span></div>
       </div>
     </div>
   </div>

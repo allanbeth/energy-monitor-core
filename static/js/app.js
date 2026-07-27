@@ -1,21 +1,5 @@
 (function () {
-  const authTokenKey = "energy-monitor-core:auth-token";
   const serverInstanceKey = "energy-monitor-core:server-instance-id";
-
-  function getToken() {
-    return sessionStorage.getItem(authTokenKey) || "";
-  }
-
-  function setToken(token) {
-    const normalized = String(token || "").trim();
-    if (normalized) {
-      sessionStorage.setItem(authTokenKey, normalized);
-    }
-  }
-
-  function clearToken() {
-    sessionStorage.removeItem(authTokenKey);
-  }
 
   function getBaseHref() {
     const value = String(window.EM_BASE_HREF || "/").trim() || "/";
@@ -61,12 +45,11 @@
   async function request(path, options = {}) {
     const requestPath = resolvePath(path);
     const headers = Object.assign({ "Content-Type": "application/json" }, options.headers || {});
-    const token = getToken();
-    if (token && !requestPath.endsWith("/api/auth/login")) {
-      headers.Authorization = token;
-    }
 
-    const response = await fetch(requestPath, Object.assign({}, options, { headers }));
+    const response = await fetch(requestPath, Object.assign({}, options, {
+      headers,
+      credentials: "same-origin",
+    }));
     handleServerInstanceFromResponse(response);
     const payload = await response.json().catch(() => null);
     if (!response.ok) {
@@ -82,6 +65,220 @@
     element.textContent = message;
     element.classList.toggle("text-danger", !!isError);
     element.classList.toggle("text-success", !isError);
+  }
+
+  function formatTimestampToSecond(value) {
+    const raw = String(value || "").trim();
+    if (!raw) {
+      return "";
+    }
+    const parsed = new Date(raw);
+    if (Number.isNaN(parsed.getTime())) {
+      return raw.replace("T", " ").replace("Z", "").split(".")[0];
+    }
+    const pad = (part) => String(part).padStart(2, "0");
+    return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())} ${pad(parsed.getHours())}:${pad(parsed.getMinutes())}:${pad(parsed.getSeconds())}`;
+  }
+
+  function inferConnectionIcon(sensor) {
+    const source = `${sensor?.source_topic || ""} ${sensor?.variant || ""} ${sensor?.type || ""}`.toLowerCase();
+    if (source.includes("ble") || source.includes("bluetooth") || source.includes("wifi") || source.includes("wireless")) {
+      return "fa-wifi";
+    }
+    return "fa-network-wired";
+  }
+
+  function setConnectionIndicator(cardElement, sensor) {
+    if (!cardElement || !sensor) {
+      return;
+    }
+    const iconNode = cardElement.querySelector("[data-field='connection-icon']");
+    const textNode = cardElement.querySelector("[data-field='connection-text']");
+    const connected = !!sensor.connected;
+    if (iconNode) {
+      iconNode.classList.remove("fa-wifi", "fa-network-wired", "status-connected", "status-partial", "status-disconnected");
+      iconNode.classList.add(inferConnectionIcon(sensor));
+      iconNode.classList.add(connected ? "status-connected" : "status-disconnected");
+    }
+    if (textNode) {
+      textNode.textContent = connected ? "Connected" : "Disconnected";
+    }
+  }
+
+    function normalizeInaAddress(value) {
+      const text = String(value ?? "").trim().toLowerCase();
+      if (!text) {
+        return "";
+      }
+      if (text.startsWith("0x")) {
+        const parsed = Number.parseInt(text, 16);
+        return Number.isFinite(parsed) ? `0x${parsed.toString(16).padStart(2, "0")}` : text;
+      }
+      const parsedDec = Number.parseInt(text, 10);
+      if (Number.isFinite(parsedDec)) {
+        return `0x${parsedDec.toString(16).padStart(2, "0")}`;
+      }
+      const parsedHex = Number.parseInt(text, 16);
+      return Number.isFinite(parsedHex) ? `0x${parsedHex.toString(16).padStart(2, "0")}` : text;
+    }
+
+    function getModuleSnapshot() {
+      return window.EM_MODULE_SNAPSHOT || {};
+    }
+
+    function getModuleSensorConfig() {
+      const snapshot = getModuleSnapshot();
+      return Array.isArray(snapshot.sensor_config) ? snapshot.sensor_config : [];
+    }
+
+    function getSensorCardElement(sensorIndex) {
+      const suffix = sensorIndex === "new" ? "new" : String(sensorIndex);
+      return document.querySelector(`[data-sensor-row="${suffix}"]`);
+    }
+
+    function getSensorCardSection(sensorIndex, section) {
+      const suffix = sensorIndex === "new" ? "new" : String(sensorIndex);
+      return document.getElementById(`sensor-card-${section}-${suffix}`);
+    }
+
+    function getSensorActionContainer(sensorIndex) {
+      const suffix = sensorIndex === "new" ? "new" : String(sensorIndex);
+      return document.getElementById(`sensor-actions-${suffix}`);
+    }
+
+    function setSensorCardFeedback(sensorIndex, message, isError = false) {
+      const feedback = document.getElementById(`sensor-feedback-${sensorIndex}`);
+      if (!feedback) {
+        return;
+      }
+      feedback.textContent = message;
+      feedback.classList.toggle("hidden", !message);
+      feedback.classList.toggle("is-error", !!isError);
+    }
+
+    function setSensorCardMode(sensorIndex, mode) {
+      const card = getSensorCardElement(sensorIndex);
+      if (!card) {
+        return;
+      }
+
+      const normalizedMode = mode || "view";
+      card.dataset.cardMode = normalizedMode;
+
+      const viewSection = getSensorCardSection(sensorIndex, "view");
+      const configSection = getSensorCardSection(sensorIndex, "config");
+      const logsSection = getSensorCardSection(sensorIndex, "logs");
+
+      if (viewSection) viewSection.classList.toggle("hidden", normalizedMode !== "view");
+      if (configSection) configSection.classList.toggle("hidden", normalizedMode !== "config");
+      if (logsSection) logsSection.classList.toggle("hidden", normalizedMode !== "logs");
+
+      const actionContainer = getSensorActionContainer(sensorIndex);
+      if (actionContainer) {
+        if (normalizedMode === "config") {
+          actionContainer.innerHTML = `
+            <button type="button" class="sensor-action-btn" data-sensor-card-action="save" data-sensor-index="${sensorIndex}" title="Save sensor"><i class="fa-solid fa-floppy-disk"></i></button>
+            <button type="button" class="sensor-action-btn" data-sensor-card-action="cancel" data-sensor-index="${sensorIndex}" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+          `;
+        } else if (normalizedMode === "logs") {
+          actionContainer.innerHTML = `
+            <button type="button" class="sensor-action-btn" data-sensor-card-action="back" data-sensor-index="${sensorIndex}" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+          `;
+        } else {
+          actionContainer.innerHTML = `
+            <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="${sensorIndex}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
+            <button type="button" class="sensor-action-btn" data-sensor-card-action="logs" data-sensor-index="${sensorIndex}" title="Recent sensor data"><i class="fa-solid fa-book"></i></button>
+          `;
+        }
+      }
+
+      if (normalizedMode !== "config") {
+        setSensorCardFeedback(sensorIndex, "");
+      }
+    }
+
+    function getInaAvailableAddresses(deviceId, selectedAddress = "", sensorIndex = null) {
+      const selected = normalizeInaAddress(selectedAddress);
+      const usedAddresses = new Set();
+      const sensorConfig = getModuleSensorConfig();
+      const normalizedDeviceId = String(deviceId || "");
+
+      sensorConfig.forEach((sensor, index) => {
+        if (!sensor || typeof sensor !== "object") {
+          return;
+        }
+        if (sensorIndex !== null && String(index) === String(sensorIndex)) {
+          return;
+        }
+        if (String(sensor.device_id || "") !== normalizedDeviceId) {
+          return;
+        }
+        const address = normalizeInaAddress(sensor.address);
+        if (address) {
+          usedAddresses.add(address);
+        }
+      });
+
+      return ["0x40", "0x41", "0x42", "0x43", "0x44", "0x45", "0x46", "0x47", "0x48", "0x49", "0x4a", "0x4b", "0x4c", "0x4d", "0x4e", "0x4f"]
+        .filter((address) => !usedAddresses.has(address) || address === selected);
+    }
+
+    function populateInaAddressSelect(form, sensorIndex) {
+      if ((window.EM_MODULE_NAME || "") !== "ina" || !form) {
+        return;
+      }
+
+      const deviceSelect = form.querySelector("[data-ina-device-select]");
+      const addressSelect = form.querySelector("[data-ina-address-select]");
+      if (!deviceSelect || !addressSelect) {
+        return;
+      }
+
+      const deviceId = deviceSelect.value;
+      const selectedAddress = normalizeInaAddress(addressSelect.value || form.querySelector("[name='address']")?.value || "");
+      const currentIndex = sensorIndex === "new" ? null : Number(sensorIndex);
+
+      if (!deviceId) {
+        addressSelect.innerHTML = '<option value="" disabled selected>Select device first</option>';
+        addressSelect.disabled = true;
+        return;
+      }
+
+      const availableAddresses = getInaAvailableAddresses(deviceId, selectedAddress, currentIndex);
+      addressSelect.innerHTML = availableAddresses.length
+        ? availableAddresses.map((address) => `<option value="${address}" ${address === selectedAddress ? "selected" : ""}>${address}</option>`).join("")
+        : '<option value="" disabled selected>No available I2C addresses</option>';
+      addressSelect.disabled = availableAddresses.length === 0;
+      if (selectedAddress && availableAddresses.includes(selectedAddress)) {
+        addressSelect.value = selectedAddress;
+      } else if (availableAddresses.length > 0) {
+        addressSelect.value = availableAddresses[0];
+      }
+    }
+
+    function refreshInaAddressSelectors() {
+      document.querySelectorAll(".sensor-config-form").forEach((form) => {
+        const sensorIndex = form.getAttribute("data-sensor-index") || "";
+        populateInaAddressSelect(form, sensorIndex);
+      });
+    }
+
+  function showLoadingScreen(message = "Loading...") {
+    const screen = document.getElementById("loading-screen");
+    const messageNode = document.getElementById("loading-message");
+    if (screen) {
+      screen.hidden = false;
+    }
+    if (messageNode) {
+      messageNode.textContent = message;
+    }
+  }
+
+  function hideLoadingScreen() {
+    const screen = document.getElementById("loading-screen");
+    if (screen) {
+      screen.hidden = true;
+    }
   }
 
   function parseScalar(value) {
@@ -155,12 +352,24 @@
 
   function updateAggregateCards(status) {
     const aggregate = status.aggregate_totals || {};
+    const trends = status.dashboard_trends || {};
+
+    const overall = aggregate.overall || {};
+    const overallWatts = document.querySelector('[data-aggregate-watts="overall"]');
+    const overallVoltage = document.querySelector('[data-aggregate-voltage="overall"]');
+    const overallCurrent = document.querySelector('[data-aggregate-current="overall"]');
+    const overallCount = document.querySelector('[data-aggregate-count="overall"]');
+    if (overallWatts) overallWatts.textContent = String(overall.watts ?? 0);
+    if (overallVoltage) overallVoltage.textContent = String(overall.voltage ?? 0);
+    if (overallCurrent) overallCurrent.textContent = String(overall.current ?? 0);
+    if (overallCount) overallCount.textContent = String(overall.sensor_count ?? 0);
 
     ["solar", "wind", "battery"].forEach((sensorType) => {
       const summary = aggregate[sensorType] || {};
       const wattsNode = document.querySelector(`[data-aggregate-watts="${sensorType}"]`);
       const voltageNode = document.querySelector(`[data-aggregate-voltage="${sensorType}"]`);
       const currentNode = document.querySelector(`[data-aggregate-current="${sensorType}"]`);
+      const countNode = document.querySelector(`[data-aggregate-count="${sensorType}"]`);
       if (wattsNode) {
         wattsNode.textContent = String(summary.watts ?? 0);
       }
@@ -170,6 +379,37 @@
       if (currentNode) {
         currentNode.textContent = String(summary.current ?? 0);
       }
+      if (countNode) {
+        countNode.textContent = String(summary.sensor_count ?? 0);
+      }
+    });
+
+    const chargerSummary = aggregate.charger || {};
+    const chargerWatts = document.querySelector('[data-aggregate-watts="charger"]');
+    const chargerVoltage = document.querySelector('[data-aggregate-voltage="charger"]');
+    const chargerCurrent = document.querySelector('[data-aggregate-current="charger"]');
+    const chargerCount = document.querySelector('[data-aggregate-count="charger"]');
+    const chargerCard = document.querySelector('[data-dashboard-charger-card]');
+    if (chargerCard) {
+      chargerCard.classList.toggle("hidden", Number(chargerSummary.sensor_count ?? 0) <= 0);
+    }
+    if (chargerWatts) chargerWatts.textContent = String(chargerSummary.watts ?? 0);
+    if (chargerVoltage) chargerVoltage.textContent = String(chargerSummary.voltage ?? 0);
+    if (chargerCurrent) chargerCurrent.textContent = String(chargerSummary.current ?? 0);
+    if (chargerCount) chargerCount.textContent = String(chargerSummary.sensor_count ?? 0);
+
+    Object.entries(trends).forEach(([sensorType, points]) => {
+      const strip = document.querySelector(`[data-trend-series="${sensorType}"]`);
+      if (!strip) {
+        return;
+      }
+      const list = Array.isArray(points) ? points : [];
+      const maxWatts = list.reduce((max, point) => Math.max(max, Number(point && point.watts) || 0), 0);
+      strip.innerHTML = list.map((point) => {
+        const watts = Number(point && point.watts) || 0;
+        const height = maxWatts > 0 ? Math.max(6, (watts / maxWatts) * 100) : 6;
+        return `<span class="trend-bar" style="height:${height}%"></span>`;
+      }).join("");
     });
 
     document.querySelectorAll("[data-module-status]").forEach((node) => {
@@ -263,18 +503,23 @@
     const normalizedUsername = String((username && username.value) || username?.placeholder || "").trim();
     const normalizedPassword = String((password && password.value) || "");
     try {
+      showLoadingScreen("Signing in...");
       const payload = await request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ username: normalizedUsername, password: normalizedPassword }),
         headers: {},
       });
-      if (payload && payload.auth_token) {
-        setToken(payload.auth_token);
-      }
+      void payload;
       window.location.reload();
     } catch (err) {
+      hideLoadingScreen();
       showMessage(error, err.payload && err.payload.error ? err.payload.error : err.message, true);
     }
+  }
+
+  function parseSensorIndex(value) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) ? numeric : Number.POSITIVE_INFINITY;
   }
 
   async function saveCoreSettings() {
@@ -284,23 +529,6 @@
       const payload = form ? formToNestedJson(form, "") : {};
       await request("/api/config", { method: "PUT", body: JSON.stringify(payload) });
       showMessage(message, "Core configuration saved.");
-      await refreshAll();
-    } catch (err) {
-      showMessage(message, err.message, true);
-    }
-  }
-
-  async function saveModuleSettings() {
-    const form = document.getElementById("module-settings-form");
-    const message = document.getElementById("module-settings-message");
-    const moduleName = window.EM_MODULE_NAME || "";
-    try {
-      const payload = form ? formToNestedJson(form, "module_config") : {};
-      await request(`/api/modules/${encodeURIComponent(moduleName)}`, {
-        method: "PUT",
-        body: JSON.stringify({ module_config: payload }),
-      });
-      showMessage(message, "Module settings saved.");
       await refreshAll();
     } catch (err) {
       showMessage(message, err.message, true);
@@ -321,74 +549,202 @@
     }
   }
 
-  async function saveModuleSensors() {
-    const form = document.getElementById("module-sensor-form");
-    const message = document.getElementById("module-sensor-message");
+  function collectSensorConfigFromCards() {
+    const forms = Array.from(document.querySelectorAll(".sensor-config-form"));
+    forms.sort((a, b) => parseSensorIndex(a.getAttribute("data-sensor-index")) - parseSensorIndex(b.getAttribute("data-sensor-index")));
+    return forms.map((form) => {
+      const formData = new FormData(form);
+      const entry = {};
+      for (const [key, value] of formData.entries()) {
+        entry[key] = parseScalar(value);
+      }
+      return entry;
+    });
+  }
+
+  async function saveSensorConfigCard(sensorIndex) {
     const moduleName = window.EM_MODULE_NAME || "";
+    const form = document.querySelector(`.sensor-config-form[data-sensor-index="${sensorIndex}"]`);
+    const message = document.getElementById(`sensor-config-message-${sensorIndex}`);
     try {
-      const payload = form ? formToNestedJson(form, "sensor_config") : [];
-      const sensorConfig = Object.values(payload);
+      const snapshot = getModuleSnapshot();
+      const sensorConfig = Array.isArray(snapshot.sensor_config) ? snapshot.sensor_config.map((entry) => Object.assign({}, entry)) : [];
+      const formData = form ? new FormData(form) : new FormData();
+      const payload = {};
+      for (const [key, value] of formData.entries()) {
+        payload[key] = key === "address" && moduleName === "ina" ? normalizeInaAddress(value) : parseScalar(value);
+      }
+      if (sensorIndex === "new") {
+        sensorConfig.push(payload);
+      } else {
+        sensorConfig[Number(sensorIndex)] = Object.assign({}, sensorConfig[Number(sensorIndex)] || {}, payload);
+      }
       await request(`/api/modules/${encodeURIComponent(moduleName)}`, {
         method: "PUT",
         body: JSON.stringify({ sensor_config: sensorConfig }),
       });
       showMessage(message, "Sensor configuration saved.");
+      setSensorCardMode(sensorIndex, "view");
+      setSensorCardFeedback(sensorIndex, "Save successful.");
       await refreshModuleSnapshot();
     } catch (err) {
       showMessage(message, err.message, true);
+      setSensorCardFeedback(sensorIndex, err.message, true);
+    }
+  }
+
+  async function loadSensorHistory(sensorIndex, sensorName) {
+    const panel = document.getElementById(`sensor-card-logs-${sensorIndex}`);
+    const list = document.getElementById(`sensor-history-list-${sensorIndex}`);
+    const moduleName = window.EM_MODULE_NAME || "";
+    if (!panel || !list) return;
+
+    panel.hidden = false;
+    list.innerHTML = '<div class="text-secondary small">Loading recent readings...</div>';
+    try {
+      const payload = await request(`/api/modules/${encodeURIComponent(moduleName)}/history`, { method: "GET" });
+      const history = Array.isArray(payload.history) ? payload.history : [];
+      const entries = history
+        .slice(-6)
+        .reverse()
+        .map((snapshot) => {
+          const row = Array.isArray(snapshot.sensor_rows) ? snapshot.sensor_rows.find((item) => String(item.name || "") === String(sensorName || "")) : null;
+          if (!row) return null;
+          return {
+            when: snapshot.updated_at || row.last_seen || "",
+            watts: row.watts ?? 0,
+            voltage: row.voltage ?? 0,
+            current: row.current ?? 0,
+            status: row.status || "disconnected",
+          };
+        })
+        .filter(Boolean);
+
+      if (!entries.length) {
+        list.innerHTML = '<div class="text-secondary small">No recent readings available.</div>';
+        return;
+      }
+
+      list.innerHTML = entries.map((entry) => `
+        <div class="sensor-history-entry">
+          <strong>${entry.watts} W</strong>
+          <span>V ${entry.voltage} | A ${entry.current} | ${entry.status}</span>
+          <span>${formatTimestampToSecond(entry.when)}</span>
+        </div>
+      `).join("");
+      setSensorCardMode(sensorIndex, "logs");
+    } catch (err) {
+      list.innerHTML = `<div class="text-danger small">${err.message}</div>`;
+    }
+  }
+
+  function togglePanelById(panelId, show) {
+    const panel = document.getElementById(panelId);
+    if (panel) {
+      panel.hidden = !show;
+    }
+  }
+
+  function addSensorCardToGrid() {
+    const template = document.getElementById("add-sensor-card-template");
+    const grid = document.getElementById("live-sensor-grid");
+    if (!template || !grid || document.getElementById("sensor-row-new-sensor")) {
+      return;
+    }
+    const fragment = template.content.cloneNode(true);
+    const card = fragment.querySelector("article");
+    if (card) {
+      card.id = "sensor-row-new-sensor";
+      grid.appendChild(fragment);
+      const newCard = document.getElementById("sensor-row-new-sensor");
+      setSensorCardMode("new", "config");
+      populateInaAddressSelect(document.querySelector(".sensor-config-form[data-sensor-index='new']"), "new");
+      newCard?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }
 
   async function refreshModuleSnapshot() {
     const moduleName = window.EM_MODULE_NAME || "";
     const snapshot = await request(`/api/modules/${encodeURIComponent(moduleName)}/snapshot`, { method: "GET" });
+    window.EM_MODULE_SNAPSHOT = snapshot || {};
     const updatedAt = document.getElementById("live-updated-at");
     if (updatedAt && snapshot && snapshot.updated_at) {
-      updatedAt.textContent = snapshot.updated_at;
+      updatedAt.textContent = formatTimestampToSecond(snapshot.updated_at);
     }
     const sensorCount = document.getElementById("sensor-count");
     if (sensorCount) {
       sensorCount.textContent = String(snapshot.sensor_count || 0);
     }
 
-    ["solar", "wind", "battery"].forEach((sensorType) => {
-      const summary = snapshot.sensor_type_summary && snapshot.sensor_type_summary[sensorType];
-      const summaryNode = document.querySelector(`[data-summary-watts="${sensorType}"]`);
-      if (!summaryNode || !summary) return;
-      summaryNode.textContent = String(summary.watts ?? 0);
-      const card = summaryNode.closest(".metric-card");
-      if (!card) return;
-      const small = card.querySelector(".metric-small");
-      if (small) {
-        small.textContent = `V ${summary.voltage ?? 0} | A ${summary.current ?? 0}`;
-      }
-    });
+    const sensorRows = Array.isArray(snapshot.sensor_rows) ? snapshot.sensor_rows : [];
+    const sensorByName = new Map(sensorRows.map((sensor) => [String(sensor.name || ""), sensor]));
 
-    document.querySelectorAll("[data-sensor-row]").forEach((row, index) => {
-      const sensor = snapshot.sensor_rows && snapshot.sensor_rows[index];
+    document.querySelectorAll("[data-sensor-row]").forEach((row) => {
+      const sensorName = String(row.getAttribute("data-sensor-name") || "");
+      const sensor = sensorByName.get(sensorName);
       if (!sensor) return;
-      const statusLabel = row.querySelector("[data-field='connection-status']");
-      if (statusLabel) {
-        statusLabel.textContent = sensor.connected ? "Connected" : "Disconnected";
-        statusLabel.classList.toggle("text-bg-success", !!sensor.connected);
-        statusLabel.classList.toggle("text-bg-secondary", !sensor.connected);
-      }
+      setConnectionIndicator(row, sensor);
       row.querySelector("[data-field='watts']")?.replaceChildren(document.createTextNode(String(sensor.watts ?? 0)));
       row.querySelector("[data-field='voltage']")?.replaceChildren(document.createTextNode(String(sensor.voltage ?? 0)));
       row.querySelector("[data-field='current']")?.replaceChildren(document.createTextNode(String(sensor.current ?? 0)));
+      const lastUpdated = row.querySelector("[data-field='last-updated']");
+      if (lastUpdated) {
+        lastUpdated.textContent = formatTimestampToSecond(sensor.last_seen || snapshot.updated_at || "");
+      }
     });
+
+    refreshInaAddressSelectors();
   }
 
-  async function activateModule() {
-    const moduleName = window.EM_MODULE_NAME || "";
-    await request(`/api/modules/${encodeURIComponent(moduleName)}/activate`, { method: "POST" });
-    window.location.reload();
+  function applyModuleFilter(filterType = null) {
+    const normalized = filterType ? String(filterType).toLowerCase() : null;
+    const clearButton = document.getElementById("clear-module-filter-btn");
+    document.querySelectorAll("[data-sensor-row]").forEach((row) => {
+      if (row.getAttribute("data-sensor-row") === "new") {
+        return;
+      }
+      const rowType = String(row.getAttribute("data-sensor-type") || "").toLowerCase();
+      const shouldHide = normalized && rowType !== normalized;
+      row.classList.toggle("hidden", shouldHide);
+    });
+    clearButton?.classList.toggle("hidden", !normalized);
+    window.EM_MODULE_FILTER = normalized;
   }
 
-  async function deactivateModule() {
-    const moduleName = window.EM_MODULE_NAME || "";
-    await request(`/api/modules/${encodeURIComponent(moduleName)}/deactivate`, { method: "POST" });
-    window.location.href = resolvePath("/");
+  async function updateCredentials() {
+    const currentPassword = window.prompt("Current password");
+    if (currentPassword === null) return;
+    const newUsername = window.prompt("New username", String(document.body.dataset.username || "admin"));
+    if (newUsername === null) return;
+    const newPassword = window.prompt("New password");
+    if (newPassword === null) return;
+    showLoadingScreen("Updating credentials...");
+    try {
+      await request("/api/auth/credentials", {
+        method: "PUT",
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_username: newUsername,
+          new_password: newPassword,
+        }),
+      });
+      window.location.reload();
+    } catch (err) {
+      hideLoadingScreen();
+      alert(err.message);
+    }
+  }
+
+  async function restartWebserver() {
+    if (!window.confirm("Restart the webserver now?")) return;
+    showLoadingScreen("Restarting webserver...");
+    try {
+      await request("/api/webserver/restart", { method: "POST" });
+      setTimeout(() => window.location.reload(), 2500);
+    } catch (err) {
+      hideLoadingScreen();
+      alert(err.message);
+    }
   }
 
   async function backupCore() {
@@ -402,18 +758,21 @@
   }
 
   function bindDashboard() {
+    showLoadingScreen("Loading dashboard...");
     document.getElementById("refresh-btn")?.addEventListener("click", refreshAll);
     document.getElementById("backup-all-btn")?.addEventListener("click", backupAll);
+    document.getElementById("update-credentials-btn")?.addEventListener("click", updateCredentials);
+    document.getElementById("restart-webserver-btn")?.addEventListener("click", restartWebserver);
     document.getElementById("logout-btn")?.addEventListener("click", async function () {
       await request("/api/auth/logout", { method: "POST" });
-      clearToken();
       window.location.reload();
     });
-    refreshAll();
+    refreshAll().finally(hideLoadingScreen);
     setInterval(refreshStatus, 15000);
   }
 
   function bindCoreSettings() {
+    showLoadingScreen("Loading settings...");
     document.getElementById("save-core-settings-btn")?.addEventListener("click", saveCoreSettings);
     document.getElementById("backup-core-btn")?.addEventListener("click", backupCore);
     document.querySelectorAll("[data-module-save]").forEach((button) => {
@@ -426,39 +785,81 @@
     });
     document.getElementById("logout-btn")?.addEventListener("click", async function () {
       await request("/api/auth/logout", { method: "POST" });
-      clearToken();
       window.location.reload();
     });
+    hideLoadingScreen();
   }
 
   function bindModulePage() {
-    document.getElementById("refresh-module-btn")?.addEventListener("click", refreshModuleSnapshot);
-    document.getElementById("save-module-sensors-btn")?.addEventListener("click", saveModuleSensors);
-    document.getElementById("logout-btn")?.addEventListener("click", async function () {
-      await request("/api/auth/logout", { method: "POST" });
-      clearToken();
-      window.location.reload();
+    showLoadingScreen("Loading module data...");
+    document.getElementById("clear-module-filter-btn")?.addEventListener("click", () => applyModuleFilter(null));
+    document.getElementById("add-sensor-btn")?.addEventListener("click", addSensorCardToGrid);
+    document.querySelectorAll("[data-sensor-filter]").forEach((button) => {
+      button.addEventListener("click", () => applyModuleFilter(button.getAttribute("data-sensor-filter")));
     });
-    document.getElementById("module-backup-btn")?.addEventListener("click", async function () {
-      await request(`/api/backups/module/${encodeURIComponent(window.EM_MODULE_NAME || "")}`, { method: "POST" });
-      await refreshAll();
-    });
-    document.getElementById("module-settings-link")?.addEventListener("click", function () {
-      window.location.href = this.getAttribute("href") || "/";
-    });
-    document.getElementById("module-activate-btn")?.addEventListener("click", activateModule);
-    document.getElementById("module-deactivate-btn")?.addEventListener("click", deactivateModule);
-    refreshModuleSnapshot();
-    setInterval(refreshModuleSnapshot, 10000);
-  }
+    const grid = document.getElementById("live-sensor-grid");
+    grid?.addEventListener("click", async (event) => {
+      const target = event.target instanceof Element ? event.target.closest("button, i") : null;
+      const button = target instanceof HTMLElement ? target.closest("button") : null;
+      if (!button) return;
 
-  function bindModuleSettings() {
-    document.getElementById("save-module-settings-btn")?.addEventListener("click", saveModuleSettings);
+      const action = button.getAttribute("data-sensor-card-action");
+      const sensorIndex = button.getAttribute("data-sensor-index");
+      if (action && sensorIndex !== null) {
+        if (action === "edit") {
+          setSensorCardMode(sensorIndex, "config");
+          populateInaAddressSelect(document.querySelector(`.sensor-config-form[data-sensor-index="${sensorIndex}"]`), sensorIndex);
+          return;
+        }
+        if (action === "logs") {
+          const sensorRow = button.closest("[data-sensor-row]");
+          const sensorName = sensorRow?.getAttribute("data-sensor-name") || "";
+          await loadSensorHistory(sensorIndex, sensorName);
+          return;
+        }
+        if (action === "back" || action === "cancel") {
+          setSensorCardMode(sensorIndex, "view");
+          return;
+        }
+        if (action === "save") {
+          await saveSensorConfigCard(sensorIndex);
+          return;
+        }
+      }
+
+      const configToggle = button.getAttribute("data-sensor-config-toggle");
+      if (configToggle !== null) {
+        const panelId = configToggle === "new" ? "sensor-card-config-new" : `sensor-card-config-${configToggle}`;
+        const panel = document.getElementById(panelId);
+        if (panel) panel.hidden = !panel.hidden;
+        return;
+      }
+
+      const historyToggle = button.getAttribute("data-sensor-history-toggle");
+      if (historyToggle !== null) {
+        const sensorRow = button.closest("[data-sensor-row]");
+        const sensorName = sensorRow?.getAttribute("data-sensor-name") || "";
+        await loadSensorHistory(historyToggle, sensorName);
+        return;
+      }
+
+      const saveIndex = button.getAttribute("data-save-sensor-index");
+      if (saveIndex !== null) {
+        await saveSensorConfigCard(Number(saveIndex));
+      }
+    });
     document.getElementById("logout-btn")?.addEventListener("click", async function () {
       await request("/api/auth/logout", { method: "POST" });
-      clearToken();
       window.location.reload();
     });
+    refreshModuleSnapshot().finally(() => {
+      applyModuleFilter(window.EM_MODULE_FILTER || null);
+      if ((window.EM_MODULE_NAME || "") === "ina") {
+        refreshInaAddressSelectors();
+      }
+      hideLoadingScreen();
+    });
+    setInterval(refreshModuleSnapshot, 10000);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -467,6 +868,12 @@
       loginForm.addEventListener("submit", handleLogin);
       return;
     }
+
+    const shell = document.querySelector(".app-shell");
+    document.getElementById("burger-menu")?.addEventListener("click", () => {
+      shell?.classList.toggle("sidebar-collapsed");
+    });
+    shell?.classList.add("sidebar-collapsed");
 
     const page = document.body.dataset.page || "dashboard";
     if (page === "dashboard") {
@@ -477,12 +884,13 @@
       bindCoreSettings();
       return;
     }
+    if (page === "module-settings") {
+      bindCoreSettings();
+      return;
+    }
     if (page === "module") {
       bindModulePage();
       return;
-    }
-    if (page === "module-settings") {
-      bindModuleSettings();
     }
   });
 })();

@@ -125,15 +125,10 @@ DEFAULT_CORE_CONFIG: dict[str, Any] = {
 DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
     "ina": {
         "config.json": {
-            "devices": [
-                {"name": "Rpi 3B", "id": 0, "remote_gpio": 1, "gpio_address": "192.168.1.138"},
-                {"name": "Rpi 4", "id": 1, "remote_gpio": 1, "gpio_address": "192.168.1.123"},
-            ],
+            "devices": [],
             "poll_intervals": {"Wind": 7, "Solar": 5, "Battery": 10},
             "max_log": 11,
             "max_readings": 20,
-            "mqtt_broker": "localhost",
-            "mqtt_port": 1883,
             "strict_variant_mode": False,
             "variant_profile_overrides": {
                 "INA219": {"current_lsb": 9.765625e-05},
@@ -145,14 +140,7 @@ DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
                 "INA3221": {"shunt_resistance_ohms": 0.1},
             },
         },
-        "sensors.json": [
-            {"name": "Garden Battery", "address": 64, "type": "Battery", "variant": "INA219", "max_power": 30.0, "rating": 12.0, "device_id": 1, "variant_tuning": {}, "calibration_value": 4191},
-            {"name": "Turbine 220W", "address": 65, "type": "Wind", "variant": "INA219", "max_power": 100.0, "rating": 12.0, "device_id": 1, "variant_tuning": {}, "calibration_value": 4191},
-            {"name": "Turbine 1000W", "address": 68, "type": "Wind", "variant": "INA219", "max_power": 100.0, "rating": 12.0, "device_id": 1, "variant_tuning": {}, "calibration_value": 4191},
-            {"name": "Solar Panel 200W", "address": 69, "type": "Solar", "variant": "INA219", "max_power": 100.0, "rating": 12.0, "device_id": 1, "variant_tuning": {}, "calibration_value": 4191},
-            {"name": "Solar Panel 6W", "address": 64, "type": "Solar", "variant": "INA260", "max_power": 100.0, "rating": 12.0, "device_id": 0, "variant_tuning": {}, "calibration_value": 4191},
-            {"name": "House Battery", "address": 68, "type": "Battery", "variant": "INA226", "max_power": 100.0, "rating": 12.0, "device_id": 0, "variant_tuning": {}, "calibration_value": 4191},
-        ],
+        "sensors.json": [],
         "module_dependencies.json": {
             "module": "ina",
             "python_dependencies": [{"pip": "pigpio", "import": "pigpio", "optional": False}],
@@ -161,28 +149,12 @@ DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
     "victron": {
         "config.json": {
             "bluetooth": {"adapter": "hci0", "connection_timeout": 15, "scan_timeout": 10},
-            "devices": [
-                {
-                    "added_date": "2026-01-08T01:26:04.595748",
-                    "device_type": "charger",
-                    "enabled": True,
-                    "id": "device_001",
-                    "last_connected": "2026-07-25T02:49:06.623660",
-                    "mac": "C7:68:C2:7E:D1:FD",
-                    "name": "BSC IP67 12/25 HQ183142L7H",
-                    "paired": True,
-                    "passcode": "000000",
-                    "puk_key": "F4E46B924939",
-                    "last_modified": "2026-07-25T02:56:28.992634",
-                }
-            ],
+            "devices": [],
             "max_log": 10,
             "max_readings": 20,
             "poll_intervals": {"Battery": 6, "Solar": 8, "Wind": 10},
         },
-        "sensors.json": [
-            {"name": "BSC IP67 12/25 HQ183142L7H Charger", "address": "auto:device_001:charger:1", "type": "Charger", "max_power": 300.0, "rating": 12.0, "device_id": "device_001", "source_device_type": "charger"},
-        ],
+        "sensors.json": [],
         "module_dependencies.json": {
             "module": "victron",
             "system_dependencies": [
@@ -197,30 +169,7 @@ DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
     },
     "mppt": {
         "config.json": {
-            "devices": [
-                {
-                    "id": "device_001",
-                    "name": "MPPT Controller",
-                    "enabled": False,
-                    "connection_type": "serial_usb",
-                    "modbus": {
-                        "slave_id": 1,
-                        "timeout": 1,
-                        "register_map": [
-                            {"name": "pv_voltage", "address": 12544, "register_type": "input", "count": 1, "scale": 0.01, "signed": False},
-                            {"name": "pv_current", "address": 12545, "register_type": "input", "count": 1, "scale": 0.01, "signed": False},
-                            {"name": "battery_voltage", "address": 12548, "register_type": "input", "count": 1, "scale": 0.01, "signed": False},
-                            {"name": "charge_current", "address": 12549, "register_type": "input", "count": 1, "scale": 0.01, "signed": False},
-                            {"name": "battery_temp", "address": 12560, "register_type": "input", "count": 1, "scale": 0.1, "signed": True},
-                        ],
-                    },
-                    "serial": {"port": "/dev/ttyUSB0", "baudrate": 9600, "bytesize": 8, "parity": "N", "stopbits": 1, "method": "rtu"},
-                    "tcp": {"host": "192.168.1.50", "port": 502},
-                    "udp": {"host": "192.168.1.50", "port": 502},
-                    "tls": {"host": "192.168.1.50", "port": 802, "server_hostname": "mppt.local", "certfile": "", "keyfile": "", "ca_certs": "", "cert_reqs": "required"},
-                    "gateway": {"host": "192.168.1.50", "port": 502, "framer": "rtu"},
-                }
-            ],
+            "devices": [],
             "poll_intervals": {"Solar": 8, "Battery": 8, "Charger": 8},
             "max_log": 10,
             "max_readings": 20,
@@ -232,11 +181,7 @@ DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
                 "undervoltage_threshold": 10.5,
             },
         },
-        "sensors.json": [
-            {"name": "MPPT Controller Solar", "address": "auto:device_001:solar:1", "type": "Solar", "max_power": 3000.0, "rating": 24.0, "device_id": "device_001", "source_device_type": "mppt"},
-            {"name": "MPPT Controller Battery", "address": "auto:device_001:battery:2", "type": "Battery", "max_power": 3000.0, "rating": 24.0, "device_id": "device_001", "source_device_type": "mppt"},
-            {"name": "MPPT Controller Charger", "address": "auto:device_001:charger:3", "type": "Charger", "max_power": 3000.0, "rating": 24.0, "device_id": "device_001", "source_device_type": "mppt"},
-        ],
+        "sensors.json": [],
         "module_dependencies.json": {
             "module": "mppt",
             "python_dependencies": [
@@ -248,79 +193,7 @@ DEFAULT_MODULE_FILES: dict[str, dict[str, Any]] = {
 }
 
 
-DEFAULT_CORE_MQTT_REGISTRY = {
-    "ina_garden_battery": {
-        "state_topic": "energy_monitor_core/ina/sensors/garden_battery",
-        "availability_topic": "homeassistant/sensor/ina_garden_battery/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_garden_battery_voltage/config",
-            "homeassistant/sensor/ina_garden_battery_current/config",
-            "homeassistant/sensor/ina_garden_battery_power/config",
-            "homeassistant/sensor/ina_garden_battery_state_of_charge/config",
-            "homeassistant/sensor/ina_garden_battery_status/config",
-        ],
-    },
-    "ina_turbine_220w": {
-        "state_topic": "energy_monitor_core/ina/sensors/turbine_220w",
-        "availability_topic": "homeassistant/sensor/ina_turbine_220w/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_turbine_220w_voltage/config",
-            "homeassistant/sensor/ina_turbine_220w_current/config",
-            "homeassistant/sensor/ina_turbine_220w_power/config",
-            "homeassistant/sensor/ina_turbine_220w_output/config",
-        ],
-    },
-    "ina_turbine_1000w": {
-        "state_topic": "energy_monitor_core/ina/sensors/turbine_1000w",
-        "availability_topic": "homeassistant/sensor/ina_turbine_1000w/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_turbine_1000w_voltage/config",
-            "homeassistant/sensor/ina_turbine_1000w_current/config",
-            "homeassistant/sensor/ina_turbine_1000w_power/config",
-            "homeassistant/sensor/ina_turbine_1000w_output/config",
-        ],
-    },
-    "ina_solar_panel_200w": {
-        "state_topic": "energy_monitor_core/ina/sensors/solar_panel_200w",
-        "availability_topic": "homeassistant/sensor/ina_solar_panel_200w/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_solar_panel_200w_voltage/config",
-            "homeassistant/sensor/ina_solar_panel_200w_current/config",
-            "homeassistant/sensor/ina_solar_panel_200w_power/config",
-            "homeassistant/sensor/ina_solar_panel_200w_output/config",
-        ],
-    },
-    "ina_solar_panel_6w": {
-        "state_topic": "energy_monitor_core/ina/sensors/solar_panel_6w",
-        "availability_topic": "homeassistant/sensor/ina_solar_panel_6w/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_solar_panel_6w_voltage/config",
-            "homeassistant/sensor/ina_solar_panel_6w_current/config",
-            "homeassistant/sensor/ina_solar_panel_6w_power/config",
-            "homeassistant/sensor/ina_solar_panel_6w_output/config",
-        ],
-    },
-    "ina_house_battery": {
-        "state_topic": "energy_monitor_core/ina/sensors/house_battery",
-        "availability_topic": "homeassistant/sensor/ina_house_battery/availability",
-        "config_topics": [
-            "homeassistant/sensor/ina_house_battery_voltage/config",
-            "homeassistant/sensor/ina_house_battery_current/config",
-            "homeassistant/sensor/ina_house_battery_power/config",
-            "homeassistant/sensor/ina_house_battery_state_of_charge/config",
-            "homeassistant/sensor/ina_house_battery_status/config",
-        ],
-    },
-    "victron_bsc_ip67_12_25_hq183142l7h_charger": {
-        "state_topic": "energy_monitor_core/victron/sensors/bsc_ip67_12_25_hq183142l7h_charger",
-        "availability_topic": "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger/availability",
-        "config_topics": [
-            "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_voltage/config",
-            "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_current/config",
-            "homeassistant/sensor/victron_bsc_ip67_12_25_hq183142l7h_charger_power/config",
-        ],
-    },
-}
+DEFAULT_CORE_MQTT_REGISTRY: dict[str, Any] = {}
 
 
 def _deep_merge(base: dict[str, Any], update: dict[str, Any]) -> dict[str, Any]:
@@ -658,6 +531,7 @@ class ConfigManager:
         live_data = runtime_manager.get_full_live_data() if runtime_manager else {}
         aggregate = runtime_manager.get_aggregate_totals() if runtime_manager else {}
         sensor_type_summary = runtime_manager.get_dashboard_sensor_type_summary() if runtime_manager else {}
+        dashboard_trends = runtime_manager.get_aggregate_trends() if runtime_manager and hasattr(runtime_manager, "get_aggregate_trends") else {}
         return {
             "auth": self.get_auth_public_config(),
             "general": deepcopy(self.config.get("general", {})),
@@ -681,6 +555,7 @@ class ConfigManager:
             },
             "active_module_count": len(active_modules),
             "sensor_type_summary": sensor_type_summary,
+            "dashboard_trends": dashboard_trends,
             "live_data": live_data,
             "aggregate_totals": aggregate,
         }

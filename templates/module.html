@@ -2,307 +2,226 @@
 
 {% block head %}
 <script>
-  window.EM_MODULE_NAME_VALUE = {{ module_name|tojson }};
+  window.EM_MODULE_NAME = {{ module_name|tojson }};
+  window.EM_MODULE_SNAPSHOT = {{ module_snapshot|tojson }};
 </script>
 {% endblock %}
 
-{% block header_actions %}
-<div class="d-flex flex-wrap gap-2 align-items-center">
-  <button id="refresh-module-btn" class="btn btn-outline-primary btn-sm">Refresh live data</button>
-  <button id="logout-btn" class="btn btn-outline-danger btn-sm">Logout</button>
+{% block page_actions %}
+<div class="action-group">
+  {% for sensor_type in module_profile.sensor_types or sensor_type_options %}
+  <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-sensor-filter="{{ sensor_type }}" title="Filter {{ sensor_type|title }} sensors">
+    <i class="fa-solid {% if sensor_type == 'solar' %}fa-solar-panel{% elif sensor_type == 'wind' %}fa-wind{% elif sensor_type == 'battery' %}fa-car-battery{% elif sensor_type == 'charger' %}fa-charging-station{% else %}fa-filter{% endif %}"></i>
+  </button>
+  {% endfor %}
+  <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="clear-module-filter-btn" title="Clear sensor filters"><i class="fa-solid fa-xmark"></i></button>
+  {% if module_name == 'ina' %}
+  <button type="button" class="btn btn-outline-success btn-sm action-icon-btn" id="add-sensor-btn" title="Add sensor"><i class="fa-solid fa-plus"></i></button>
+  {% endif %}
 </div>
+<button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
 {% endblock %}
 
 {% block content %}
-<section class="hero-panel mb-4">
-  <div class="row g-3">
-    <div class="col-12 col-md-3">
-      <div class="metric-card">
-        <div class="metric-label">Sensors</div>
-        <div class="metric-value" id="sensor-count">{{ module_snapshot.sensor_count }}</div>
-      </div>
-    </div>
-    {% for sensor_type in sensor_type_options %}
-    {% set summary = module_snapshot.sensor_type_summary.get(sensor_type, {}) %}
-    <div class="col-12 col-md-3">
-      <div class="metric-card">
-        <div class="metric-label">{{ sensor_type|title }}</div>
-        <div class="metric-value" data-summary-watts="{{ sensor_type }}">{{ summary.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">V {{ summary.get('voltage', 0) }} | A {{ summary.get('current', 0) }}</div>
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</section>
-
 <section class="row g-4 mb-4">
   <div class="col-12">
     <div class="panel card shadow-sm h-100">
       <div class="card-body">
         <div class="section-heading d-flex justify-content-between align-items-center flex-wrap gap-2">
-          <h2 class="section-title mb-0">Live Sensor Cards</h2>
-          <div class="text-secondary small">Updated <span id="live-updated-at">{{ module_snapshot.updated_at }}</span></div>
+          <div>
+            <h2 class="section-title mb-0">Live Sensor Cards</h2>
+          </div>
+          <div class="d-flex align-items-center gap-2 text-secondary small">
+            <i class="fa-solid fa-microchip"></i>
+            <span>Sensors: <span id="sensor-count">{{ module_snapshot.sensor_count }}</span></span>
+          </div>
         </div>
         <div class="sensor-grid" id="live-sensor-grid">
           {% for row in module_snapshot.sensor_rows %}
-          <article class="sensor-grid-card sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}">
+          {% set sensor_cfg = module_snapshot.sensor_config[loop.index0] if loop.index0 < (module_snapshot.sensor_config|length) else {} %}
+          <article class="sensor-grid-card sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-card-mode="view">
             <div class="sensor-grid-head">
-              <div>
-                <div class="sensor-summary-label">{{ row.name }}</div>
-                <div class="sensor-summary-note">{{ row.type|title }}</div>
+              <div class="sensor-head-main">
+                <span class="sensor-type-icon {{ row.type|lower }}">
+                  <i class="fa-solid {% if row.type|lower == 'solar' %}fa-solar-panel{% elif row.type|lower == 'wind' %}fa-wind{% elif row.type|lower == 'battery' %}fa-car-battery{% elif row.type|lower == 'charger' %}fa-charging-station{% else %}fa-microchip{% endif %}"></i>
+                </span>
+                <div>
+                  <div class="sensor-summary-label">{{ row.name }}</div>
+                  <div class="sensor-summary-note">{{ row.type|title }}{% if row.variant %} - {{ row.variant }}{% endif %}</div>
+                  <div class="sensor-connection" data-field="connection-state">
+                    <i class="fa-solid fa-network-wired {% if row.connected %}status-connected{% else %}status-disconnected{% endif %}" data-field="connection-icon"></i>
+                    <span data-field="connection-text">{% if row.connected %}Connected{% else %}Disconnected{% endif %}</span>
+                  </div>
+                </div>
               </div>
-              <span class="badge sensor-status {% if row.connected %}text-bg-success{% else %}text-bg-secondary{% endif %}" data-field="connection-status">{% if row.connected %}Connected{% else %}Disconnected{% endif %}</span>
-            </div>
-            <div class="sensor-grid-metrics">
-              <div class="sensor-metric-cell">
-                <div class="text-secondary">Watts</div>
-                <div class="fw-semibold" data-field="watts">{{ row.watts }}</div>
-              </div>
-              <div class="sensor-metric-cell">
-                <div class="text-secondary">Voltage</div>
-                <div class="fw-semibold" data-field="voltage">{{ row.voltage }}</div>
-              </div>
-              <div class="sensor-metric-cell">
-                <div class="text-secondary">Current</div>
-                <div class="fw-semibold" data-field="current">{{ row.current }}</div>
+              <div class="d-flex align-items-center gap-2">
+                <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-{{ loop.index0 }}">
+                  <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="{{ loop.index0 }}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
+                  <button type="button" class="sensor-action-btn" data-sensor-card-action="logs" data-sensor-index="{{ loop.index0 }}" title="Recent sensor data"><i class="fa-solid fa-book"></i></button>
+                </div>
               </div>
             </div>
-            <div class="sensor-address">Address: {{ row.address }}</div>
-          </article>
-          {% endfor %}
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section class="row g-4 mb-4">
-  <div class="col-12 col-xl-6">
-    <div class="panel card shadow-sm h-100">
-      <div class="card-body">
-        <div class="section-heading d-flex justify-content-between align-items-center gap-2">
-          <h2 class="section-title mb-0">Module Settings</h2>
-          <button id="module-backup-btn" class="btn btn-outline-secondary btn-sm">Backup module</button>
-        </div>
-        <form id="module-settings-form" class="vstack gap-4">
-          {% if module_name == 'ina' %}
-          <div class="row g-3">
-            <div class="col-12 col-md-3">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module.module_config.poll_intervals.Solar }}">
+            <div class="sensor-card-feedback hidden" id="sensor-feedback-{{ loop.index0 }}"></div>
+            <div class="sensor-card-view" id="sensor-card-view-{{ loop.index0 }}">
+              <div class="sensor-grid-metrics">
+                <div class="sensor-metric-cell">
+                  <div class="text-secondary">Watts</div>
+                  <div class="fw-semibold" data-field="watts">{{ row.watts }}</div>
+                </div>
+                <div class="sensor-metric-cell">
+                  <div class="text-secondary">Voltage</div>
+                  <div class="fw-semibold" data-field="voltage">{{ row.voltage }}</div>
+                </div>
+                <div class="sensor-metric-cell">
+                  <div class="text-secondary">Current</div>
+                  <div class="fw-semibold" data-field="current">{{ row.current }}</div>
+                </div>
+              </div>
+              <div class="sensor-address">Last update: <span data-field="last-updated">{{ row.last_seen or module_snapshot.updated_at }}</span></div>
             </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module.module_config.poll_intervals.Wind }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Max log</label>
-              <input class="form-control" type="number" name="module_config[max_log]" value="{{ module.module_config.max_log }}">
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>ID</th>
-                  <th>Remote GPIO</th>
-                  <th>GPIO Address</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for device in module.module_config.devices %}
-                <tr>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                  <td><input class="form-control" type="number" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
-                  <td>
-                    <div class="form-check form-switch mt-2">
-                      <input type="hidden" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="false">
-                      <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][remote_gpio]" value="true" {% if device.remote_gpio %}checked{% endif %}>
-                    </div>
-                  </td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][gpio_address]" value="{{ device.gpio_address }}"></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% elif module_name == 'victron' %}
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <label class="form-label">Bluetooth adapter</label>
-              <input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module.module_config.bluetooth.adapter }}">
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Connection timeout</label>
-              <input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module.module_config.bluetooth.connection_timeout }}">
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Scan timeout</label>
-              <input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module.module_config.bluetooth.scan_timeout }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module.module_config.poll_intervals.Solar }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module.module_config.poll_intervals.Wind }}">
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Enabled</th>
-                  <th>Type</th>
-                  <th>Name</th>
-                  <th>MAC</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for device in module.module_config.devices %}
-                <tr>
-                  <td>
-                    <div class="form-check form-switch mt-2">
-                      <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
-                      <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
-                    </div>
-                  </td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][device_type]" value="{{ device.device_type }}"></td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][mac]" value="{{ device.mac }}"></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% elif module_name == 'mppt' %}
-          <div class="row g-3">
-            <div class="col-12 col-md-3">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module.module_config.poll_intervals.Solar }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module.module_config.poll_intervals.Wind }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-12 col-md-3">
-              <label class="form-label">Max log</label>
-              <input class="form-control" type="number" name="module_config[max_log]" value="{{ module.module_config.max_log }}">
-            </div>
-          </div>
-          <div class="row g-3">
-            <div class="col-12 col-md-4">
-              <label class="form-label">Log interval</label>
-              <input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module.module_config.monitoring.log_interval }}">
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Overvoltage threshold</label>
-              <input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module.module_config.monitoring.overvoltage_threshold }}">
-            </div>
-            <div class="col-12 col-md-4">
-              <label class="form-label">Undervoltage threshold</label>
-              <input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module.module_config.monitoring.undervoltage_threshold }}">
-            </div>
-          </div>
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Enabled</th>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Connection</th>
-                  <th>Serial port</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for device in module.module_config.devices %}
-                <tr>
-                  <td>
-                    <div class="form-check form-switch mt-2">
-                      <input type="hidden" name="module_config[devices][{{ loop.index0 }}][enabled]" value="false">
-                      <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
-                    </div>
-                  </td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][id]" value="{{ device.id }}"></td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][connection_type]" value="{{ device.connection_type }}"></td>
-                  <td><input class="form-control" type="text" name="module_config[devices][{{ loop.index0 }}][serial][port]" value="{{ device.serial.port }}"></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          {% endif %}
-          <div id="module-settings-message" class="form-text"></div>
-        </form>
-      </div>
-    </div>
-  </div>
-
-  <div class="col-12 col-xl-6">
-    <div class="panel card shadow-sm h-100">
-      <div class="card-body">
-        <div class="section-heading">
-          <h2 class="section-title mb-0">Sensor Configuration</h2>
-        </div>
-        <form id="module-sensor-form" class="vstack gap-3">
-          <div class="table-responsive">
-            <table class="table align-middle">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Address</th>
-                  <th>Variant</th>
-                  <th>Max power</th>
-                  <th>Rating</th>
-                  <th>Device ID</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for sensor in module.sensor_config %}
-                <tr>
-                  <td><input class="form-control" type="text" name="sensor_config[{{ loop.index0 }}][name]" value="{{ sensor.name }}"></td>
-                  <td>
-                    <select class="form-select" name="sensor_config[{{ loop.index0 }}][type]">
-                      {% for sensor_type in sensor_type_options %}
-                      <option value="{{ sensor_type }}" {% if sensor.type|lower == sensor_type %}selected{% endif %}>{{ sensor_type|title }}</option>
+            <div class="sensor-card-config hidden" id="sensor-card-config-{{ loop.index0 }}">
+              <form class="sensor-config-form mt-2" data-sensor-index="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}">
+                <div class="row g-2">
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Name</label>
+                    <input class="form-control form-control-sm" type="text" name="name" value="{{ sensor_cfg.name|default(row.name, true) }}">
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Type</label>
+                    <select class="form-select form-select-sm" name="type">
+                      {% for sensor_type in module_profile.sensor_types or sensor_type_options %}
+                      <option value="{{ sensor_type }}" {% if row.type|lower == sensor_type %}selected{% endif %}>{{ sensor_type|title }}</option>
+                      {% endfor %}
+                      {% if row.type|lower not in (module_profile.sensor_types or sensor_type_options) %}
+                      <option value="{{ row.type|lower }}" selected>{{ row.type|title }}</option>
+                      {% endif %}
+                    </select>
+                  </div>
+                  {% if module_name == 'ina' %}
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Device</label>
+                    <select class="form-select form-select-sm" name="device_id" data-ina-device-select>
+                      <option value="" {% if not sensor_cfg.device_id and not row.device_id %}selected{% endif %}>Select device</option>
+                      {% for device in module_snapshot.module_config.devices or [] %}
+                      <option value="{{ device.id }}" {% if sensor_cfg.device_id|string == device.id|string or row.device_id|string == device.id|string %}selected{% endif %}>{{ device.name or ('Device ' ~ device.id) }}</option>
                       {% endfor %}
                     </select>
-                  </td>
-                  <td><input class="form-control" type="text" name="sensor_config[{{ loop.index0 }}][address]" value="{{ sensor.address }}"></td>
-                  <td><input class="form-control" type="text" name="sensor_config[{{ loop.index0 }}][variant]" value="{{ sensor.variant|default('', true) }}"></td>
-                  <td><input class="form-control" type="number" step="0.1" name="sensor_config[{{ loop.index0 }}][max_power]" value="{{ sensor.max_power }}"></td>
-                  <td><input class="form-control" type="number" step="0.1" name="sensor_config[{{ loop.index0 }}][rating]" value="{{ sensor.rating }}"></td>
-                  <td><input class="form-control" type="text" name="sensor_config[{{ loop.index0 }}][device_id]" value="{{ sensor.device_id }}"></td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-          <div class="d-flex flex-wrap gap-2">
-            <button id="save-module-sensors-btn" type="button" class="btn btn-primary">Save sensor config</button>
-            <button id="module-activate-btn" type="button" class="btn btn-outline-success">Activate</button>
-            <button id="module-deactivate-btn" type="button" class="btn btn-outline-danger">Deactivate</button>
-          </div>
-          <div id="module-sensor-message" class="form-text"></div>
-        </form>
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">I2C address</label>
+                    <select class="form-select form-select-sm" name="address" data-ina-address-select data-sensor-index="{{ loop.index0 }}">
+                      <option value="{{ sensor_cfg.address|default(row.address, true) }}" selected>{{ sensor_cfg.address|default(row.address, true) }}</option>
+                    </select>
+                  </div>
+                  {% else %}
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Address</label>
+                    <input class="form-control form-control-sm" type="text" name="address" value="{{ sensor_cfg.address|default(row.address, true) }}">
+                  </div>
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Device ID</label>
+                    <input class="form-control form-control-sm" type="text" name="device_id" value="{{ sensor_cfg.device_id|default(row.device_id, true) }}">
+                  </div>
+                  {% endif %}
+                  <div class="col-12 col-md-6">
+                    <label class="form-label form-label-sm">Variant</label>
+                    <input class="form-control form-control-sm" type="text" name="variant" value="{{ sensor_cfg.variant|default(row.variant, true) }}">
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm">Max power</label>
+                    <input class="form-control form-control-sm" type="number" step="0.1" name="max_power" value="{{ sensor_cfg.max_power|default(row.max_power, true) }}">
+                  </div>
+                  <div class="col-12 col-md-4">
+                    <label class="form-label form-label-sm">Rating</label>
+                    <input class="form-control form-control-sm" type="number" step="0.1" name="rating" value="{{ sensor_cfg.rating|default(row.rating, true) }}">
+                  </div>
+                </div>
+                <span class="form-text sensor-config-message" id="sensor-config-message-{{ loop.index0 }}"></span>
+              </form>
+            </div>
+            <div class="sensor-card-logs hidden" id="sensor-card-logs-{{ loop.index0 }}">
+              <div class="sensor-history-title">Recent sensor data</div>
+              <div class="sensor-history-list" id="sensor-history-list-{{ loop.index0 }}">
+                <div class="text-secondary small">Use the book icon to load recent readings.</div>
+              </div>
+            </div>
+          </article>
+          {% endfor %}
+          {% if module_name == 'ina' %}
+          <template id="add-sensor-card-template">
+            <article class="sensor-grid-card sensor-type-battery" data-sensor-row="new" data-sensor-name="new-sensor" data-sensor-type="battery" data-card-mode="config">
+              <div class="sensor-grid-head">
+                <div>
+                  <div class="sensor-summary-label">New Sensor</div>
+                  <div class="sensor-summary-note">Create a new sensor entry</div>
+                </div>
+                <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-new">
+                  <button type="button" class="sensor-action-btn" data-sensor-card-action="save" data-sensor-index="new" title="Save sensor"><i class="fa-solid fa-floppy-disk"></i></button>
+                  <button type="button" class="sensor-action-btn" data-sensor-card-action="cancel" data-sensor-index="new" title="Cancel"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+              </div>
+              <div class="sensor-card-feedback hidden" id="sensor-feedback-new"></div>
+              <div class="sensor-card-config" id="sensor-card-config-new">
+                <form class="sensor-config-form mt-2" data-sensor-index="new" data-sensor-name="new-sensor" data-sensor-type="battery">
+                  <div class="row g-2">
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Name</label>
+                      <input class="form-control form-control-sm" type="text" name="name" value="">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Type</label>
+                      <select class="form-select form-select-sm" name="type">
+                        {% for sensor_type in module_profile.sensor_types or sensor_type_options %}
+                        <option value="{{ sensor_type }}">{{ sensor_type|title }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    {% if module_name == 'ina' %}
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Device</label>
+                      <select class="form-select form-select-sm" name="device_id" data-ina-device-select>
+                        <option value="" selected>Select device</option>
+                        {% for device in module_snapshot.module_config.devices or [] %}
+                        <option value="{{ device.id }}">{{ device.name or ('Device ' ~ device.id) }}</option>
+                        {% endfor %}
+                      </select>
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">I2C address</label>
+                      <select class="form-select form-select-sm" name="address" data-ina-address-select data-sensor-index="new">
+                        <option value="" selected disabled>Select device first</option>
+                      </select>
+                    </div>
+                    {% else %}
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Address</label>
+                      <input class="form-control form-control-sm" type="text" name="address" value="">
+                    </div>
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Device ID</label>
+                      <input class="form-control form-control-sm" type="text" name="device_id" value="">
+                    </div>
+                    {% endif %}
+                    <div class="col-12 col-md-6">
+                      <label class="form-label form-label-sm">Variant</label>
+                      <input class="form-control form-control-sm" type="text" name="variant" value="">
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label form-label-sm">Max power</label>
+                      <input class="form-control form-control-sm" type="number" step="0.1" name="max_power" value="">
+                    </div>
+                    <div class="col-12 col-md-4">
+                      <label class="form-label form-label-sm">Rating</label>
+                      <input class="form-control form-control-sm" type="number" step="0.1" name="rating" value="">
+                    </div>
+                  </div>
+                  <span class="form-text sensor-config-message" id="sensor-config-message-new"></span>
+                </form>
+              </div>
+            </article>
+          </template>
+          {% endif %}
+        </div>
       </div>
     </div>
   </div>

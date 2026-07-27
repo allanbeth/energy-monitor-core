@@ -18,11 +18,31 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 def normalize_sensor_type(value: Any) -> str:
     normalized = str(value or "").strip().lower()
-    if normalized in {"solar", "wind", "battery"}:
+    if normalized in {"solar", "wind", "battery", "charger"}:
         return normalized
-    if normalized in {"charger", "charge", "charging"}:
-        return "battery"
+    if normalized in {"charge", "charging", "battery charger"}:
+        return "charger"
     return normalized or "unknown"
+
+
+def normalize_i2c_address(value: Any) -> str:
+    if value is None or value == "":
+        return ""
+
+    if isinstance(value, str):
+        normalized = value.strip().lower()
+        if not normalized:
+            return ""
+        try:
+            parsed = int(normalized, 16) if normalized.startswith("0x") or any(char in "abcdef" for char in normalized) else int(normalized, 10)
+        except Exception:
+            return value.strip()
+        return f"0x{parsed:02x}"
+
+    try:
+        return f"0x{int(value):02x}"
+    except Exception:
+        return str(value)
 
 
 class SensorDataStore:
@@ -136,7 +156,7 @@ class SensorDataStore:
                 "type": sensor_type,
                 "variant": str(sensor.get("variant") or sensor.get("source_device_type") or "").strip(),
                 "device_id": sensor.get("device_id"),
-                "address": sensor.get("address"),
+                "address": normalize_i2c_address(sensor.get("address")) if module_name == "ina" else sensor.get("address"),
                 "max_power": _safe_float(sensor.get("max_power")),
                 "rating": _safe_float(sensor.get("rating")),
                 "watts": round(watts, 2),

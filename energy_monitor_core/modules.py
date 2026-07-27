@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -40,10 +41,10 @@ def _sensor_name(sensor: dict[str, Any], fallback_index: int) -> str:
 
 def _normalize_sensor_type(value: Any) -> str:
     normalized = str(value or "unknown").strip().lower()
-    if normalized == "charger":
-        return "battery"
-    if normalized in {"solar", "wind", "battery"}:
+    if normalized in {"solar", "wind", "battery", "charger"}:
         return normalized
+    if normalized in {"charge", "charging", "battery charger"}:
+        return "charger"
     return normalized or "unknown"
 
 
@@ -317,6 +318,57 @@ class ModuleRuntimeManager:
             bucket["current"] = round(bucket["current"], 2)
         return summary
 
+    def get_aggregate_trends(self, limit: int = 8) -> dict[str, list[dict[str, Any]]]:
+        limit = max(2, int(limit or 8))
+        buckets: dict[str, list[dict[str, Any]]] = {
+            "overall": [],
+            "solar": [],
+            "wind": [],
+            "battery": [],
+            "charger": [],
+        }
+
+        histories: list[list[dict[str, Any]]] = []
+        for runtime in self.runtimes.values():
+            history = runtime.history[-limit:] if runtime.history else []
+            histories.append(history)
+
+        max_length = max((len(history) for history in histories), default=0)
+        for offset in reversed(range(max_length)):
+            aggregate = {
+                "overall": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "solar": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "wind": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "battery": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "charger": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+            }
+
+            for history in histories:
+                snapshot = history[-(offset + 1)] if len(history) > offset else None
+                if not isinstance(snapshot, dict):
+                    continue
+                for sensor_type in ("solar", "wind", "battery", "charger"):
+                    bucket = snapshot.get("sensor_type_summary", {}).get(sensor_type, {}) if isinstance(snapshot.get("sensor_type_summary", {}), dict) else {}
+                    aggregate[sensor_type]["watts"] += _safe_float(bucket.get("watts", bucket.get("power")))
+                    aggregate[sensor_type]["voltage"] += _safe_float(bucket.get("voltage"))
+                    aggregate[sensor_type]["current"] += _safe_float(bucket.get("current"))
+                    aggregate[sensor_type]["sensor_count"] += int(bucket.get("sensor_count", 0) or 0)
+
+                    aggregate["overall"]["watts"] += _safe_float(bucket.get("watts", bucket.get("power")))
+                    aggregate["overall"]["voltage"] += _safe_float(bucket.get("voltage"))
+                    aggregate["overall"]["current"] += _safe_float(bucket.get("current"))
+                    aggregate["overall"]["sensor_count"] += int(bucket.get("sensor_count", 0) or 0)
+
+            for sensor_type, bucket in aggregate.items():
+                buckets[sensor_type].append({
+                    "watts": round(bucket["watts"], 2),
+                    "voltage": round(bucket["voltage"], 2),
+                    "current": round(bucket["current"], 2),
+                    "sensor_count": bucket["sensor_count"],
+                })
+
+        return buckets
+
     def get_aggregate_totals(self) -> dict[str, Any]:
         live_data = self.get_full_live_data()
         aggregate = {
@@ -329,12 +381,13 @@ class ModuleRuntimeManager:
             "solar": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "wind": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "battery": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+            "charger": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
         }
         for snapshot in live_data.values():
             aggregate["sensor_count"] += int(snapshot.get("sensor_count", 0) or 0)
             aggregate["connected_sensor_count"] += int(snapshot.get("connected_sensor_count", 0) or 0)
             aggregate["device_count"] += int(snapshot.get("device_count", 0) or 0)
-            for sensor_type in ("solar", "wind", "battery"):
+            for sensor_type in ("solar", "wind", "battery", "charger"):
                 bucket = snapshot.get("sensor_type_summary", {}).get(sensor_type, {})
                 target = aggregate[sensor_type]
                 target["sensor_count"] += int(bucket.get("sensor_count", 0) or 0)
@@ -349,13 +402,19 @@ class ModuleRuntimeManager:
                 aggregate["overall"]["voltage"] += _safe_float(bucket.get("voltage"))
                 aggregate["overall"]["current"] += _safe_float(bucket.get("current"))
 
-        for sensor_type in ("overall", "solar", "wind", "battery"):
+        for sensor_type in ("overall", "solar", "wind", "battery", "charger"):
             for key in ("watts", "voltage", "current"):
                 aggregate[sensor_type][key] = round(aggregate[sensor_type][key], 2)
         return aggregate
 
     def get_runtime(self, module_name: str) -> ModuleRuntime | None:
         return self.runtimes.get(module_name)
+
+    def get_module_history(self, module_name: str) -> list[dict[str, Any]]:
+        runtime = self.get_runtime(module_name)
+        if runtime is None:
+            return []
+        return deepcopy(runtime.history)
 
     def refresh_module(self, module_name: str) -> None:
         with self._lock:

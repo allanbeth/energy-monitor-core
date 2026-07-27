@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block page_actions %}
+<button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+{% endblock %}
+
+{% block content %}
+<section class="row g-4 mb-4">
+  <div class="col-12">
+    <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}" id="active-module-{{ module_name }}">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+          <div>
+            <div class="eyebrow">{{ module_name }}</div>
+            <h2 class="section-title h4 mb-1">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h2>
+            <div class="text-secondary small">Detailed configuration for active module runtime and devices.</div>
+          </div>
+          <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/settings">Back</a>
+            <a class="btn btn-outline-primary btn-sm" href="/module/{{ module_name }}">Live</a>
+          </div>
+        </div>
+
+        {% include "_module_settings_form.html" %}
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
