@@ -301,8 +301,6 @@ class ModulePoller(BaseModulePoller):
                     continue
                 if str(sensor.get("device_id") or "") not in {"", device_id, str(device.get("id") or "")}:
                     continue
-                if not self.should_poll_sensor(sensor, due_sensor_types):
-                    continue
 
                 probe_data = self._last_probe_data if isinstance(self._last_probe_data, dict) else {}
                 voltage = probe_data.get("voltage_v")
