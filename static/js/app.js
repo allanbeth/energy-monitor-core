@@ -137,17 +137,39 @@
     return text === "true" || text === "1" || text === "yes";
   }
 
+  function normalizeIdentifier(value) {
+    if (value === undefined || value === null) {
+      return "";
+    }
+    return String(value).trim();
+  }
+
   function findModuleDevice(snapshot, sensor) {
     const moduleConfig = snapshot && typeof snapshot === "object" ? snapshot.module_config : null;
     const devices = moduleConfig && Array.isArray(moduleConfig.devices) ? moduleConfig.devices : [];
-    const sensorDeviceId = String(sensor?.device_id || "").trim();
+    const sensorDeviceId = normalizeIdentifier(sensor?.device_id);
     if (!sensorDeviceId) return null;
 
     return devices.find((device) => {
       if (!device || typeof device !== "object") return false;
-      const id = String(device.id || "").trim();
+      const id = normalizeIdentifier(device.id);
       return id && id === sensorDeviceId;
     }) || null;
+  }
+
+  function resolveDeviceName(moduleName, snapshot, sensor) {
+    const moduleKey = String(moduleName || "").trim().toLowerCase();
+    const device = findModuleDevice(snapshot, sensor);
+    if (device && String(device.name || "").trim()) {
+      return String(device.name || "").trim();
+    }
+    if (moduleKey === "victron" && String(sensor?.name || "").includes(" Charger")) {
+      return String(sensor.name || "").replace(/\s+charger$/i, "").trim();
+    }
+    if (normalizeIdentifier(sensor?.device_id)) {
+      return normalizeIdentifier(sensor.device_id);
+    }
+    return String(sensor?.name || "Sensor").trim() || "Sensor";
   }
 
   function resolveConnectionTransport(moduleName, snapshot, sensor) {
@@ -202,8 +224,8 @@
     const connection = resolveConnectionState(sensor);
     const iconNode = cardElement.querySelector("[data-field='connection-icon']");
     const textNode = cardElement.querySelector("[data-field='connection-text']");
-    const transportNode = cardElement.querySelector("[data-field='connection-transport']");
     const stateNode = cardElement.querySelector("[data-field='connection-state']");
+    const deviceName = resolveDeviceName(moduleName, snapshot, sensor);
     if (iconNode) {
       iconNode.classList.remove("fa-wifi", "fa-network-wired", "fa-bluetooth-b", "status-connected", "status-partial", "status-disconnected", "connection-local", "connection-remote", "connection-wired", "connection-wireless");
       iconNode.classList.add(transport.icon);
@@ -211,12 +233,7 @@
       iconNode.classList.add(`connection-${transport.kind}`);
     }
     if (textNode) {
-      textNode.textContent = connection.label;
-    }
-    if (transportNode) {
-      transportNode.textContent = transport.label;
-      transportNode.classList.remove("connection-local", "connection-remote", "connection-wired", "connection-wireless");
-      transportNode.classList.add(`connection-${transport.kind}`);
+      textNode.textContent = deviceName;
     }
     if (stateNode) {
       stateNode.classList.remove("status-connected", "status-partial", "status-disconnected");
@@ -292,6 +309,12 @@
       if (configSection) configSection.classList.toggle("hidden", normalizedMode !== "config");
       if (logsSection) logsSection.classList.toggle("hidden", normalizedMode !== "logs");
 
+      if (normalizedMode === "feedback") {
+        if (viewSection) viewSection.classList.add("hidden");
+        if (configSection) configSection.classList.add("hidden");
+        if (logsSection) logsSection.classList.add("hidden");
+      }
+
       const actionContainer = getSensorActionContainer(sensorIndex);
       if (actionContainer) {
         if (normalizedMode === "config") {
@@ -303,6 +326,8 @@
           actionContainer.innerHTML = `
             <button type="button" class="sensor-action-btn" data-sensor-card-action="back" data-sensor-index="${sensorIndex}" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
           `;
+        } else if (normalizedMode === "feedback") {
+          actionContainer.innerHTML = "";
         } else {
           actionContainer.innerHTML = `
             <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="${sensorIndex}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
@@ -311,16 +336,25 @@
         }
       }
 
-      if (normalizedMode !== "config") {
+      if (normalizedMode !== "config" && normalizedMode !== "feedback") {
         setSensorCardFeedback(sensorIndex, "");
       }
+    }
+
+    function showSensorCardTransientFeedback(sensorIndex, message, isError = false, returnMode = "view", timeoutMs = 1350) {
+      setSensorCardFeedback(sensorIndex, message, isError);
+      setSensorCardMode(sensorIndex, "feedback");
+      window.setTimeout(() => {
+        setSensorCardFeedback(sensorIndex, "", isError);
+        setSensorCardMode(sensorIndex, returnMode);
+      }, timeoutMs);
     }
 
     function getInaAvailableAddresses(deviceId, selectedAddress = "", sensorIndex = null) {
       const selected = normalizeInaAddress(selectedAddress);
       const usedAddresses = new Set();
       const sensorConfig = getModuleSensorConfig();
-      const normalizedDeviceId = String(deviceId || "");
+      const normalizedDeviceId = normalizeIdentifier(deviceId);
 
       sensorConfig.forEach((sensor, index) => {
         if (!sensor || typeof sensor !== "object") {
@@ -329,7 +363,7 @@
         if (sensorIndex !== null && String(index) === String(sensorIndex)) {
           return;
         }
-        if (String(sensor.device_id || "") !== normalizedDeviceId) {
+        if (normalizeIdentifier(sensor.device_id) !== normalizedDeviceId) {
           return;
         }
         const address = normalizeInaAddress(sensor.address);
@@ -827,12 +861,11 @@
         body: JSON.stringify({ sensor_config: sensorConfig }),
       });
       showMessage(message, "Sensor configuration saved.");
-      setSensorCardMode(sensorIndex, "view");
-      setSensorCardFeedback(sensorIndex, "Save successful.");
       await refreshModuleSnapshot();
+      showSensorCardTransientFeedback(sensorIndex, "Save successful.", false, "view");
     } catch (err) {
       showMessage(message, err.message, true);
-      setSensorCardFeedback(sensorIndex, err.message, true);
+      showSensorCardTransientFeedback(sensorIndex, err.message, true, "config", 1800);
     }
   }
 

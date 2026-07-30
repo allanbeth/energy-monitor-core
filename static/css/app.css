@@ -355,7 +355,7 @@ body {
   align-items: flex-start;
   justify-content: space-between;
   gap: 0.9rem;
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.35rem;
 }
 
 .legacy-card-head-main {
@@ -366,8 +366,8 @@ body {
 }
 
 .legacy-card-icon {
-  width: 2.6rem;
-  height: 2.6rem;
+  width: 2.7rem;
+  height: 2.7rem;
   border-radius: 0.9rem;
   display: inline-flex;
   align-items: center;
@@ -405,6 +405,19 @@ body {
   flex-wrap: wrap;
 }
 
+.legacy-card-actions .action-icon-btn,
+.legacy-card-actions .sensor-action-btn {
+  width: 2.35rem;
+  height: 2.35rem;
+  min-width: 2.35rem;
+  min-height: 2.35rem;
+  padding: 0;
+}
+
+.legacy-card-actions i {
+  font-size: 0.92rem;
+}
+
 .legacy-card-content {
   display: flex;
   flex-direction: column;
@@ -412,7 +425,8 @@ body {
   border: 1px solid rgba(121, 134, 156, 0.26);
   border-radius: 0.8rem;
   background: rgba(255, 255, 255, 0.62);
-  padding: 0.7rem;
+  padding: 0.85rem;
+  margin-top: 0.15rem;
 }
 
 .panel.card,
@@ -499,7 +513,7 @@ body {
 }
 
 .dashboard-overview-card .legacy-card-icon {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
+  background: linear-gradient(135deg, #4f5d75, #3c4a5f);
 }
 
 .sensor-solar .legacy-card-icon {
@@ -511,9 +525,28 @@ body {
 }
 
 .sensor-battery .legacy-card-icon,
-.sensor-charger .legacy-card-icon,
 .sensor-total .legacy-card-icon {
   background: linear-gradient(135deg, #56657d, #475569);
+}
+
+.sensor-charger .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
+}
+
+.sensor-grid-card.sensor-type-solar .legacy-card-icon {
+  background: linear-gradient(135deg, #c7802a, #d39a50);
+}
+
+.sensor-grid-card.sensor-type-wind .legacy-card-icon {
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
+}
+
+.sensor-grid-card.sensor-type-battery .legacy-card-icon {
+  background: linear-gradient(135deg, #6b46c1, #805ad5);
+}
+
+.sensor-grid-card.sensor-type-charger .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
 .metric-footer {
@@ -633,12 +666,12 @@ body {
 
 .settings-card.system-overview .legacy-card-icon,
 .active-module-panel.module-ina .legacy-card-icon {
-  background: linear-gradient(135deg, #64748b, #475569);
+  background: linear-gradient(135deg, #4f5d75, #3c4a5f);
 }
 
 .settings-card.general-settings .legacy-card-icon,
 .active-module-panel.module-victron .legacy-card-icon {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
 }
 
 .settings-card.mqtt-settings .legacy-card-icon,
@@ -646,7 +679,15 @@ body {
 .settings-card.core-backup-settings .legacy-card-icon,
 .active-module-panel.module-mppt .legacy-card-icon,
 .module-settings-card .legacy-card-icon {
-  background: linear-gradient(135deg, #7b879a, #5f6e83);
+  background: linear-gradient(135deg, #6b46c1, #805ad5);
+}
+
+.settings-card.webserver-settings .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
+}
+
+.settings-card.core-backup-settings .legacy-card-icon {
+  background: linear-gradient(135deg, #b7791f, #c7802a);
 }
 
 .settings-card-content {
@@ -738,6 +779,70 @@ body {
 .active-module-panel .card-body {
   padding: var(--app-card-padding);
   overflow: auto;
+}
+
+.legacy-card-content .form-label,
+.module-settings-card .form-label,
+.sensor-config-form .form-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #4a5568;
+  margin-bottom: 0.2rem;
+}
+
+.legacy-card-content .form-control,
+.legacy-card-content .form-select,
+.module-settings-card .form-control,
+.module-settings-card .form-select,
+.sensor-config-form .form-control,
+.sensor-config-form .form-select {
+  min-height: 1.95rem;
+  border-radius: 0.75rem;
+  font-size: 0.82rem;
+  padding: 0 0.55rem;
+}
+
+.module-settings-card .row,
+.sensor-config-form .row {
+  --bs-gutter-y: 0.45rem;
+}
+
+.sensor-card-config .row > [class*="col-"] {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.sensor-card-config .row > [class*="col-"] > .form-label {
+  width: 48%;
+  margin-bottom: 0;
+  text-align: left;
+}
+
+.sensor-card-config .row > [class*="col-"] > .form-control,
+.sensor-card-config .row > [class*="col-"] > .form-select {
+  width: 52%;
+}
+
+@media (max-width: 767px) {
+  .sensor-card-config .row > [class*="col-"] {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.25rem;
+  }
+
+  .sensor-card-config .row > [class*="col-"] > .form-label,
+  .sensor-card-config .row > [class*="col-"] > .form-control,
+  .sensor-card-config .row > [class*="col-"] > .form-select {
+    width: 100%;
+  }
+}
+
+.legacy-card-content .table-responsive {
+  border: 1px solid rgba(121, 134, 156, 0.26);
+  border-radius: 0.75rem;
+  padding: 0.35rem;
+  background: rgba(255, 255, 255, 0.5);
 }
 
 .settings-card .card-body,
@@ -989,41 +1094,13 @@ body {
 .sensor-connection {
   color: var(--muted);
   font-size: 0.82rem;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  flex-wrap: wrap;
 }
 
 .sensor-connection .fa-solid {
   font-size: 0.88rem;
-}
-
-.connection-transport {
-  display: inline-flex;
-  align-items: center;
-  border-radius: 999px;
-  padding: 0.08rem 0.45rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.01em;
-  border: 1px solid rgba(121, 134, 156, 0.32);
-  background: rgba(226, 232, 240, 0.55);
-  color: #475569;
-}
-
-.connection-local,
-.connection-wired {
-  background: rgba(148, 163, 184, 0.18);
-  border-color: rgba(100, 116, 139, 0.34);
-  color: #475569;
-}
-
-.connection-remote,
-.connection-wireless {
-  background: rgba(125, 150, 184, 0.18);
-  border-color: rgba(92, 117, 153, 0.36);
-  color: #3b5a86;
 }
 
 .status-connected {

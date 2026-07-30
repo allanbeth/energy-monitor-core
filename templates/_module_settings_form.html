@@ -7,7 +7,7 @@
     {% elif module_name == 'ina' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-clock', 'Polling', '', 'INA') %}
+        {% call legacy_card_header('fa-clock', 'Polling') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -36,7 +36,7 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-microchip', 'Devices', '', 'INA') %}
+        {% call legacy_card_header('fa-microchip', 'Devices') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -75,7 +75,7 @@
     {% elif module_name == 'victron' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-bluetooth-b', 'Bluetooth', '', 'VICTRON') %}
+        {% call legacy_card_header('fa-bluetooth-b', 'Bluetooth') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -100,7 +100,7 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-clock', 'Polling', '', 'VICTRON') %}
+        {% call legacy_card_header('fa-clock', 'Polling') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -125,7 +125,7 @@
     </div>
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-microchip', 'Devices', '', 'VICTRON') %}
+        {% call legacy_card_header('fa-microchip', 'Devices') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -164,7 +164,7 @@
     {% elif module_name == 'mppt' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-clock', 'Polling', '', 'MPPT') %}
+        {% call legacy_card_header('fa-clock', 'Polling') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -193,7 +193,7 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-chart-line', 'Monitoring', '', 'MPPT') %}
+        {% call legacy_card_header('fa-chart-line', 'Monitoring') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -218,7 +218,7 @@
     </div>
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-microchip', 'Devices', '', 'MPPT') %}
+        {% call legacy_card_header('fa-microchip', 'Devices') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
@@ -259,7 +259,7 @@
     {% else %}
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        {% call legacy_card_header('fa-gear', 'Module Configuration', '', module_name|upper) %}
+        {% call legacy_card_header('fa-gear', 'Module Configuration') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>

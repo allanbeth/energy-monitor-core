@@ -9,7 +9,7 @@
 <form id="core-settings-form" class="vstack gap-4">
   <section class="settings-cards-grid">
     <article class="panel card shadow-sm settings-card system-overview" id="system-overview-card">
-      {% call legacy_card_header('fa-tachometer-alt', 'System Overview', 'Current operational information', 'CORE') %}
+      {% call legacy_card_header('fa-tachometer-alt', 'System Overview', 'Current operational information') %}
       <div class="settings-actions">
         <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="overview-toggle" id="system-overview-toggle-btn" title="Edit Modules"><i class="fa-solid fa-cog"></i></button>
         <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Changes"><i class="fa-solid fa-save"></i></button>
@@ -36,7 +36,7 @@
     </article>
 
     <article class="panel card shadow-sm settings-card general-settings" id="general-settings-card">
-      {% call legacy_card_header('fa-sliders', 'General Settings', 'Core runtime preferences and storage path', 'CORE') %}
+      {% call legacy_card_header('fa-sliders', 'General Settings', 'Core runtime preferences and storage path') %}
       <div class="settings-actions">
         <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="export" title="Export Config"><i class="fa-solid fa-file-arrow-down"></i></button>
         <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save General Settings"><i class="fa-solid fa-save"></i></button>
@@ -52,7 +52,7 @@
     </article>
 
     <article class="panel card shadow-sm settings-card mqtt-settings" id="mqtt-settings-card">
-      {% call legacy_card_header('fa-network-wired', 'MQTT Configuration', 'Message broker connectivity', 'CORE') %}
+      {% call legacy_card_header('fa-network-wired', 'MQTT Configuration', 'Message broker connectivity') %}
       <div class="settings-actions">
         <span class="status-value {{ mqtt_connection_class }}">{{ mqtt_connection_state }}</span>
         <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" id="mqtt-save-btn" data-core-action="mqtt-save-main" title="Save MQTT Settings"><i class="fa-solid fa-save"></i></button>
@@ -86,7 +86,7 @@
     </article>
 
     <article class="panel card shadow-sm settings-card webserver-settings" id="webserver-settings-card">
-      {% call legacy_card_header('fa-server', 'Web Server', 'Webserver configuration', 'CORE') %}
+      {% call legacy_card_header('fa-server', 'Web Server', 'Webserver configuration') %}
       <div class="settings-actions">
         <span class="status-value {{ webserver_connection_class }}">{{ webserver_connection_state }}</span>
         <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="credentials" title="Update Login Credentials"><i class="fa-solid fa-key"></i></button>
@@ -101,7 +101,7 @@
     </article>
 
     <article class="panel card shadow-sm settings-card core-backup-settings" id="core-backup-settings-card">
-      {% call legacy_card_header('fa-floppy-disk', 'Configuration Backup', 'Backup selected core and module configuration files', 'CORE') %}
+      {% call legacy_card_header('fa-floppy-disk', 'Configuration Backup', 'Backup selected core and module configuration files') %}
       <div class="settings-actions">
         <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="backup" title="Backup Selected Config Files"><i class="fa-solid fa-download"></i></button>
         <button type="button" id="refresh-core-backups-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Browse Core Backups"><i class="fa-solid fa-folder-open"></i></button>
@@ -126,7 +126,7 @@
   {% for module_name, module_payload in modules.items() %}
   <div class="col-12 col-lg-6 col-xxl-4" id="active-module-{{ module_name }}">
     <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}" data-module-status="{{ module_name }}">
-      {% call legacy_card_header(module_payload.definitions.get('icon', 'fa-microchip'), module_payload.definitions.get('settings-title', module_name|title ~ ' Settings'), 'Module configuration and device controls.', module_name) %}
+      {% call legacy_card_header(module_payload.definitions.get('icon', 'fa-microchip'), module_payload.definitions.get('settings-title', module_name|title ~ ' Settings'), 'Module configuration and device controls.') %}
       <a class="btn btn-outline-primary btn-sm action-icon-btn" href="/settings/module/{{ module_name }}" title="Open module settings">
         <i class="fa-solid fa-arrow-right"></i>
       </a>

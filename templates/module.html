@@ -37,13 +37,19 @@
 <section class="sensor-grid" id="live-sensor-grid">
   {% for row in module_snapshot.sensor_rows %}
   {% set sensor_cfg = module_snapshot.sensor_config[loop.index0] if loop.index0 < (module_snapshot.sensor_config|length) else {} %}
+  {% set sensor_device = namespace(name=row.name) %}
+  {% for module_device in module_snapshot.module_config.devices or [] %}
+    {% if module_device.id|string == row.device_id|string and module_device.name %}
+      {% set sensor_device.name = module_device.name %}
+    {% endif %}
+  {% endfor %}
   {% set sensor_icon = 'fa-microchip' %}
   {% if row.type|lower == 'solar' %}{% set sensor_icon = 'fa-solar-panel' %}{% endif %}
   {% if row.type|lower == 'wind' %}{% set sensor_icon = 'fa-wind' %}{% endif %}
   {% if row.type|lower == 'battery' %}{% set sensor_icon = 'fa-car-battery' %}{% endif %}
   {% if row.type|lower == 'charger' %}{% set sensor_icon = 'fa-charging-station' %}{% endif %}
   <article class="sensor-grid-card sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-card-mode="view">
-    {% call legacy_card_header(sensor_icon, row.name, row.type|title ~ ((' - ' ~ row.variant) if row.variant else ''), ('Connected' if row.connected else 'Disconnected')) %}
+    {% call legacy_card_header(sensor_icon, row.name, row.type|title ~ ((' - ' ~ row.variant) if row.variant else '')) %}
     <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-{{ loop.index0 }}">
       <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="{{ loop.index0 }}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
       <button type="button" class="sensor-action-btn" data-sensor-card-action="logs" data-sensor-index="{{ loop.index0 }}" title="Recent sensor data"><i class="fa-solid fa-book"></i></button>
@@ -51,8 +57,7 @@
     {% endcall %}
     <div class="sensor-connection" data-field="connection-state">
       <i class="fa-solid fa-network-wired {% if row.connected %}status-connected{% else %}status-disconnected{% endif %}" data-field="connection-icon"></i>
-      <span data-field="connection-text">{% if row.connected %}Connected{% else %}Disconnected{% endif %}</span>
-      <span class="connection-transport connection-wired" data-field="connection-transport">Wired</span>
+      <span data-field="connection-text">{{ sensor_device.name }}</span>
     </div>
     <div class="sensor-card-feedback hidden" id="sensor-feedback-{{ loop.index0 }}"></div>
     <div class="legacy-card-content sensor-card-view" id="sensor-card-view-{{ loop.index0 }}">
@@ -143,7 +148,7 @@
   {% if module_name == 'ina' %}
   <template id="add-sensor-card-template">
     <article class="sensor-grid-card sensor-type-battery" data-sensor-row="new" data-sensor-name="new-sensor" data-sensor-type="battery" data-card-mode="config">
-      {% call legacy_card_header('fa-plus', 'New Sensor', 'Create a new sensor entry', module_name|upper) %}
+      {% call legacy_card_header('fa-plus', 'New Sensor', 'Create a new sensor entry') %}
       <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-new">
         <button type="button" class="sensor-action-btn" data-sensor-card-action="save" data-sensor-index="new" title="Save sensor"><i class="fa-solid fa-floppy-disk"></i></button>
         <button type="button" class="sensor-action-btn" data-sensor-card-action="cancel" data-sensor-index="new" title="Cancel"><i class="fa-solid fa-xmark"></i></button>

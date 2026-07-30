@@ -1,68 +1,68 @@
 [
   {
-    "name": "Garden Battery",
     "address": 64,
+    "calibration_value": 4191,
+    "device_id": 1,
+    "max_power": 30,
+    "name": "Garden Battery",
+    "rating": 12,
     "type": "Battery",
     "variant": "INA219",
-    "max_power": 30.0,
-    "rating": 12.0,
-    "device_id": 1,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "variant_tuning": {}
   },
   {
+    "address": "0x41",
+    "calibration_value": 4191,
+    "device_id": 1,
+    "max_power": 100,
     "name": "Turbine 220W",
-    "address": 65,
-    "type": "Wind",
+    "rating": 12,
+    "type": "wind",
     "variant": "INA219",
-    "max_power": 100.0,
-    "rating": 12.0,
-    "device_id": 1,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "variant_tuning": {}
   },
   {
-    "name": "Turbine 1000W",
     "address": 68,
+    "calibration_value": 4191,
+    "device_id": 1,
+    "max_power": 100,
+    "name": "Turbine 1000W",
+    "rating": 12,
     "type": "Wind",
     "variant": "INA219",
-    "max_power": 100.0,
-    "rating": 12.0,
-    "device_id": 1,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "variant_tuning": {}
   },
   {
-    "name": "Solar Panel 200W",
     "address": 69,
+    "calibration_value": 4191,
+    "device_id": 1,
+    "max_power": 100,
+    "name": "Solar Panel 200W",
+    "rating": 12,
     "type": "Solar",
     "variant": "INA219",
-    "max_power": 100.0,
-    "rating": 12.0,
-    "device_id": 1,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "variant_tuning": {}
   },
   {
-    "name": "Solar Panel 6W",
     "address": 64,
+    "calibration_value": 4191,
+    "device_id": 0,
+    "max_power": 100,
+    "name": "Solar Panel 6W",
+    "rating": 12,
     "type": "Solar",
     "variant": "INA260",
-    "max_power": 100.0,
-    "rating": 12.0,
-    "device_id": 0,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "variant_tuning": {}
   },
   {
-    "name": "House Battery",
-    "address": 68,
-    "type": "Battery",
-    "variant": "INA226",
-    "max_power": 100.0,
-    "rating": 12.0,
+    "address": "0x44",
+    "calibration_value": 4191,
     "device_id": 0,
-    "variant_tuning": {},
-    "calibration_value": 4191
+    "max_power": 100,
+    "name": "House Battery",
+    "rating": 12,
+    "type": "battery",
+    "variant": "INA226",
+    "variant_tuning": {}
   }
 ]
