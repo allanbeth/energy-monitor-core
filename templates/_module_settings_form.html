@@ -1,4 +1,5 @@
 <form id="module-core-settings-form-{{ module_name }}" class="module-settings-form" data-module-name="{{ module_name }}">
+  {% from "_card_macros.html" import legacy_card_header %}
   {% set custom_settings_template = module_profile.get('settings_form_template') if module_profile is defined else None %}
   <div class="row g-4 module-settings-cards-grid">
     {% if custom_settings_template %}
@@ -6,16 +7,12 @@
     {% elif module_name == 'ina' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">INA</div>
-            <h2 class="section-title h5 mb-0">Polling</h2>
-          </div>
+        {% call legacy_card_header('fa-clock', 'Polling', '', 'INA') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="row g-3">
             <div class="col-6">
               <label class="form-label">Solar poll interval</label>
@@ -39,16 +36,12 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">INA</div>
-            <h2 class="section-title h5 mb-0">Devices</h2>
-          </div>
+        {% call legacy_card_header('fa-microchip', 'Devices', '', 'INA') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="table-responsive">
             <table class="table table-sm align-middle module-table">
               <thead>
@@ -82,16 +75,12 @@
     {% elif module_name == 'victron' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">Victron</div>
-            <h2 class="section-title h5 mb-0">Bluetooth</h2>
-          </div>
+        {% call legacy_card_header('fa-bluetooth-b', 'Bluetooth', '', 'VICTRON') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="row g-3">
             <div class="col-4">
               <label class="form-label">Bluetooth adapter</label>
@@ -111,16 +100,12 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">Victron</div>
-            <h2 class="section-title h5 mb-0">Polling</h2>
-          </div>
+        {% call legacy_card_header('fa-clock', 'Polling', '', 'VICTRON') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="row g-3">
             <div class="col-4">
               <label class="form-label">Battery poll interval</label>
@@ -140,16 +125,12 @@
     </div>
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">Victron</div>
-            <h2 class="section-title h5 mb-0">Devices</h2>
-          </div>
+        {% call legacy_card_header('fa-microchip', 'Devices', '', 'VICTRON') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="table-responsive">
             <table class="table table-sm align-middle module-table">
               <thead>
@@ -183,16 +164,12 @@
     {% elif module_name == 'mppt' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">MPPT</div>
-            <h2 class="section-title h5 mb-0">Polling</h2>
-          </div>
+        {% call legacy_card_header('fa-clock', 'Polling', '', 'MPPT') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="row g-3">
             <div class="col-3">
               <label class="form-label">Solar poll interval</label>
@@ -216,16 +193,12 @@
     </div>
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">MPPT</div>
-            <h2 class="section-title h5 mb-0">Monitoring</h2>
-          </div>
+        {% call legacy_card_header('fa-chart-line', 'Monitoring', '', 'MPPT') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="row g-3">
             <div class="col-4">
               <label class="form-label">Log interval</label>
@@ -245,16 +218,12 @@
     </div>
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">MPPT</div>
-            <h2 class="section-title h5 mb-0">Devices</h2>
-          </div>
+        {% call legacy_card_header('fa-microchip', 'Devices', '', 'MPPT') %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <div class="table-responsive">
             <table class="table table-sm align-middle module-table">
               <thead>
@@ -290,16 +259,12 @@
     {% else %}
     <div class="col-12">
       <div class="panel card shadow-sm h-100 module-settings-card">
-        <div class="card-header d-flex justify-content-between align-items-center gap-3">
-          <div>
-            <div class="eyebrow">{{ module_name|upper }}</div>
-            <h2 class="section-title h5 mb-0">Module Configuration</h2>
-          </div>
+        {% call legacy_card_header('fa-gear', 'Module Configuration', '', module_name|upper) %}
           <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
             <i class="fa-solid fa-floppy-disk"></i>
           </button>
-        </div>
-        <div class="card-body">
+        {% endcall %}
+        <div class="card-body legacy-card-content">
           <p class="text-secondary small mb-3">
             This module does not yet provide a custom settings form template. Use the JSON editor below to update
             <code>module_config</code> directly.

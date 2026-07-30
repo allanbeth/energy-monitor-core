@@ -131,20 +131,96 @@
     return "fa-network-wired";
   }
 
-  function setConnectionIndicator(cardElement, sensor) {
+  function toBool(value) {
+    if (typeof value === "boolean") return value;
+    const text = String(value || "").trim().toLowerCase();
+    return text === "true" || text === "1" || text === "yes";
+  }
+
+  function findModuleDevice(snapshot, sensor) {
+    const moduleConfig = snapshot && typeof snapshot === "object" ? snapshot.module_config : null;
+    const devices = moduleConfig && Array.isArray(moduleConfig.devices) ? moduleConfig.devices : [];
+    const sensorDeviceId = String(sensor?.device_id || "").trim();
+    if (!sensorDeviceId) return null;
+
+    return devices.find((device) => {
+      if (!device || typeof device !== "object") return false;
+      const id = String(device.id || "").trim();
+      return id && id === sensorDeviceId;
+    }) || null;
+  }
+
+  function resolveConnectionTransport(moduleName, snapshot, sensor) {
+    const moduleKey = String(moduleName || "").trim().toLowerCase();
+    if (moduleKey === "ina") {
+      const device = findModuleDevice(snapshot, sensor);
+      const isRemote = !!(device && (toBool(device.remote_gpio) || String(device.gpio_address || "").trim()));
+      return {
+        kind: isRemote ? "remote" : "local",
+        icon: isRemote ? "fa-wifi" : "fa-network-wired",
+        label: isRemote ? "Remote" : "Local",
+      };
+    }
+
+    const source = `${sensor?.source_topic || ""} ${sensor?.status_detail || ""} ${sensor?.variant || ""} ${sensor?.type || ""}`.toLowerCase();
+    if (moduleKey === "victron" || source.includes("ble") || source.includes("bluetooth")) {
+      return { kind: "wireless", icon: "fa-bluetooth-b", label: "Bluetooth" };
+    }
+    if (source.includes("wifi") || source.includes("wireless")) {
+      return { kind: "wireless", icon: "fa-wifi", label: "Wireless" };
+    }
+    return { kind: "wired", icon: inferConnectionIcon(sensor), label: "Wired" };
+  }
+
+  function resolveConnectionState(sensor) {
+    const connected = !!sensor?.connected;
+    const statusRaw = String(sensor?.status || "").trim().toLowerCase();
+    const detailRaw = String(sensor?.status_detail || "").trim().toLowerCase();
+    const watts = Number(sensor?.watts ?? sensor?.power ?? 0);
+    const voltage = Number(sensor?.voltage ?? 0);
+    const current = Number(sensor?.current ?? 0);
+
+    if (!connected || statusRaw === "disconnected") {
+      return { state: "disconnected", label: "Disconnected" };
+    }
+
+    const hasNoDataHint = detailRaw.includes("no-data") || detailRaw.includes("no-signal") || detailRaw.includes("waiting-telemetry") || detailRaw.includes("read-failed") || detailRaw.includes("timeout");
+    const hasMetrics = Number.isFinite(watts) && Number.isFinite(voltage) && Number.isFinite(current) && (Math.abs(watts) > 0 || Math.abs(voltage) > 0 || Math.abs(current) > 0);
+    if (statusRaw === "partial" || hasNoDataHint || !hasMetrics) {
+      return { state: "partial", label: "Connected (No Data)" };
+    }
+
+    return { state: "connected", label: "Connected" };
+  }
+
+  function setConnectionIndicator(cardElement, sensor, snapshot = null) {
     if (!cardElement || !sensor) {
       return;
     }
+    const moduleName = String(window.EM_MODULE_NAME || "");
+    const transport = resolveConnectionTransport(moduleName, snapshot, sensor);
+    const connection = resolveConnectionState(sensor);
     const iconNode = cardElement.querySelector("[data-field='connection-icon']");
     const textNode = cardElement.querySelector("[data-field='connection-text']");
-    const connected = !!sensor.connected;
+    const transportNode = cardElement.querySelector("[data-field='connection-transport']");
+    const stateNode = cardElement.querySelector("[data-field='connection-state']");
     if (iconNode) {
-      iconNode.classList.remove("fa-wifi", "fa-network-wired", "status-connected", "status-partial", "status-disconnected");
-      iconNode.classList.add(inferConnectionIcon(sensor));
-      iconNode.classList.add(connected ? "status-connected" : "status-disconnected");
+      iconNode.classList.remove("fa-wifi", "fa-network-wired", "fa-bluetooth-b", "status-connected", "status-partial", "status-disconnected", "connection-local", "connection-remote", "connection-wired", "connection-wireless");
+      iconNode.classList.add(transport.icon);
+      iconNode.classList.add(`status-${connection.state}`);
+      iconNode.classList.add(`connection-${transport.kind}`);
     }
     if (textNode) {
-      textNode.textContent = connected ? "Connected" : "Disconnected";
+      textNode.textContent = connection.label;
+    }
+    if (transportNode) {
+      transportNode.textContent = transport.label;
+      transportNode.classList.remove("connection-local", "connection-remote", "connection-wired", "connection-wireless");
+      transportNode.classList.add(`connection-${transport.kind}`);
+    }
+    if (stateNode) {
+      stateNode.classList.remove("status-connected", "status-partial", "status-disconnected");
+      stateNode.classList.add(`status-${connection.state}`);
     }
   }
 
@@ -466,8 +542,25 @@
         node.querySelector("[data-module-connected-count]").textContent = String(snapshot.connected_sensor_count || 0);
       }
       const statusLabel = node.querySelector("[data-module-connection]");
+      const statusIcon = node.querySelector("[data-module-connection-icon]");
       if (statusLabel && snapshot) {
-        statusLabel.textContent = snapshot.status || "disconnected";
+        const connectedCount = Number(snapshot.connected_sensor_count || 0);
+        const totalCount = Number(snapshot.sensor_count || 0);
+        const moduleState = connectedCount <= 0 ? "disconnected" : (connectedCount < totalCount ? "partial" : "connected");
+        const statusText = moduleState === "connected" ? "Connected" : (moduleState === "partial" ? "Partial" : "Disconnected");
+        const statusTextNode = statusLabel.querySelector("[data-module-connection-label]");
+        if (statusTextNode) {
+          statusTextNode.textContent = statusText;
+        } else {
+          statusLabel.textContent = statusText;
+        }
+        statusLabel.classList.remove("status-connected", "status-partial", "status-disconnected");
+        statusLabel.classList.add(`status-${moduleState}`);
+        if (statusIcon) {
+          statusIcon.classList.remove("status-connected", "status-partial", "status-disconnected", "fa-circle-check", "fa-circle-exclamation", "fa-circle-xmark");
+          statusIcon.classList.add(`status-${moduleState}`);
+          statusIcon.classList.add(moduleState === "connected" ? "fa-circle-check" : (moduleState === "partial" ? "fa-circle-exclamation" : "fa-circle-xmark"));
+        }
       }
     });
   }
@@ -833,7 +926,7 @@
       const sensorName = String(row.getAttribute("data-sensor-name") || "");
       const sensor = sensorByName.get(sensorName);
       if (!sensor) return;
-      setConnectionIndicator(row, sensor);
+      setConnectionIndicator(row, sensor, snapshot);
       row.querySelector("[data-field='watts']")?.replaceChildren(document.createTextNode(String(sensor.watts ?? 0)));
       row.querySelector("[data-field='voltage']")?.replaceChildren(document.createTextNode(String(sensor.voltage ?? 0)));
       row.querySelector("[data-field='current']")?.replaceChildren(document.createTextNode(String(sensor.current ?? 0)));
@@ -1130,6 +1223,8 @@
     });
     setMqttPanelMode("main");
     loadCoreBackups();
+    refreshStatus();
+    setInterval(refreshStatus, 3000);
     hideLoadingScreen();
   }
 

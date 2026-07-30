@@ -1,0 +1,21 @@
+{% macro legacy_card_header(icon, title, subtitle='', eyebrow='') -%}
+<div class="legacy-card-header">
+  <div class="legacy-card-head-main">
+    <div class="legacy-card-icon">
+      <i class="fa-solid {{ icon }}"></i>
+    </div>
+    <div class="legacy-card-meta">
+      {% if eyebrow %}
+      <div class="eyebrow">{{ eyebrow }}</div>
+      {% endif %}
+      <h3 class="legacy-card-title">{{ title }}</h3>
+      {% if subtitle %}
+      <p class="legacy-card-subtitle">{{ subtitle }}</p>
+      {% endif %}
+    </div>
+  </div>
+  <div class="legacy-card-actions">
+    {{ caller() }}
+  </div>
+</div>
+{%- endmacro %}
