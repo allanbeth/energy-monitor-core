@@ -1,6 +1,9 @@
 <form id="module-core-settings-form-{{ module_name }}" class="module-settings-form" data-module-name="{{ module_name }}">
+  {% set custom_settings_template = module_profile.get('settings_form_template') if module_profile is defined else None %}
   <div class="row g-4 module-settings-cards-grid">
-    {% if module_name == 'ina' %}
+    {% if custom_settings_template %}
+    {% include custom_settings_template %}
+    {% elif module_name == 'ina' %}
     <div class="col-12 col-xl-6">
       <div class="panel card shadow-sm h-100 module-settings-card">
         <div class="card-header d-flex justify-content-between align-items-center gap-3">
@@ -281,6 +284,34 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12">
+      <div class="panel card shadow-sm h-100 module-settings-card">
+        <div class="card-header d-flex justify-content-between align-items-center gap-3">
+          <div>
+            <div class="eyebrow">{{ module_name|upper }}</div>
+            <h2 class="section-title h5 mb-0">Module Configuration</h2>
+          </div>
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
+            <i class="fa-solid fa-floppy-disk"></i>
+          </button>
+        </div>
+        <div class="card-body">
+          <p class="text-secondary small mb-3">
+            This module does not yet provide a custom settings form template. Use the JSON editor below to update
+            <code>module_config</code> directly.
+          </p>
+          <label class="form-label">module_config JSON</label>
+          <textarea
+            class="form-control"
+            name="module_config_json"
+            data-module-json-config="true"
+            rows="18"
+            spellcheck="false"
+          >{{ module_config_json }}</textarea>
         </div>
       </div>
     </div>

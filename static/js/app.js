@@ -667,7 +667,27 @@
 
   async function saveInlineModuleSettings(moduleName, form, messageElement) {
     try {
-      const payload = form ? formToNestedJson(form, "module_config") : {};
+      let payload = form ? formToNestedJson(form, "module_config") : {};
+      const moduleJsonField = form ? form.querySelector("[data-module-json-config]") : null;
+      if (moduleJsonField) {
+        const raw = String(moduleJsonField.value || "").trim();
+        if (!raw) {
+          payload = {};
+        } else {
+          let parsed;
+          try {
+            parsed = JSON.parse(raw);
+          } catch {
+            throw new Error("Invalid module_config JSON. Fix JSON syntax before saving.");
+          }
+
+          if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+            throw new Error("module_config JSON must be an object.");
+          }
+
+          payload = parsed;
+        }
+      }
       await request(`/api/modules/${encodeURIComponent(moduleName)}`, {
         method: "PUT",
         body: JSON.stringify({ module_config: payload }),

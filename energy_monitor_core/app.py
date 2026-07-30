@@ -298,13 +298,17 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
 
         module_payload = active_modules[module_name]
+        module_profile = get_module_profile(module_name)
         module_title = module_payload.get("definitions", {}).get("settings-title", f"{module_name.title()} Settings")
+        module_config_json = json.dumps(module_payload.get("module_config", {}), indent=2, sort_keys=True)
         return render_template(
             "module_settings.html",
             app_title=module_title,
             page_name="module-settings",
             module_name=module_name,
             module_payload=module_payload,
+            module_profile=module_profile,
+            module_config_json=module_config_json,
             status=config_manager.get_public_status(runtime_manager),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             **_base_context(),
