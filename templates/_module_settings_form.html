@@ -95,9 +95,10 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content app-card-content app-card-content--form card-content-form settings-card-content">
+          <div class="form-text mb-3" data-victron-devices-message id="victron-devices-card-message"></div>
           <div class="victron-device-list">
             {% for device in module_payload.module_config.devices %}
-            {% set device_identity = device.id if device.id is not none else loop.index0 %}
+            {% set device_identity = device.mac if device.mac else (device.id if device.id is not none else loop.index0) %}
             <div class="settings-entry victron-device-row">
               <div class="victron-device-meta">
                 <span class="victron-device-name">{{ device.name or ('Device ' ~ device_identity) }}</span>

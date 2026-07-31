@@ -110,6 +110,32 @@
     element.classList.toggle("text-success", !isError);
   }
 
+  function showStatusMessage(element, message, tone = "success") {
+    if (!element) return;
+    element.textContent = String(message || "");
+    element.classList.remove("text-danger", "text-success", "text-warning");
+    if (tone === "error") {
+      element.classList.add("text-danger");
+      return;
+    }
+    if (tone === "warning") {
+      element.classList.add("text-warning");
+      return;
+    }
+    element.classList.add("text-success");
+  }
+
+  function showStatusMessages(elements, message, tone = "success") {
+    const seen = new Set();
+    elements.forEach((element) => {
+      if (!element || seen.has(element)) {
+        return;
+      }
+      seen.add(element);
+      showStatusMessage(element, message, tone);
+    });
+  }
+
   function formatTimestampToSecond(value) {
     const raw = String(value || "").trim();
     if (!raw) {
@@ -850,17 +876,34 @@
     });
   }
 
-  async function reconnectVictronDevice(deviceId, messageElementId) {
-    const message = messageElementId ? document.getElementById(messageElementId) : document.getElementById("core-settings-message");
+  async function reconnectVictronDevice(deviceId, messageElementId, triggerButton = null) {
+    const message = messageElementId ? document.getElementById(messageElementId) : null;
     const moduleName = String(window.EM_MODULE_NAME || "").trim() || "victron";
+    const moduleMessage = document.getElementById(`module-core-settings-message-${moduleName}`) || document.getElementById("core-settings-message");
+    const cardMessage = triggerButton && typeof triggerButton.closest === "function"
+      ? triggerButton.closest(".module-settings-card")?.querySelector("[data-victron-devices-message]")
+      : null;
+    const statusTargets = [message, cardMessage, moduleMessage];
+
+    if (triggerButton) {
+      triggerButton.disabled = true;
+    }
+    showStatusMessages(statusTargets, "Reconnecting device...", "warning");
+
     try {
-      await request(`/api/modules/${encodeURIComponent(moduleName)}/devices/${encodeURIComponent(String(deviceId || ""))}/reconnect`, {
+      const result = await request(`/api/modules/${encodeURIComponent(moduleName)}/devices/${encodeURIComponent(String(deviceId || ""))}/reconnect`, {
         method: "POST",
       });
-      showMessage(message, "Reconnect attempt triggered.");
+      const connected = !!result?.connected;
+      const text = String(result?.message || (connected ? "Device reconnected." : "Reconnect failed."));
+      showStatusMessages(statusTargets, text, connected ? "success" : "warning");
       await refreshStatus();
     } catch (err) {
-      showMessage(message, err.message, true);
+      showStatusMessages(statusTargets, err.message, "error");
+    } finally {
+      if (triggerButton) {
+        triggerButton.disabled = false;
+      }
     }
   }
 
@@ -1319,7 +1362,7 @@
       button.addEventListener("click", async () => {
         const deviceId = button.getAttribute("data-victron-device-reconnect");
         const messageElementId = button.getAttribute("data-victron-device-message");
-        await reconnectVictronDevice(deviceId, messageElementId);
+        await reconnectVictronDevice(deviceId, messageElementId, button);
       });
     });
     document.getElementById("logout-btn")?.addEventListener("click", async function () {

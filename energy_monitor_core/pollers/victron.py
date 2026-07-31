@@ -74,6 +74,82 @@ class ModulePoller(BaseModulePoller):
             or bool(device.get("paired"))
         )
 
+    def _bluetoothctl_pair_connect(self, mac: str, timeout: float, passcode: str = "") -> tuple[bool, str]:
+        safe_timeout = max(8, int(timeout))
+        commands = [
+            "power on",
+            "agent on",
+            "default-agent",
+            f"scan on",
+            f"pair {mac}",
+        ]
+        # Best-effort support for PIN-based pairing flows.
+        if passcode:
+            commands.append(passcode)
+            commands.append("yes")
+        commands.extend([
+            f"trust {mac}",
+            f"connect {mac}",
+            f"info {mac}",
+            "scan off",
+            "quit",
+            "",
+        ])
+
+        try:
+            subprocess.run(
+                ["timeout", str(safe_timeout + 10), "bluetoothctl"],
+                input="\n".join(commands),
+                text=True,
+                capture_output=True,
+                timeout=safe_timeout + 12,
+                check=False,
+            )
+            info = subprocess.run(
+                ["bluetoothctl", "--timeout", "5", "info", mac],
+                capture_output=True,
+                text=True,
+                timeout=8,
+                check=False,
+            )
+        except FileNotFoundError:
+            return False, "bluetoothctl-not-installed"
+        except subprocess.TimeoutExpired:
+            return False, "bluetoothctl-pair-timeout"
+        except Exception as error:
+            return False, f"bluetoothctl-pair-error:{error.__class__.__name__}"
+
+        info_output = (info.stdout or "") + "\n" + (info.stderr or "")
+        if "Connected: yes" in info_output:
+            return True, "connected-via-bluetoothctl-pair"
+        if "Paired: yes" in info_output:
+            return False, "paired-not-connected"
+        return False, "pair-or-connect-failed"
+
+    def reconnect_device(self, device: dict[str, Any], module_config: dict[str, Any]) -> dict[str, Any]:
+        mac = str((device or {}).get("mac") or "").strip()
+        if not mac:
+            return {"connected": False, "status_detail": "missing-mac"}
+
+        bluetooth_config = module_config.get("bluetooth", {}) if isinstance(module_config, dict) else {}
+        timeout = float(device.get("connection_timeout") or bluetooth_config.get("connection_timeout") or 10)
+        passcode = str(device.get("passcode") or "").strip()
+
+        connected, status_detail = self._bluetoothctl_connect(mac, timeout)
+        if not connected and status_detail in {"bluetoothctl-not-paired", "bluetoothctl-connect-failed", "bluetoothctl-connect-failed:"}:
+            connected, status_detail = self._bluetoothctl_pair_connect(mac, timeout, passcode=passcode)
+
+        state = self._bluetoothctl_state(mac)
+        final_connected = bool(connected or state.get("connected"))
+        self._last_probe_data = {
+            "connected": final_connected,
+            "status_detail": status_detail,
+            "method": "bluetoothctl",
+            "paired": bool(state.get("paired")),
+            "rssi": state.get("rssi"),
+        }
+        return dict(self._last_probe_data)
+
     def _prime_host_connection(self, mac: str, timeout: float) -> None:
         safe_timeout = max(5, int(timeout))
         try:
@@ -259,13 +335,13 @@ class ModulePoller(BaseModulePoller):
 
         if self._paired_ready(state, device):
             self._last_probe_data = {
-                "connected": True,
-                "status_detail": "paired-ready-waiting-telemetry",
+                "connected": False,
+                "status_detail": "paired-not-connected",
                 "method": "bluetoothctl",
                 "rssi": state.get("rssi"),
                 "paired": bool(state.get("paired") or device.get("paired")),
             }
-            return True, "paired-ready-waiting-telemetry"
+            return False, "paired-not-connected"
 
         self._last_probe_data = {
             "connected": False,

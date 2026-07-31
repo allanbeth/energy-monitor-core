@@ -406,16 +406,48 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         if module_name not in config_manager.get_active_modules():
             return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
 
+        module_payload = config_manager.get_module_payload(module_name)
+        module_config = module_payload.get("module_config", {}) if isinstance(module_payload, dict) else {}
+        devices = module_config.get("devices", []) if isinstance(module_config, dict) else []
+        target_device = None
+        for candidate in devices if isinstance(devices, list) else []:
+            if not isinstance(candidate, dict):
+                continue
+            candidate_id = str(candidate.get("id") if candidate.get("id") is not None else "").strip()
+            candidate_mac = str(candidate.get("mac") or "").strip()
+            if str(device_id).strip() in {candidate_id, candidate_mac}:
+                target_device = candidate
+                break
+
+        if target_device is None:
+            return jsonify({"error": f"Device not found: {device_id}"}), 404
+
+        result: dict[str, Any] = {"connected": False, "status_detail": "reconnect-not-implemented"}
+        runtime = runtime_manager.get_runtime(module_name)
+        if runtime is not None and module_name == "victron" and hasattr(runtime.poller, "reconnect_device"):
+            try:
+                result = runtime.poller.reconnect_device(target_device, module_config)
+            except Exception as error:
+                result = {"connected": False, "status_detail": f"reconnect-error:{error.__class__.__name__}"}
+
         runtime_manager.refresh_module(module_name)
         snapshot = runtime_manager.get_module_snapshot(module_name)
         summary = snapshot.get("device_status_summary", {}) if isinstance(snapshot, dict) else {}
-        device_state = summary.get(str(device_id)) if isinstance(summary, dict) else None
+        resolved_key = str(target_device.get("id") if target_device.get("id") is not None else target_device.get("mac") or device_id)
+        device_state = summary.get(resolved_key) if isinstance(summary, dict) else None
+
+        connected = bool(result.get("connected")) or bool((device_state or {}).get("connected"))
+        status_detail = str(result.get("status_detail") or "")
+        message = "Device reconnected." if connected else f"Reconnect failed: {status_detail or 'device not connected'}"
+
         return jsonify({
-            "status": "success",
+            "status": "success" if connected else "warning",
             "module": module_name,
             "device_id": device_id,
             "device": device_state,
-            "message": "Reconnect attempt triggered.",
+            "connected": connected,
+            "status_detail": status_detail,
+            "message": message,
         })
 
     @app.route("/api/live/<module_name>", methods=["POST"])
