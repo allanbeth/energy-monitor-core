@@ -115,44 +115,22 @@
         <div id="core-settings-message" class="form-text"></div>
       </div>
     </article>
-  </section>
-</form>
 
-<section class="section-heading mb-3">
-  <h2 class="section-title mb-0">Active Module Settings</h2>
-</section>
-
-<section class="row row-cols-1 row-cols-md-2 row-cols-xl-3 g-4 mb-4 active-modules-grid">
-  {% for module_name, module_payload in modules.items() %}
-  <div class="col-12 col-lg-6 col-xxl-4" id="active-module-{{ module_name }}">
-    <div class="panel card shadow-sm h-100 active-module-panel module-{{ module_name }}" data-module-status="{{ module_name }}">
+    {% for module_name, module_payload in modules.items() %}
+    <article class="panel card shadow-sm settings-card active-module-panel module-{{ module_name }}" id="active-module-{{ module_name }}" data-module-status="{{ module_name }}">
       {% call legacy_card_header(module_payload.definitions.get('icon', 'fa-microchip'), module_payload.definitions.get('settings-title', module_name|title ~ ' Settings'), 'Module configuration and device controls.') %}
       <a class="btn btn-outline-primary btn-sm action-icon-btn" href="/settings/module/{{ module_name }}" title="Open module settings">
         <i class="fa-solid fa-arrow-right"></i>
       </a>
       {% endcall %}
-      <div class="card-body legacy-card-content d-flex flex-column gap-3">
+      <div class="card-body legacy-card-content settings-card-content d-flex flex-column gap-3">
         <div class="text-secondary small">Module configuration and device controls.</div>
-        <div class="module-stats">
-          <div>
-            <span>Connected Devices</span>
-            <strong data-module-connected-count>{{ module_payload.get('connected_device_count', module_payload.get('connected_sensor_count', 0)) }}</strong>
-          </div>
-          <div>
-            <span>Status</span>
-            <strong data-module-connection>
-              <i class="fa-solid fa-circle-xmark status-disconnected" data-module-connection-icon></i>
-              <span data-module-connection-label>{{ module_payload.connection_status }}</span>
-            </strong>
-          </div>
-          <div>
-            <span>Type</span>
-            <strong>{{ module_payload.definitions.get('sensor-title', module_name|title) }}</strong>
-          </div>
-        </div>
+        <div class="settings-entry"><label>Connected Devices</label><span class="status-value" data-module-connected-count>{{ module_payload.get('connected_device_count', module_payload.get('connected_sensor_count', 0)) }}</span></div>
+        <div class="settings-entry"><label>Status</label><strong class="status-value" data-module-connection><i class="fa-solid fa-circle-xmark status-disconnected" data-module-connection-icon></i><span data-module-connection-label>{{ module_payload.connection_status }}</span></strong></div>
+        <div class="settings-entry"><label>Type</label><span class="status-value">{{ module_payload.definitions.get('sensor-title', module_name|title) }}</span></div>
       </div>
-    </div>
-  </div>
-  {% endfor %}
-</section>
+    </article>
+    {% endfor %}
+  </section>
+</form>
 {% endblock %}
