@@ -29,6 +29,7 @@ class ModulePoller(BaseModulePoller):
     def __init__(self, module_name: str, config_manager: Any, live_data_store: Any = None):
         super().__init__(module_name, config_manager, live_data_store)
         self._client_lock = RLock()
+        self._event_loop_lock = RLock()
         self._device_clients: dict[str, Any] = {}
         self._event_loop = asyncio.new_event_loop()
 
@@ -210,10 +211,13 @@ class ModulePoller(BaseModulePoller):
 
         state = self._bluetoothctl_state(mac)
         final_connected = bool(connected or state.get("connected"))
+        if final_connected:
+            self._drop_cached_client(self._device_key(device))
         self._last_probe_data = {
             "connected": final_connected,
             "status_detail": status_detail,
             "method": "bluetoothctl",
+            "connection_session": "host-connected" if final_connected else "disconnected",
             "paired": bool(state.get("paired")),
             "rssi": state.get("rssi"),
         }
@@ -244,9 +248,20 @@ class ModulePoller(BaseModulePoller):
         return "victron-device"
 
     def _run_async(self, coroutine):
-        if self._event_loop.is_closed():
-            self._event_loop = asyncio.new_event_loop()
-        return self._event_loop.run_until_complete(coroutine)
+        with self._event_loop_lock:
+            if self._event_loop.is_closed():
+                self._event_loop = asyncio.new_event_loop()
+            return self._event_loop.run_until_complete(coroutine)
+
+    def _drop_cached_client(self, device_key: str) -> None:
+        with self._client_lock:
+            stale_client = self._device_clients.pop(device_key, None)
+        if stale_client is None:
+            return
+        try:
+            self._run_async(self._disconnect_client(stale_client))
+        except Exception:
+            pass
 
     async def _disconnect_client(self, client: Any) -> None:
         if client is None:
@@ -392,6 +407,7 @@ class ModulePoller(BaseModulePoller):
 
         try:
             if not bool(getattr(client, "is_connected", False)):
+                self._prime_host_connection(mac, timeout)
                 await asyncio.wait_for(client.connect(), timeout=max(2.0, float(timeout) + 2.0))
                 logger.info("Victron: established BLE session for device %s", device_key)
             elif had_connected_session:
