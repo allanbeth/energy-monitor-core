@@ -196,6 +196,7 @@
 
   function resolveConnectionState(sensor, moduleName = "") {
     const connected = !!sensor?.connected;
+    const deviceConnected = !!sensor?.device_connected;
     const moduleKey = String(moduleName || "").trim().toLowerCase();
     const statusRaw = String(sensor?.status || "").trim().toLowerCase();
     const detailRaw = String(sensor?.status_detail || "").trim().toLowerCase();
@@ -204,12 +205,15 @@
     const current = Number(sensor?.current ?? 0);
 
     if (!connected || statusRaw === "disconnected") {
+      if (deviceConnected && moduleKey === "victron") {
+        return { state: "connected", label: "Connected" };
+      }
       return { state: "disconnected", label: "Disconnected" };
     }
 
     const hasNoDataHint = detailRaw.includes("no-data") || detailRaw.includes("no-signal") || detailRaw.includes("waiting-telemetry") || detailRaw.includes("read-failed") || detailRaw.includes("timeout");
     const hasMetrics = Number.isFinite(watts) && Number.isFinite(voltage) && Number.isFinite(current) && (Math.abs(watts) > 0 || Math.abs(voltage) > 0 || Math.abs(current) > 0);
-    if (moduleKey === "ina" && hasNoDataHint) {
+    if ((moduleKey === "ina" || moduleKey === "victron") && (hasNoDataHint || deviceConnected)) {
       return { state: "connected", label: "Connected" };
     }
     if (statusRaw === "partial" || hasNoDataHint || !hasMetrics) {
@@ -237,7 +241,7 @@
       iconNode.classList.add(`connection-${transport.kind}`);
     }
     if (textNode) {
-      textNode.textContent = deviceName;
+      textNode.textContent = `${deviceName} - ${connection.label}`;
     }
     if (stateNode) {
       stateNode.classList.remove("status-connected", "status-partial", "status-disconnected");
@@ -835,6 +839,31 @@
     }
   }
 
+  function toggleVictronDeviceEditor(index, open) {
+    document.querySelectorAll("[data-victron-device-panel]").forEach((panel) => {
+      const shouldOpen = String(panel.getAttribute("data-victron-device-panel") || "") === String(index);
+      if (open && shouldOpen) {
+        panel.classList.remove("hidden");
+      } else {
+        panel.classList.add("hidden");
+      }
+    });
+  }
+
+  async function reconnectVictronDevice(deviceId, messageElementId) {
+    const message = messageElementId ? document.getElementById(messageElementId) : document.getElementById("core-settings-message");
+    const moduleName = String(window.EM_MODULE_NAME || "").trim() || "victron";
+    try {
+      await request(`/api/modules/${encodeURIComponent(moduleName)}/devices/${encodeURIComponent(String(deviceId || ""))}/reconnect`, {
+        method: "POST",
+      });
+      showMessage(message, "Reconnect attempt triggered.");
+      await refreshStatus();
+    } catch (err) {
+      showMessage(message, err.message, true);
+    }
+  }
+
   function collectSensorConfigFromCards() {
     const forms = Array.from(document.querySelectorAll(".sensor-config-form"));
     forms.sort((a, b) => parseSensorIndex(a.getAttribute("data-sensor-index")) - parseSensorIndex(b.getAttribute("data-sensor-index")));
@@ -1272,6 +1301,25 @@
         const form = document.querySelector(`form[data-module-name="${moduleName}"]`);
         const message = document.getElementById(`module-core-settings-message-${moduleName}`);
         await saveInlineModuleSettings(moduleName, form, message);
+      });
+    });
+    document.querySelectorAll("[data-victron-device-edit]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = button.getAttribute("data-victron-device-edit");
+        toggleVictronDeviceEditor(index, true);
+      });
+    });
+    document.querySelectorAll("[data-victron-device-close]").forEach((button) => {
+      button.addEventListener("click", () => {
+        const index = button.getAttribute("data-victron-device-close");
+        toggleVictronDeviceEditor(index, false);
+      });
+    });
+    document.querySelectorAll("[data-victron-device-reconnect]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const deviceId = button.getAttribute("data-victron-device-reconnect");
+        const messageElementId = button.getAttribute("data-victron-device-message");
+        await reconnectVictronDevice(deviceId, messageElementId);
       });
     });
     document.getElementById("logout-btn")?.addEventListener("click", async function () {

@@ -12,9 +12,9 @@
 <section class="hero-panel mb-4">
   <div class="row g-3 dashboard-card-grid">
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-total dashboard-overview-card">
+      <div class="metric-card sensor-total dashboard-overview-card app-card app-card--live">
         {% call legacy_card_header('fa-bolt', 'Total Power', 'Live aggregate output') %}{% endcall %}
-        <div class="legacy-card-content">
+        <div class="app-card-content app-card-content--live card-content-live">
         <div class="metric-value" data-aggregate-watts="overall">{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -35,9 +35,9 @@
 
     {% set solar = status.aggregate_totals.get('solar', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-solar dashboard-overview-card">
+      <div class="metric-card sensor-solar dashboard-overview-card app-card app-card--live">
         {% call legacy_card_header('fa-solar-panel', 'Solar Power', 'Live module output') %}{% endcall %}
-        <div class="legacy-card-content">
+        <div class="app-card-content app-card-content--live card-content-live">
         <div class="metric-value" data-aggregate-watts="solar">{{ solar.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -58,9 +58,9 @@
 
     {% set wind = status.aggregate_totals.get('wind', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-wind dashboard-overview-card">
+      <div class="metric-card sensor-wind dashboard-overview-card app-card app-card--live">
         {% call legacy_card_header('fa-wind', 'Wind Power', 'Live module output') %}{% endcall %}
-        <div class="legacy-card-content">
+        <div class="app-card-content app-card-content--live card-content-live">
         <div class="metric-value" data-aggregate-watts="wind">{{ wind.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -81,9 +81,9 @@
 
     {% set battery = status.aggregate_totals.get('battery', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-battery dashboard-overview-card">
+      <div class="metric-card sensor-battery dashboard-overview-card app-card app-card--live">
         {% call legacy_card_header('fa-battery-full', 'Battery Power', 'Live module output') %}{% endcall %}
-        <div class="legacy-card-content">
+        <div class="app-card-content app-card-content--live card-content-live">
         <div class="metric-value" data-aggregate-watts="battery">{{ battery.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -104,9 +104,9 @@
 
     <div class="col-12 col-md-3">
       {% set charger = status.aggregate_totals.get('charger', {}) %}
-      <div class="metric-card sensor-charger dashboard-overview-card {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
+      <div class="metric-card sensor-charger dashboard-overview-card app-card app-card--live {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
         {% call legacy_card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
-        <div class="legacy-card-content">
+        <div class="app-card-content app-card-content--live card-content-live">
         <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">

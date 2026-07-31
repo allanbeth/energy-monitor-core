@@ -18,6 +18,8 @@
   --link-icon: #56657d;
   --link-icon-hover: #1f2937;
   --shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
+  --card-default-inner-gap: 0.75rem;
+  --card-default-content-padding: 0.85rem;
 }
 
 * {
@@ -359,6 +361,55 @@ body {
   text-align: left;
 }
 
+.app-card {
+  min-height: var(--app-card-min-height);
+  border-radius: var(--app-card-radius);
+}
+
+.app-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  width: 100%;
+}
+
+.app-card-header-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 0.75rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.app-card-header-meta {
+  min-width: 0;
+  text-align: left;
+}
+
+.app-card-title {
+  margin: 0;
+  color: var(--text);
+  font-size: 1.06rem;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.app-card-subtitle {
+  margin: 0.12rem 0 0;
+  color: var(--muted);
+  line-height: 1.3;
+}
+
+.app-card-header-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.3rem;
+  flex-wrap: wrap;
+}
+
 .legacy-card-head-main {
   display: flex;
   align-items: flex-start;
@@ -430,8 +481,60 @@ body {
   border: 1px solid rgba(121, 134, 156, 0.26);
   border-radius: 0.8rem;
   background: rgba(255, 255, 255, 0.62);
-  padding: 0.85rem;
+  padding: var(--card-default-content-padding);
   margin-top: 0.15rem;
+}
+
+.app-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  border: 1px solid rgba(121, 134, 156, 0.26);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.62);
+  padding: var(--card-default-content-padding);
+  margin-top: 0.15rem;
+}
+
+/* Shared content defaults used by live cards, form cards, logs, and feedback */
+.card-content-live,
+.card-content-form,
+.card-content-logs,
+.card-content-feedback {
+  width: 100%;
+}
+
+.card-content-live {
+  flex: 1 1 auto;
+}
+
+.app-card-content--live {
+  flex: 1 1 auto;
+}
+
+.card-content-form {
+  gap: 0.45rem;
+}
+
+.app-card-content--form {
+  gap: 0.45rem;
+}
+
+.card-content-logs {
+  gap: 0.55rem;
+}
+
+.app-card-content--logs {
+  gap: 0.55rem;
+}
+
+.card-content-feedback {
+  border-radius: 0.8rem;
+}
+
+.app-card-content--feedback {
+  border-radius: 0.8rem;
 }
 
 .panel.card,
@@ -1051,7 +1154,7 @@ input.form-check-input[type="checkbox"]:focus {
 }
 
 .sensor-grid-card {
-  --card-inner-gap: 0.75rem;
+  --card-inner-gap: var(--card-default-inner-gap);
   display: flex;
   flex-direction: column;
   gap: 0.65rem;
@@ -1327,6 +1430,43 @@ input.form-check-input[type="checkbox"]:focus {
 .module-settings-form .module-settings-card {
   min-height: var(--app-card-min-height);
   max-height: none;
+}
+
+.victron-device-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.victron-device-row {
+  width: 100%;
+}
+
+.victron-device-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.victron-device-name {
+  font-weight: 700;
+  color: var(--text);
+}
+
+.victron-device-editor {
+  border-style: dashed;
+}
+
+.victron-device-editor.hidden {
+  display: none !important;
+}
+
+.victron-device-actions {
+  display: inline-flex;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  width: 100%;
 }
 
 .dialog-container {

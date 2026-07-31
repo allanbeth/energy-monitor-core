@@ -83,7 +83,7 @@
     "discovery_prefix": "homeassistant",
     "one_time_broker_sweep": true,
     "one_time_broker_sweep_aggressive": false,
-    "enabled": false
+    "enabled": true
   },
   "webserver": {
     "enabled": true,

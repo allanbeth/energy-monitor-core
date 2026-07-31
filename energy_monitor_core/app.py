@@ -400,6 +400,24 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
         return jsonify(runtime_manager.get_module_snapshot(module_name))
 
+    @app.route("/api/modules/<module_name>/devices/<device_id>/reconnect", methods=["POST"])
+    @require_auth
+    def reconnect_module_device(module_name: str, device_id: str) -> Any:
+        if module_name not in config_manager.get_active_modules():
+            return jsonify({"error": f"Unknown or inactive module: {module_name}"}), 404
+
+        runtime_manager.refresh_module(module_name)
+        snapshot = runtime_manager.get_module_snapshot(module_name)
+        summary = snapshot.get("device_status_summary", {}) if isinstance(snapshot, dict) else {}
+        device_state = summary.get(str(device_id)) if isinstance(summary, dict) else None
+        return jsonify({
+            "status": "success",
+            "module": module_name,
+            "device_id": device_id,
+            "device": device_state,
+            "message": "Reconnect attempt triggered.",
+        })
+
     @app.route("/api/live/<module_name>", methods=["POST"])
     @require_auth
     def ingest_live_data(module_name: str) -> Any:
