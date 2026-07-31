@@ -376,6 +376,17 @@
       }
     }
 
+    function enforceSensorCardModeState() {
+      document.querySelectorAll("[data-sensor-row]").forEach((card) => {
+        const sensorIndex = String(card.getAttribute("data-sensor-row") || "").trim();
+        if (!sensorIndex) {
+          return;
+        }
+        const mode = String(card.getAttribute("data-card-mode") || "view").trim() || "view";
+        setSensorCardMode(sensorIndex, mode);
+      });
+    }
+
     function showSensorCardTransientFeedback(sensorIndex, message, isError = false, returnMode = "view", timeoutMs = 1350) {
       setSensorCardFeedback(sensorIndex, message, isError);
       setSensorCardMode(sensorIndex, "feedback");
@@ -1131,6 +1142,7 @@
     });
 
     refreshInaAddressSelectors();
+    enforceSensorCardModeState();
     applyModuleFilter(window.EM_MODULE_FILTER || null);
   }
 
@@ -1529,6 +1541,7 @@
       window.location.reload();
     });
     refreshModuleSnapshot().finally(() => {
+      enforceSensorCardModeState();
       applyModuleFilter(window.EM_MODULE_FILTER || null);
       if ((window.EM_MODULE_NAME || "") === "ina") {
         refreshInaAddressSelectors();

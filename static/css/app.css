@@ -1640,6 +1640,60 @@ input.form-check-input[type="checkbox"]:focus {
   word-break: break-word;
 }
 
+/* Final parity enforcement: one shell geometry across all card types/pages. */
+.card-shell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0 !important;
+  overflow: hidden;
+  background: var(--panel) !important;
+  border: 1px solid var(--panel-border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.card-shell > .card-header-default,
+.card-shell > .app-card-content {
+  margin: var(--card-header-margin) !important;
+  width: calc(100% - (var(--card-header-margin) * 2)) !important;
+}
+
+.card-shell > .app-card-content,
+.card-shell > .app-card-content.card-body {
+  padding: var(--card-default-content-padding) !important;
+}
+
+.card-shell .card-body,
+.settings-card .card-body,
+.module-settings-card .card-body,
+.active-module-panel .card-body {
+  padding: 0 !important;
+  gap: 0 !important;
+  overflow: visible !important;
+}
+
+/* Sensor cards previously had custom shell visuals; align them to shared shell. */
+.sensor-grid-card {
+  padding: 0 !important;
+  border: 1px solid var(--panel-border) !important;
+  background: var(--panel) !important;
+  box-shadow: var(--shadow) !important;
+  overflow: hidden !important;
+}
+
+/* Prevent stacked views: only mode-selected section can render. */
+.sensor-grid-card .sensor-card-view,
+.sensor-grid-card .sensor-card-config,
+.sensor-grid-card .sensor-card-logs,
+.sensor-grid-card .sensor-card-feedback {
+  display: none !important;
+}
+
+.sensor-grid-card[data-card-mode="view"] .sensor-card-view { display: flex !important; }
+.sensor-grid-card[data-card-mode="config"] .sensor-card-config { display: block !important; }
+.sensor-grid-card[data-card-mode="logs"] .sensor-card-logs { display: block !important; }
+.sensor-grid-card[data-card-mode="feedback"] .sensor-card-feedback { display: block !important; }
+
 .module-settings-form {
   display: block;
 }
