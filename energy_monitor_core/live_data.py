@@ -6,6 +6,9 @@ from threading import RLock
 from typing import Any, Dict, Iterable, List, Optional
 
 
+DISCONNECT_GRACE_SECONDS = 6
+
+
 def _safe_float(value: Any, default: float = 0.0) -> float:
     try:
         number = float(value)
@@ -45,6 +48,21 @@ def normalize_i2c_address(value: Any) -> str:
         return str(value)
 
 
+def _parse_iso_datetime(value: Any) -> Optional[datetime]:
+    if not isinstance(value, str) or not value.strip():
+        return None
+    text = value.strip()
+    if text.endswith("Z"):
+        text = f"{text[:-1]}+00:00"
+    try:
+        parsed = datetime.fromisoformat(text)
+    except Exception:
+        return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=timezone.utc)
+    return parsed
+
+
 class SensorDataStore:
     def __init__(self) -> None:
         self._lock = RLock()
@@ -66,6 +84,8 @@ class SensorDataStore:
         if current == 0.0 and voltage > 0:
             current = watts / voltage if voltage else 0.0
 
+        now = datetime.now(timezone.utc)
+        now_iso = now.isoformat()
         connected = bool(data.get("connected", True))
         status = str(data.get("status") or ("connected" if connected else "disconnected")).strip().lower()
         if status in {"online", "running", "active"}:
@@ -75,6 +95,8 @@ class SensorDataStore:
             connected = False
             status = "disconnected"
 
+        disconnect_mark = ""
+
         record = {
             "name": str(data.get("name") or sensor_key).strip() or sensor_key,
             "type": normalize_sensor_type(data.get("type")),
@@ -83,15 +105,38 @@ class SensorDataStore:
             "current": round(current, 2),
             "connected": connected,
             "status": status,
-            "last_seen": data.get("last_seen") or self._now(),
+            "last_seen": data.get("last_seen") or now_iso,
             "source_topic": str(data.get("source_topic") or "").strip(),
             "raw": deepcopy(data),
         }
 
         with self._lock:
             module_bucket = self._modules.setdefault(module_key, {"sensors": {}, "updated_at": self._now()})
+            previous = module_bucket["sensors"].get(sensor_key) if isinstance(module_bucket.get("sensors"), dict) else None
+
+            if connected:
+                record["last_seen"] = data.get("last_seen") or now_iso
+            else:
+                previous_connected = bool(previous.get("connected")) if isinstance(previous, dict) else False
+                if previous_connected:
+                    prior_mark = _parse_iso_datetime(previous.get("disconnect_mark")) if isinstance(previous, dict) else None
+                    mark = prior_mark or now
+                    elapsed = (now - mark).total_seconds()
+                    if elapsed < DISCONNECT_GRACE_SECONDS:
+                        record["connected"] = True
+                        record["status"] = "connected"
+                        record["last_seen"] = previous.get("last_seen") or record["last_seen"]
+                        disconnect_mark = mark.isoformat()
+                    else:
+                        disconnect_mark = now_iso
+                else:
+                    disconnect_mark = now_iso
+
+            if disconnect_mark:
+                record["disconnect_mark"] = disconnect_mark
+
             module_bucket["sensors"][sensor_key] = record
-            module_bucket["updated_at"] = self._now()
+            module_bucket["updated_at"] = now_iso
         return deepcopy(record)
 
     def ingest_module_snapshot(self, module_name: str, payload: Dict[str, Any]) -> Dict[str, Any]:

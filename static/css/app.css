@@ -695,13 +695,18 @@ body {
   flex-direction: column;
   gap: 0.42rem;
   width: 100%;
+  border: 1px solid rgba(121, 134, 156, 0.26);
+  border-radius: 0.8rem;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 0.85rem;
+  margin-top: 0.15rem;
 }
 
 .settings-entry {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.7rem;
   padding: 0.22rem 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
 }
@@ -720,12 +725,12 @@ body {
 
 .settings-entry .form-control,
 .settings-entry .form-select {
-  width: 48%;
-  min-height: 1.45rem;
-  height: 1.45rem;
+  width: 52%;
+  min-height: 1.95rem;
+  height: 1.95rem;
   border-radius: 0.75rem;
-  font-size: 0.72rem;
-  padding: 0 0.42rem;
+  font-size: 0.82rem;
+  padding: 0 0.55rem;
 }
 
 .settings-entry .form-check-input {
@@ -808,20 +813,24 @@ body {
 }
 
 .sensor-card-config .row > [class*="col-"] {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  display: block;
 }
 
 .sensor-card-config .row > [class*="col-"] > .form-label {
-  width: 48%;
-  margin-bottom: 0;
-  text-align: left;
+  width: auto;
 }
 
 .sensor-card-config .row > [class*="col-"] > .form-control,
 .sensor-card-config .row > [class*="col-"] > .form-select {
-  width: 52%;
+  width: 100%;
+}
+
+.sensor-card-config .settings-entry {
+  gap: 0.7rem;
+}
+
+.sensor-card-config .settings-entry label {
+  min-width: 120px;
 }
 
 @media (max-width: 767px) {
@@ -1097,6 +1106,11 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
+}
+
+.legacy-card-subtitle .sensor-connection {
+  margin: 0;
+  padding: 0;
 }
 
 .sensor-connection .fa-solid {

@@ -198,45 +198,55 @@ class ModulePoller(BaseModulePoller):
         module_config = module_payload.get("module_config", {}) if isinstance(module_payload, dict) else {}
         sensor_config = module_payload.get("sensor_config", []) if isinstance(module_payload, dict) else []
         devices = self._device_map(module_config)
+        device_clients: dict[str, Any] = {}
 
-        for sensor in sensor_config if isinstance(sensor_config, list) else []:
-            if not isinstance(sensor, dict):
-                continue
-            if not self.should_poll_sensor(sensor, due_sensor_types):
-                continue
-            device = devices.get(str(sensor.get("device_id"))) or {}
-            pi = self._connect(device) if device else None
-            measurement = {"connected": False, "status": "disconnected", "status_detail": "device-unavailable"}
-            connected = bool(pi and getattr(pi, "connected", False))
-            if connected:
-                measurement = self._read_measurements(pi, sensor)
-                connected = bool(measurement.get("connected", False))
+        try:
+            for sensor in sensor_config if isinstance(sensor_config, list) else []:
+                if not isinstance(sensor, dict):
+                    continue
+                if not self.should_poll_sensor(sensor, due_sensor_types):
+                    continue
 
-            formatted_address = self._format_i2c_address(sensor.get("address"))
+                device = devices.get(str(sensor.get("device_id"))) or {}
+                pi = None
+                if device:
+                    device_key = str(device.get("id", sensor.get("device_id")))
+                    if device_key not in device_clients:
+                        device_clients[device_key] = self._connect(device)
+                    pi = device_clients.get(device_key)
 
-            sensor_payload = {
-                "name": sensor.get("name"),
-                "type": sensor.get("type"),
-                "address": formatted_address,
-                "device_id": sensor.get("device_id"),
-                "variant": sensor.get("variant"),
-                "max_power": sensor.get("max_power"),
-                "rating": sensor.get("rating"),
-                "connected": connected,
-                "status": "connected" if connected else "disconnected",
-                "status_detail": measurement.get("status_detail", ""),
-                "voltage": measurement.get("voltage", 0.0),
-                "current": measurement.get("current", 0.0),
-                "watts": measurement.get("watts", 0.0),
-                "power": measurement.get("power", 0.0),
-                "source_topic": f"poller://ina/{sensor.get('device_id') or 'device'}",
-            }
-            self.live_data_store.ingest_sensor(self.module_name, str(sensor.get("name") or sensor.get("address") or "sensor"), sensor_payload)
+                measurement = {"connected": False, "status": "disconnected", "status_detail": "device-unavailable"}
+                connected = bool(pi and getattr(pi, "connected", False))
+                if connected:
+                    measurement = self._read_measurements(pi, sensor)
+                    connected = bool(measurement.get("connected", False))
 
-            if pi is not None and hasattr(pi, "stop"):
-                try:
-                    pi.stop()
-                except Exception:
-                    pass
+                formatted_address = self._format_i2c_address(sensor.get("address"))
+
+                sensor_payload = {
+                    "name": sensor.get("name"),
+                    "type": sensor.get("type"),
+                    "address": formatted_address,
+                    "device_id": sensor.get("device_id"),
+                    "variant": sensor.get("variant"),
+                    "max_power": sensor.get("max_power"),
+                    "rating": sensor.get("rating"),
+                    "connected": connected,
+                    "status": "connected" if connected else "disconnected",
+                    "status_detail": measurement.get("status_detail", ""),
+                    "voltage": measurement.get("voltage", 0.0),
+                    "current": measurement.get("current", 0.0),
+                    "watts": measurement.get("watts", 0.0),
+                    "power": measurement.get("power", 0.0),
+                    "source_topic": f"poller://ina/{sensor.get('device_id') or 'device'}",
+                }
+                self.live_data_store.ingest_sensor(self.module_name, str(sensor.get("name") or sensor.get("address") or "sensor"), sensor_payload)
+        finally:
+            for client in device_clients.values():
+                if client is not None and hasattr(client, "stop"):
+                    try:
+                        client.stop()
+                    except Exception:
+                        pass
 
         return self.build_snapshot(module_payload)
