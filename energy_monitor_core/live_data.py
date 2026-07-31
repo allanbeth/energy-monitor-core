@@ -6,7 +6,7 @@ from threading import RLock
 from typing import Any, Dict, Iterable, List, Optional
 
 
-DISCONNECT_GRACE_SECONDS = 6
+DISCONNECT_GRACE_SECONDS = 30
 
 
 def _safe_float(value: Any, default: float = 0.0) -> float:
@@ -68,6 +68,13 @@ class SensorDataStore:
         self._lock = RLock()
         self._modules: Dict[str, Dict[str, Any]] = {}
 
+    def _device_key(self, payload: Dict[str, Any], fallback: str) -> str:
+        for key in ("device_id", "device", "mac", "source_topic"):
+            value = str(payload.get(key) or "").strip()
+            if value:
+                return value
+        return str(fallback or "").strip()
+
     def _now(self) -> str:
         return datetime.now(timezone.utc).isoformat()
 
@@ -96,6 +103,9 @@ class SensorDataStore:
             status = "disconnected"
 
         disconnect_mark = ""
+        device_key = self._device_key(data, sensor_key)
+        device_connected = bool(data.get("device_connected", connected))
+        device_paired = bool(data.get("paired", False))
 
         record = {
             "name": str(data.get("name") or sensor_key).strip() or sensor_key,
@@ -113,6 +123,8 @@ class SensorDataStore:
         with self._lock:
             module_bucket = self._modules.setdefault(module_key, {"sensors": {}, "updated_at": self._now()})
             previous = module_bucket["sensors"].get(sensor_key) if isinstance(module_bucket.get("sensors"), dict) else None
+            devices = module_bucket.setdefault("devices", {}) if isinstance(module_bucket.get("devices"), dict) else module_bucket.setdefault("devices", {})
+            previous_device = devices.get(device_key) if isinstance(devices, dict) and device_key else None
 
             if connected:
                 record["last_seen"] = data.get("last_seen") or now_iso
@@ -134,6 +146,29 @@ class SensorDataStore:
 
             if disconnect_mark:
                 record["disconnect_mark"] = disconnect_mark
+
+            if device_key:
+                previous_device_connected = bool(previous_device.get("connected")) if isinstance(previous_device, dict) else False
+                device_record = {
+                    "connected": device_connected,
+                    "paired": device_paired or bool(previous_device.get("paired")) if isinstance(previous_device, dict) else device_paired,
+                    "last_seen": data.get("last_seen") or now_iso,
+                }
+                if device_connected:
+                    device_record["last_seen"] = data.get("last_seen") or now_iso
+                elif previous_device_connected:
+                    prior_mark = _parse_iso_datetime(previous_device.get("disconnect_mark")) if isinstance(previous_device, dict) else None
+                    mark = prior_mark or now
+                    elapsed = (now - mark).total_seconds()
+                    if elapsed < DISCONNECT_GRACE_SECONDS:
+                        device_record["connected"] = True
+                        device_record["last_seen"] = previous_device.get("last_seen") or device_record["last_seen"]
+                        device_record["disconnect_mark"] = mark.isoformat()
+                    else:
+                        device_record["disconnect_mark"] = now_iso
+                else:
+                    device_record["disconnect_mark"] = now_iso
+                devices[device_key] = device_record
 
             module_bucket["sensors"][sensor_key] = record
             module_bucket["updated_at"] = now_iso
@@ -180,6 +215,7 @@ class SensorDataStore:
         module_key = str(module_name or "").strip()
         module_bucket = self.get_module_bucket(module_key)
         live_sensors = module_bucket.get("sensors", {}) if isinstance(module_bucket, dict) else {}
+        live_devices = module_bucket.get("devices", {}) if isinstance(module_bucket, dict) else {}
         sensor_rows: List[Dict[str, Any]] = []
         sensor_summary: Dict[str, Dict[str, Any]] = {}
 
@@ -249,11 +285,12 @@ class SensorDataStore:
             device_key = str(device.get("id") if device.get("id") is not None else device.get("name") or "").strip()
             if not device_key:
                 continue
+            cached_device = live_devices.get(device_key, {}) if isinstance(live_devices, dict) else {}
             device_status_summary[device_key] = {
                 "id": device.get("id"),
                 "name": str(device.get("name") or "").strip() or device_key,
-                "connected": False,
-                "paired": bool(device.get("paired")),
+                "connected": bool(cached_device.get("connected", False)) or bool(device.get("paired", False)),
+                "paired": bool(cached_device.get("paired", False)) or bool(device.get("paired")),
             }
 
         for row in sensor_rows:
@@ -262,7 +299,8 @@ class SensorDataStore:
                 continue
             live = live_sensors.get(str(row.get("name") or ""), {}) if isinstance(live_sensors, dict) else {}
             raw = live.get("raw", {}) if isinstance(live, dict) else {}
-            device_connected = bool(raw.get("device_connected", row.get("connected", False)))
+            cached_device = live_devices.get(device_key, {}) if isinstance(live_devices, dict) else {}
+            device_connected = bool(raw.get("device_connected", row.get("connected", False))) or bool(cached_device.get("connected", False))
             if device_key not in device_status_summary:
                 device_status_summary[device_key] = {
                     "id": row.get("device_id"),
@@ -272,7 +310,7 @@ class SensorDataStore:
                 }
             if device_connected:
                 device_status_summary[device_key]["connected"] = True
-            if bool(raw.get("paired", row.get("paired", False))):
+            if bool(raw.get("paired", row.get("paired", False))) or bool(cached_device.get("paired", False)):
                 device_status_summary[device_key]["paired"] = True
 
         device_count = len(device_status_summary)
