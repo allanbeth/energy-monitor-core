@@ -276,6 +276,47 @@
     cardElement.dataset.sensorConnected = sensor && sensor.connected ? "1" : "0";
   }
 
+  function updateChargeCycleIndicator(cardElement, sensor) {
+    if (!cardElement || !sensor) {
+      return;
+    }
+    const stateText = String(sensor.charge_mode || sensor.charging_state || sensor.status_detail || sensor.status || "").trim().toLowerCase();
+    const normalizedStage = stateText.includes("bulk") ? "bulk"
+      : stateText.includes("absorption") ? "absorption"
+      : stateText.includes("float") ? "float"
+      : stateText.includes("storage") ? "storage"
+      : stateText.includes("off") ? "off"
+      : "off";
+
+    const stateNode = cardElement.querySelector("[data-field='charge-state']");
+    if (stateNode) {
+      const rawState = String(sensor.charging_state || sensor.charge_mode || (sensor.connected ? "Connected" : "Disconnected") || "").trim();
+      stateNode.textContent = rawState ? rawState.replace(/_/g, " ").replace(/\b\w/g, (char) => char.toUpperCase()) : "";
+    }
+
+    const detailNode = cardElement.querySelector("[data-field='status-detail']");
+    if (detailNode) {
+      detailNode.textContent = String(sensor.status_detail || sensor.status || "");
+    }
+
+    const signalNode = cardElement.querySelector("[data-field='signal']");
+    if (signalNode) {
+      signalNode.textContent = sensor.rssi !== undefined && sensor.rssi !== null && String(sensor.rssi).trim() !== ""
+        ? `${sensor.rssi} dBm`
+        : "0 dBm";
+    }
+
+    const connectionNode = cardElement.querySelector("[data-field='connection-detail']");
+    if (connectionNode) {
+      connectionNode.textContent = String(sensor.status_detail || (sensor.connected ? "Connected" : "Disconnected") || "");
+    }
+
+    cardElement.querySelectorAll("[data-charge-stage]").forEach((stageNode) => {
+      const stage = String(stageNode.getAttribute("data-charge-stage") || "").trim().toLowerCase();
+      stageNode.classList.toggle("is-active", stage === normalizedStage);
+    });
+  }
+
     function normalizeInaAddress(value) {
       const text = String(value ?? "").trim().toLowerCase();
       if (!text) {
@@ -1143,6 +1184,10 @@
       const lastUpdated = row.querySelector("[data-field='last-updated']");
       if (lastUpdated) {
         lastUpdated.textContent = formatTimestampToSecond(sensor.last_seen || snapshot.updated_at || "");
+      }
+
+      if (String(sensor.type || "").trim().toLowerCase() === "charger") {
+        updateChargeCycleIndicator(row, sensor);
       }
     });
 

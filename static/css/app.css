@@ -1096,6 +1096,11 @@ input.form-check-input[type="checkbox"]:focus {
   line-height: 1.05;
 }
 
+.sensor-charge-state {
+  font-size: 1.85rem;
+  color: var(--accent-2);
+}
+
 .sensor-live-rows {
   display: flex;
   flex-direction: column;
@@ -1106,6 +1111,74 @@ input.form-check-input[type="checkbox"]:focus {
 
 .sensor-live-rows .settings-entry {
   width: 100%;
+}
+
+.sensor-charge-rows {
+  gap: 0.35rem;
+}
+
+.sensor-charge-cycle-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.sensor-charge-cycle {
+  position: relative;
+  padding-top: 0.45rem;
+}
+
+.sensor-charge-cycle-track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0.88rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.28);
+}
+
+.sensor-charge-cycle-stages {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+  align-items: start;
+}
+
+.sensor-charge-cycle-stage {
+  position: relative;
+  padding-top: 0.9rem;
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.72rem;
+  line-height: 1.1;
+}
+
+.sensor-charge-cycle-stage::before {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  left: 50%;
+  width: 0.7rem;
+  height: 0.7rem;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: rgba(148, 163, 184, 0.9);
+}
+
+.sensor-charge-cycle-stage.is-active {
+  color: var(--accent-2);
+  font-weight: 700;
+}
+
+.sensor-charge-cycle-stage.is-active::before {
+  background: var(--accent-2);
+  box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.16);
+}
+
+.sensor-charge-cycle-stage.is-active + .sensor-charge-cycle-stage::before {
+  background: rgba(59, 130, 246, 0.45);
 }
 
 .sensor-visibility-toggle {

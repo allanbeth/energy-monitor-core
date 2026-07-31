@@ -219,13 +219,21 @@ class SensorDataStore:
         sensor_rows: List[Dict[str, Any]] = []
         sensor_summary: Dict[str, Dict[str, Any]] = {}
 
+        def _device_state_for(sensor_payload: Dict[str, Any]) -> Dict[str, Any]:
+            device_key = str(sensor_payload.get("device_id") if sensor_payload.get("device_id") is not None else "").strip()
+            if not device_key:
+                return {}
+            cached = live_devices.get(device_key, {}) if isinstance(live_devices, dict) else {}
+            return cached if isinstance(cached, dict) else {}
+
         for index, sensor in enumerate(sensor_config if isinstance(sensor_config, Iterable) else []):
             if not isinstance(sensor, dict):
                 continue
             sensor_name = str(sensor.get("name") or sensor.get("id") or f"sensor-{index + 1}").strip() or f"sensor-{index + 1}"
             sensor_type = normalize_sensor_type(sensor.get("type"))
             live = deepcopy(live_sensors.get(sensor_name, {})) if isinstance(live_sensors, dict) else {}
-            connected = bool(live.get("connected", False))
+            device_state = _device_state_for(sensor)
+            connected = bool(live.get("connected", False)) or bool(device_state.get("connected", False))
             watts = _safe_float(live.get("watts", 0.0))
             voltage = _safe_float(live.get("voltage", 0.0))
             current = _safe_float(live.get("current", 0.0))
@@ -246,8 +254,14 @@ class SensorDataStore:
                 "soc": round(_safe_float(live.get("soc", live.get("state_of_charge", live.get("raw", {}).get("state_of_charge", 0.0)))), 2),
                 "connected": connected,
                 "status": str(live.get("status") or ("connected" if connected else "disconnected")).strip().lower(),
+                "status_detail": str(live.get("status_detail") or live.get("raw", {}).get("status_detail") or "").strip(),
                 "last_seen": live.get("last_seen"),
                 "source_topic": live.get("source_topic"),
+                "charging_state": str(live.get("charging_state") or live.get("raw", {}).get("charging_state") or "").strip(),
+                "charge_mode": str(live.get("charge_mode") or live.get("raw", {}).get("charge_mode") or "").strip(),
+                "rssi": live.get("rssi", live.get("raw", {}).get("rssi")),
+                "device_connected": connected,
+                "paired": bool(device_state.get("paired", False)) or bool(live.get("paired", False)),
                 "config": deepcopy(sensor),
             }
             sensor_rows.append(row)
@@ -300,7 +314,7 @@ class SensorDataStore:
             live = live_sensors.get(str(row.get("name") or ""), {}) if isinstance(live_sensors, dict) else {}
             raw = live.get("raw", {}) if isinstance(live, dict) else {}
             cached_device = live_devices.get(device_key, {}) if isinstance(live_devices, dict) else {}
-            device_connected = bool(raw.get("device_connected", row.get("connected", False))) or bool(cached_device.get("connected", False))
+            device_connected = bool(raw.get("device_connected", row.get("connected", False))) or bool(cached_device.get("connected", False)) or bool(row.get("connected", False))
             if device_key not in device_status_summary:
                 device_status_summary[device_key] = {
                     "id": row.get("device_id"),

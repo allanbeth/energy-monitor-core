@@ -64,6 +64,47 @@
     {% endcall %}
     <div class="sensor-card-feedback app-card-content card-content-feedback view-type-feedback hidden" id="sensor-feedback-{{ loop.index0 }}"></div>
     <div class="app-card-content card-content-live view-type-data sensor-card-view" id="sensor-card-view-{{ loop.index0 }}">
+      {% if row.type|lower == 'charger' %}
+      <div class="sensor-main-value-wrap sensor-charge-state-wrap">
+        <div class="text-secondary">State</div>
+        <div class="sensor-main-value sensor-charge-state" data-field="charge-state">{{ (row.charging_state or row.charge_mode or ("Connected" if row.connected else "Disconnected"))|replace('_', ' ')|title }}</div>
+      </div>
+      <div class="sensor-live-rows sensor-charge-rows">
+        <div class="settings-entry">
+          <label>Voltage</label>
+          <span class="status-value" data-field="voltage">{{ row.voltage }}</span>
+        </div>
+        <div class="settings-entry">
+          <label>Current</label>
+          <span class="status-value" data-field="current">{{ row.current }}</span>
+        </div>
+        <div class="settings-entry sensor-charge-cycle-entry">
+          <label>Charge Cycle</label>
+          <div class="sensor-charge-cycle" data-field="charge-cycle">
+            <div class="sensor-charge-cycle-track"></div>
+            <div class="sensor-charge-cycle-stages">
+              <span class="sensor-charge-cycle-stage" data-charge-stage="off">Off</span>
+              <span class="sensor-charge-cycle-stage" data-charge-stage="bulk">Bulk</span>
+              <span class="sensor-charge-cycle-stage" data-charge-stage="absorption">Absorption</span>
+              <span class="sensor-charge-cycle-stage" data-charge-stage="float">Float</span>
+              <span class="sensor-charge-cycle-stage" data-charge-stage="storage">Storage</span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-entry">
+          <label>Status</label>
+          <span class="status-value" data-field="status-detail">{{ row.status_detail or row.status|title }}</span>
+        </div>
+        <div class="settings-entry">
+          <label>Signal</label>
+          <span class="status-value" data-field="signal">{{ (row.rssi ~ ' dBm') if row.rssi is not none else '0 dBm' }}</span>
+        </div>
+        <div class="settings-entry">
+          <label>Connection</label>
+          <span class="status-value" data-field="connection-detail">{{ row.status_detail or 'Connected' }}</span>
+        </div>
+      </div>
+      {% else %}
       <div class="sensor-main-value-wrap">
         <div class="text-secondary">Watts</div>
         <div class="sensor-main-value" data-field="watts">{{ row.watts }}</div>
@@ -89,6 +130,7 @@
         </div>
         {% endif %}
       </div>
+      {% endif %}
       <div class="sensor-address">Last update: <span data-field="last-updated">{{ row.last_seen or module_snapshot.updated_at }}</span></div>
     </div>
     <div class="app-card-content card-content-form view-type-form sensor-card-config hidden" id="sensor-card-config-{{ loop.index0 }}">
