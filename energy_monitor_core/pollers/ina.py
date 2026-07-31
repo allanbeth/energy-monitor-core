@@ -227,6 +227,11 @@ class ModulePoller(BaseModulePoller):
                 client = self._device_clients.pop(key, None)
                 self._disconnect(client)
 
+    def _reset_client(self, device_key: str) -> None:
+        with self._client_lock:
+            client = self._device_clients.pop(device_key, None)
+        self._disconnect(client)
+
     def shutdown(self) -> None:
         with self._client_lock:
             for client in self._device_clients.values():
@@ -295,6 +300,12 @@ class ModulePoller(BaseModulePoller):
                             "watts": 0.0,
                             "power": 0.0,
                         }
+                    else:
+                        # Reset the cached pigpio session so the next cycle establishes a fresh connection.
+                        self._reset_client(device_key)
+                elif str(measurement.get("status_detail") or "").startswith("connected-no-data"):
+                    # Keep a no-data read from pinning a potentially stale session forever.
+                    self._reset_client(device_key)
 
             formatted_address = self._format_i2c_address(sensor.get("address"))
 

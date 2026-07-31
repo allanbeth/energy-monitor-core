@@ -305,7 +305,7 @@ class SensorDataStore:
             device_status_summary[device_key] = {
                 "id": device.get("id"),
                 "name": str(device.get("name") or "").strip() or device_key,
-                "connected": bool(cached_device.get("connected", False)) or bool(device.get("paired", False)),
+                "connected": bool(cached_device.get("connected", False)),
                 "paired": bool(cached_device.get("paired", False)) or bool(device.get("paired")),
                 "connection_session": str(cached_device.get("connection_session") or "").strip(),
             }
