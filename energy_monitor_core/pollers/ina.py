@@ -122,7 +122,15 @@ class ModulePoller(BaseModulePoller):
                 return {"connected": False, "status_detail": "register-read-failed"}
 
             if raw_voltage == 0 and raw_current == 0:
-                return {"connected": False, "status_detail": "zero-registers"}
+                return {
+                    "connected": True,
+                    "status": "connected",
+                    "status_detail": "connected-no-data:zero-registers",
+                    "voltage": 0.0,
+                    "current": 0.0,
+                    "watts": 0.0,
+                    "power": 0.0,
+                }
 
             voltage_shift = int(profile.get("voltage_shift", 0))
             voltage_lsb = float(profile["voltage_lsb"])
@@ -135,7 +143,15 @@ class ModulePoller(BaseModulePoller):
             power = round(voltage * current, 3)
 
             if voltage < 0.05 and abs(current) < 0.01:
-                return {"connected": False, "status_detail": "no-electrical-signal"}
+                return {
+                    "connected": True,
+                    "status": "connected",
+                    "status_detail": "connected-no-data:no-electrical-signal",
+                    "voltage": voltage,
+                    "current": current,
+                    "watts": power,
+                    "power": power,
+                }
 
             return {
                 "connected": True,
@@ -231,6 +247,7 @@ class ModulePoller(BaseModulePoller):
                     "variant": sensor.get("variant"),
                     "max_power": sensor.get("max_power"),
                     "rating": sensor.get("rating"),
+                    "device_connected": bool(pi and getattr(pi, "connected", False)),
                     "connected": connected,
                     "status": "connected" if connected else "disconnected",
                     "status_detail": measurement.get("status_detail", ""),

@@ -25,7 +25,7 @@
           {% for module_name, module_state in status.modules.items() %}
           <div class="settings-entry">
             <label>{{ module_name|title }}</label>
-            <span>
+            <span class="form-check form-switch m-0">
               <input type="hidden" name="modules[{{ module_name }}][active]" value="false">
               <input class="form-check-input" type="checkbox" name="modules[{{ module_name }}][active]" value="true" {% if module_state.active %}checked{% endif %}>
             </span>
@@ -47,7 +47,7 @@
         <div class="settings-entry"><label>Auto backup frequency</label><input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}"></div>
         <div class="settings-entry"><label>Max backup files</label><input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}"></div>
         <div class="settings-entry"><label>Log size</label><input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}"></div>
-        <div class="settings-entry"><label>Auto backup enabled</label><span><input type="hidden" name="general[auto_backup_enabled]" value="false"><input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}></span></div>
+        <div class="settings-entry"><label>Auto backup enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="general[auto_backup_enabled]" value="false"><input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}></span></div>
       </div>
     </article>
 
@@ -66,7 +66,7 @@
       {% endcall %}
       <div class="card-body legacy-card-content settings-card-content">
         <div id="mqtt-main-panel" class="settings-entries">
-          <div class="settings-entry"><label>MQTT enabled</label><span><input type="hidden" name="mqtt[enabled]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}></span></div>
+          <div class="settings-entry"><label>MQTT enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[enabled]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}></span></div>
           <div class="settings-entry"><label>Broker</label><input class="form-control" type="text" name="mqtt[broker]" value="{{ core_config.mqtt.broker }}"></div>
           <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="mqtt[port]" value="{{ core_config.mqtt.port }}"></div>
         </div>
@@ -79,8 +79,8 @@
           <div class="settings-entry"><label>Client ID</label><input class="form-control" type="text" name="mqtt[client_id]" value="{{ core_config.mqtt.client_id }}"></div>
           <div class="settings-entry"><label>Base topic</label><input class="form-control" type="text" name="mqtt[base_topic]" value="{{ core_config.mqtt.base_topic }}"></div>
           <div class="settings-entry"><label>Discovery prefix</label><input class="form-control" type="text" name="mqtt[discovery_prefix]" value="{{ core_config.mqtt.discovery_prefix }}"></div>
-          <div class="settings-entry"><label>One-time broker sweep</label><span><input type="hidden" name="mqtt[one_time_broker_sweep]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}></span></div>
-          <div class="settings-entry"><label>Aggressive sweep</label><span><input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}></span></div>
+          <div class="settings-entry"><label>One-time broker sweep</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[one_time_broker_sweep]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}></span></div>
+          <div class="settings-entry"><label>Aggressive sweep</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}></span></div>
         </div>
       </div>
     </article>
@@ -94,7 +94,7 @@
       </div>
       {% endcall %}
       <div class="card-body legacy-card-content settings-card-content">
-        <div class="settings-entry"><label>Webserver enabled</label><span><input type="hidden" name="webserver[enabled]" value="false"><input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}></span></div>
+        <div class="settings-entry"><label>Webserver enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="webserver[enabled]" value="false"><input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}></span></div>
         <div class="settings-entry"><label>Host</label><input class="form-control" type="text" name="webserver[host]" value="{{ core_config.webserver.host }}"></div>
         <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="webserver[port]" value="{{ core_config.webserver.port }}"></div>
       </div>
@@ -135,8 +135,8 @@
         <div class="text-secondary small">Module configuration and device controls.</div>
         <div class="module-stats">
           <div>
-            <span>Connected</span>
-            <strong data-module-connected-count>{{ module_payload.connected_sensor_count }}</strong>
+            <span>Connected Devices</span>
+            <strong data-module-connected-count>{{ module_payload.get('connected_device_count', module_payload.get('connected_sensor_count', 0)) }}</strong>
           </div>
           <div>
             <span>Status</span>

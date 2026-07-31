@@ -76,6 +76,7 @@ class ModulePoller(BaseModulePoller):
                     "variant": sensor.get("variant"),
                     "max_power": sensor.get("max_power"),
                     "rating": sensor.get("rating"),
+                    "device_connected": connected,
                     "connected": connected,
                     "status": "connected" if connected else "disconnected",
                     "source_topic": f"poller://mppt/{device_id}",

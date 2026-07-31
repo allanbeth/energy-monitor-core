@@ -28,9 +28,15 @@
   <div>
     <h2 class="section-title mb-0">Live Sensor Cards</h2>
   </div>
-  <div class="d-flex align-items-center gap-2 text-secondary small">
-    <i class="fa-solid fa-microchip"></i>
-    <span>Sensors: <span id="sensor-count">{{ module_snapshot.sensor_count }}</span></span>
+  <div class="d-flex align-items-center gap-3 text-secondary small">
+    <div class="d-flex align-items-center gap-2">
+      <i class="fa-solid fa-microchip"></i>
+      <span>Sensors: <span id="sensor-count">{{ module_snapshot.connected_sensor_count or module_snapshot.sensor_count }}</span></span>
+    </div>
+    <div class="sensor-visibility-toggle">
+      <label for="show-unconnected-sensors">Show unconnected sensors</label>
+      <input id="show-unconnected-sensors" class="form-check-input" type="checkbox" aria-label="Show unconnected sensors">
+    </div>
   </div>
 </section>
 
@@ -49,7 +55,7 @@
   {% if row.type|lower == 'battery' %}{% set sensor_icon = 'fa-car-battery' %}{% endif %}
   {% if row.type|lower == 'charger' %}{% set sensor_icon = 'fa-charging-station' %}{% endif %}
   {% set connection_subtitle %}<span class="sensor-connection" data-field="connection-state"><i class="fa-solid fa-network-wired {% if row.connected %}status-connected{% else %}status-disconnected{% endif %}" data-field="connection-icon"></i><span data-field="connection-text">{{ sensor_device.name }}</span></span>{% endset %}
-  <article class="sensor-grid-card sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-card-mode="view">
+  <article class="sensor-grid-card sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-sensor-connected="{{ 1 if row.connected else 0 }}" data-card-mode="view">
     {% call legacy_card_header(sensor_icon, row.name, connection_subtitle, '', true) %}
     <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-{{ loop.index0 }}">
       <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="{{ loop.index0 }}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
@@ -58,19 +64,30 @@
     {% endcall %}
     <div class="sensor-card-feedback hidden" id="sensor-feedback-{{ loop.index0 }}"></div>
     <div class="legacy-card-content sensor-card-view" id="sensor-card-view-{{ loop.index0 }}">
-      <div class="sensor-grid-metrics">
-        <div class="sensor-metric-cell">
-          <div class="text-secondary">Watts</div>
-          <div class="fw-semibold" data-field="watts">{{ row.watts }}</div>
+      <div class="sensor-main-value-wrap">
+        <div class="text-secondary">Watts</div>
+        <div class="sensor-main-value" data-field="watts">{{ row.watts }}</div>
+      </div>
+      <div class="sensor-live-rows">
+        {% if row.type|lower == 'battery' %}
+        <div class="settings-entry">
+          <label>Current</label>
+          <span class="status-value" data-field="current">{{ row.current }}</span>
         </div>
-        <div class="sensor-metric-cell">
-          <div class="text-secondary">Voltage</div>
-          <div class="fw-semibold" data-field="voltage">{{ row.voltage }}</div>
+        <div class="settings-entry">
+          <label>SoC</label>
+          <span class="status-value" data-field="soc">{{ row.soc if row.soc is not none else 0 }}</span>
         </div>
-        <div class="sensor-metric-cell">
-          <div class="text-secondary">Current</div>
-          <div class="fw-semibold" data-field="current">{{ row.current }}</div>
+        {% else %}
+        <div class="settings-entry">
+          <label>Voltage</label>
+          <span class="status-value" data-field="voltage">{{ row.voltage }}</span>
         </div>
+        <div class="settings-entry">
+          <label>Current</label>
+          <span class="status-value" data-field="current">{{ row.current }}</span>
+        </div>
+        {% endif %}
       </div>
       <div class="sensor-address">Last update: <span data-field="last-updated">{{ row.last_seen or module_snapshot.updated_at }}</span></div>
     </div>

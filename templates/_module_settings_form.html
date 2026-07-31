@@ -13,24 +13,10 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content">
-          <div class="row g-3">
-            <div class="col-6">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Max log</label>
-              <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
-            </div>
-          </div>
+          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
+          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
+          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
+          <div class="settings-entry"><label>Max log</label><input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}"></div>
         </div>
       </div>
     </div>
@@ -81,20 +67,9 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content">
-          <div class="row g-3">
-            <div class="col-4">
-              <label class="form-label">Bluetooth adapter</label>
-              <input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module_payload.module_config.bluetooth.adapter }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Connection timeout</label>
-              <input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module_payload.module_config.bluetooth.connection_timeout }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Scan timeout</label>
-              <input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module_payload.module_config.bluetooth.scan_timeout }}">
-            </div>
-          </div>
+          <div class="settings-entry"><label>Bluetooth adapter</label><input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module_payload.module_config.bluetooth.adapter }}"></div>
+          <div class="settings-entry"><label>Connection timeout</label><input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module_payload.module_config.bluetooth.connection_timeout }}"></div>
+          <div class="settings-entry"><label>Scan timeout</label><input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module_payload.module_config.bluetooth.scan_timeout }}"></div>
         </div>
       </div>
     </div>
@@ -106,20 +81,9 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content">
-          <div class="row g-3">
-            <div class="col-4">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-            </div>
-          </div>
+          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
+          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
+          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
         </div>
       </div>
     </div>
@@ -170,24 +134,10 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content">
-          <div class="row g-3">
-            <div class="col-3">
-              <label class="form-label">Solar poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}">
-            </div>
-            <div class="col-3">
-              <label class="form-label">Wind poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}">
-            </div>
-            <div class="col-3">
-              <label class="form-label">Battery poll interval</label>
-              <input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}">
-            </div>
-            <div class="col-3">
-              <label class="form-label">Max log</label>
-              <input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}">
-            </div>
-          </div>
+          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
+          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
+          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
+          <div class="settings-entry"><label>Max log</label><input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}"></div>
         </div>
       </div>
     </div>
@@ -199,20 +149,9 @@
           </button>
         {% endcall %}
         <div class="card-body legacy-card-content">
-          <div class="row g-3">
-            <div class="col-4">
-              <label class="form-label">Log interval</label>
-              <input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module_payload.module_config.monitoring.log_interval }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Overvoltage threshold</label>
-              <input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module_payload.module_config.monitoring.overvoltage_threshold }}">
-            </div>
-            <div class="col-4">
-              <label class="form-label">Undervoltage threshold</label>
-              <input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module_payload.module_config.monitoring.undervoltage_threshold }}">
-            </div>
-          </div>
+          <div class="settings-entry"><label>Log interval</label><input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module_payload.module_config.monitoring.log_interval }}"></div>
+          <div class="settings-entry"><label>Overvoltage threshold</label><input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module_payload.module_config.monitoring.overvoltage_threshold }}"></div>
+          <div class="settings-entry"><label>Undervoltage threshold</label><input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module_payload.module_config.monitoring.undervoltage_threshold }}"></div>
         </div>
       </div>
     </div>

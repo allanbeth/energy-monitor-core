@@ -207,6 +207,7 @@ class SensorDataStore:
                 "watts": round(watts, 2),
                 "voltage": round(voltage, 2),
                 "current": round(current, 2),
+                "soc": round(_safe_float(live.get("soc", live.get("state_of_charge", live.get("raw", {}).get("state_of_charge", 0.0)))), 2),
                 "connected": connected,
                 "status": str(live.get("status") or ("connected" if connected else "disconnected")).strip().lower(),
                 "last_seen": live.get("last_seen"),
@@ -240,18 +241,57 @@ class SensorDataStore:
         total_voltage = round(sum(row["voltage"] for row in sensor_rows if row.get("connected")), 2)
         total_current = round(sum(row["current"] for row in sensor_rows if row.get("connected")), 2)
 
+        devices = module_config.get("devices", []) if isinstance(module_config, dict) else []
+        device_status_summary: dict[str, dict[str, Any]] = {}
+        for device in devices if isinstance(devices, list) else []:
+            if not isinstance(device, dict):
+                continue
+            device_key = str(device.get("id") if device.get("id") is not None else device.get("name") or "").strip()
+            if not device_key:
+                continue
+            device_status_summary[device_key] = {
+                "id": device.get("id"),
+                "name": str(device.get("name") or "").strip() or device_key,
+                "connected": False,
+            }
+
+        for row in sensor_rows:
+            device_key = str(row.get("device_id") if row.get("device_id") is not None else "").strip()
+            if not device_key:
+                continue
+            live = live_sensors.get(str(row.get("name") or ""), {}) if isinstance(live_sensors, dict) else {}
+            raw = live.get("raw", {}) if isinstance(live, dict) else {}
+            device_connected = bool(raw.get("device_connected", row.get("connected", False)))
+            if device_key not in device_status_summary:
+                device_status_summary[device_key] = {
+                    "id": row.get("device_id"),
+                    "name": device_key,
+                    "connected": False,
+                }
+            if device_connected:
+                device_status_summary[device_key]["connected"] = True
+
+        device_count = len(device_status_summary)
+        connected_device_count = sum(1 for item in device_status_summary.values() if item.get("connected"))
+        if device_count > 0:
+            module_status = "connected" if connected_device_count == device_count else ("partial" if connected_device_count > 0 else "disconnected")
+        else:
+            module_status = "connected" if connected_sensor_count else "disconnected"
+
         return {
             "module": module_key,
             "updated_at": module_bucket.get("updated_at") or self._now(),
             "active": bool(active),
-            "status": "connected" if connected_sensor_count else "disconnected",
+            "status": module_status,
             "poll_interval": poll_interval,
-            "device_count": len(module_config.get("devices", [])) if isinstance(module_config, dict) else 0,
+            "device_count": device_count,
+            "connected_device_count": connected_device_count,
             "sensor_count": len(sensor_rows),
             "connected_sensor_count": connected_sensor_count,
             "watts": total_watts,
             "voltage": total_voltage,
             "current": total_current,
+            "device_status_summary": device_status_summary,
             "sensor_rows": sensor_rows,
             "sensor_type_summary": sensor_summary,
             "module_config": deepcopy(module_config) if isinstance(module_config, dict) else {},

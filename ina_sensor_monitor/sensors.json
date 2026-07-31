@@ -13,7 +13,7 @@
   {
     "address": "0x41",
     "calibration_value": 4191,
-    "device_id": 1,
+    "device_id": 0,
     "max_power": 100,
     "name": "Turbine 220W",
     "rating": 12,

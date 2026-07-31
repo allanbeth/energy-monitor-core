@@ -194,8 +194,9 @@
     return { kind: "wired", icon: inferConnectionIcon(sensor), label: "Wired" };
   }
 
-  function resolveConnectionState(sensor) {
+  function resolveConnectionState(sensor, moduleName = "") {
     const connected = !!sensor?.connected;
+    const moduleKey = String(moduleName || "").trim().toLowerCase();
     const statusRaw = String(sensor?.status || "").trim().toLowerCase();
     const detailRaw = String(sensor?.status_detail || "").trim().toLowerCase();
     const watts = Number(sensor?.watts ?? sensor?.power ?? 0);
@@ -208,6 +209,9 @@
 
     const hasNoDataHint = detailRaw.includes("no-data") || detailRaw.includes("no-signal") || detailRaw.includes("waiting-telemetry") || detailRaw.includes("read-failed") || detailRaw.includes("timeout");
     const hasMetrics = Number.isFinite(watts) && Number.isFinite(voltage) && Number.isFinite(current) && (Math.abs(watts) > 0 || Math.abs(voltage) > 0 || Math.abs(current) > 0);
+    if (moduleKey === "ina" && hasNoDataHint) {
+      return { state: "connected", label: "Connected" };
+    }
     if (statusRaw === "partial" || hasNoDataHint || !hasMetrics) {
       return { state: "partial", label: "Connected (No Data)" };
     }
@@ -221,7 +225,7 @@
     }
     const moduleName = String(window.EM_MODULE_NAME || "");
     const transport = resolveConnectionTransport(moduleName, snapshot, sensor);
-    const connection = resolveConnectionState(sensor);
+    const connection = resolveConnectionState(sensor, moduleName);
     const iconNode = cardElement.querySelector("[data-field='connection-icon']");
     const textNode = cardElement.querySelector("[data-field='connection-text']");
     const stateNode = cardElement.querySelector("[data-field='connection-state']");
@@ -239,6 +243,7 @@
       stateNode.classList.remove("status-connected", "status-partial", "status-disconnected");
       stateNode.classList.add(`status-${connection.state}`);
     }
+    cardElement.dataset.sensorConnected = sensor && sensor.connected ? "1" : "0";
   }
 
     function normalizeInaAddress(value) {
@@ -573,13 +578,17 @@
       }
       const snapshot = status.live_data && status.live_data[moduleName];
       if (snapshot && node.querySelector("[data-module-connected-count]")) {
-        node.querySelector("[data-module-connected-count]").textContent = String(snapshot.connected_sensor_count || 0);
+        const connectedDevices = Number(snapshot.connected_device_count ?? 0);
+        const connectedSensors = Number(snapshot.connected_sensor_count ?? 0);
+        const displayCount = Number(snapshot.device_count || 0) > 0 ? connectedDevices : connectedSensors;
+        node.querySelector("[data-module-connected-count]").textContent = String(displayCount);
       }
       const statusLabel = node.querySelector("[data-module-connection]");
       const statusIcon = node.querySelector("[data-module-connection-icon]");
       if (statusLabel && snapshot) {
-        const connectedCount = Number(snapshot.connected_sensor_count || 0);
-        const totalCount = Number(snapshot.sensor_count || 0);
+        const hasDeviceStats = Number(snapshot.device_count || 0) > 0;
+        const connectedCount = hasDeviceStats ? Number(snapshot.connected_device_count || 0) : Number(snapshot.connected_sensor_count || 0);
+        const totalCount = hasDeviceStats ? Number(snapshot.device_count || 0) : Number(snapshot.sensor_count || 0);
         const moduleState = connectedCount <= 0 ? "disconnected" : (connectedCount < totalCount ? "partial" : "connected");
         const statusText = moduleState === "connected" ? "Connected" : (moduleState === "partial" ? "Partial" : "Disconnected");
         const statusTextNode = statusLabel.querySelector("[data-module-connection-label]");
@@ -947,11 +956,6 @@
     if (updatedAt && snapshot && snapshot.updated_at) {
       updatedAt.textContent = formatTimestampToSecond(snapshot.updated_at);
     }
-    const sensorCount = document.getElementById("sensor-count");
-    if (sensorCount) {
-      sensorCount.textContent = String(snapshot.sensor_count || 0);
-    }
-
     const sensorRows = Array.isArray(snapshot.sensor_rows) ? snapshot.sensor_rows : [];
     const sensorByName = new Map(sensorRows.map((sensor) => [String(sensor.name || ""), sensor]));
 
@@ -963,6 +967,11 @@
       row.querySelector("[data-field='watts']")?.replaceChildren(document.createTextNode(String(sensor.watts ?? 0)));
       row.querySelector("[data-field='voltage']")?.replaceChildren(document.createTextNode(String(sensor.voltage ?? 0)));
       row.querySelector("[data-field='current']")?.replaceChildren(document.createTextNode(String(sensor.current ?? 0)));
+      const socNode = row.querySelector("[data-field='soc']");
+      if (socNode) {
+        const socValue = Number(sensor.soc ?? 0);
+        socNode.replaceChildren(document.createTextNode(`${Number.isFinite(socValue) ? socValue : 0}%`));
+      }
       const lastUpdated = row.querySelector("[data-field='last-updated']");
       if (lastUpdated) {
         lastUpdated.textContent = formatTimestampToSecond(sensor.last_seen || snapshot.updated_at || "");
@@ -970,21 +979,36 @@
     });
 
     refreshInaAddressSelectors();
+    applyModuleFilter(window.EM_MODULE_FILTER || null);
+  }
+
+  function updateVisibleSensorCount() {
+    const sensorCount = document.getElementById("sensor-count");
+    if (!sensorCount) return;
+    const visibleCards = Array.from(document.querySelectorAll("[data-sensor-row]"))
+      .filter((row) => row.getAttribute("data-sensor-row") !== "new")
+      .filter((row) => !row.classList.contains("hidden"));
+    sensorCount.textContent = String(visibleCards.length);
   }
 
   function applyModuleFilter(filterType = null) {
     const normalized = filterType ? String(filterType).toLowerCase() : null;
     const clearButton = document.getElementById("clear-module-filter-btn");
+    const showUnconnected = !!window.EM_SHOW_UNCONNECTED;
     document.querySelectorAll("[data-sensor-row]").forEach((row) => {
       if (row.getAttribute("data-sensor-row") === "new") {
         return;
       }
       const rowType = String(row.getAttribute("data-sensor-type") || "").toLowerCase();
-      const shouldHide = normalized && rowType !== normalized;
+      const isConnected = String(row.dataset.sensorConnected || "0") === "1";
+      const hideByType = !!(normalized && rowType !== normalized);
+      const hideByConnection = !showUnconnected && !isConnected;
+      const shouldHide = hideByType || hideByConnection;
       row.classList.toggle("hidden", shouldHide);
     });
     clearButton?.classList.toggle("hidden", !normalized);
     window.EM_MODULE_FILTER = normalized;
+    updateVisibleSensorCount();
   }
 
   function bindCredentialsModal() {
@@ -1269,6 +1293,15 @@
     document.querySelectorAll("[data-sensor-filter]").forEach((button) => {
       button.addEventListener("click", () => applyModuleFilter(button.getAttribute("data-sensor-filter")));
     });
+    window.EM_SHOW_UNCONNECTED = false;
+    const showUnconnectedToggle = document.getElementById("show-unconnected-sensors");
+    if (showUnconnectedToggle) {
+      showUnconnectedToggle.checked = false;
+      showUnconnectedToggle.addEventListener("change", () => {
+        window.EM_SHOW_UNCONNECTED = !!showUnconnectedToggle.checked;
+        applyModuleFilter(window.EM_MODULE_FILTER || null);
+      });
+    }
     const grid = document.getElementById("live-sensor-grid");
     grid?.addEventListener("click", async (event) => {
       const target = event.target instanceof Element ? event.target.closest("button, i") : null;
