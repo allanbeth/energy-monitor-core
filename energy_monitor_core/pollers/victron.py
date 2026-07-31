@@ -511,15 +511,16 @@ class ModulePoller(BaseModulePoller):
         fallback_connected, fallback_status = self._bluetoothctl_connect(mac, timeout)
         state = self._bluetoothctl_state(mac)
         if fallback_connected or state.get("connected"):
-            logger.info("Victron: host bluetoothctl reports connected for device %s", device_key)
+            logger.info("Victron: host bluetoothctl reports connected for device %s but no GATT live data", device_key)
             self._last_probe_data = {
-                "connected": True,
-                "status_detail": fallback_status if fallback_connected else "connected-via-bluetoothctl-info",
+                "connected": False,
+                "status_detail": "host-connected-no-telemetry",
                 "method": "bluetoothctl",
                 "connection_session": "host-connected",
+                "paired": bool(state.get("paired") or device.get("paired")),
                 "rssi": state.get("rssi"),
             }
-            return True, str(self._last_probe_data.get("status_detail"))
+            return False, str(self._last_probe_data.get("status_detail"))
 
         if self._paired_ready(state, device):
             self._last_probe_data = {
