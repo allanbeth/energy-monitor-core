@@ -314,6 +314,21 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             **_base_context(),
         )
 
+    @app.route("/logs")
+    def logs_page() -> Any:
+        if not _is_authenticated():
+            return redirect(url_for("index"))
+
+        active_modules = config_manager.get_active_modules()
+        return render_template(
+            "logs.html",
+            app_title="Logs",
+            page_name="logs",
+            active_log_modules=list(active_modules.keys()),
+            username=session.get("username", config_manager.get_auth_public_config().get("username")),
+            **_base_context(),
+        )
+
     @app.route("/api/auth/login", methods=["POST"])
     def login() -> Any:
         payload = request.get_json(silent=True) or {}

@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% from "_card_macros.html" import legacy_card_header %}
+{% from "_card_macros.html" import card_header %}
 
 {% block page_actions %}
 <button id="update-credentials-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Update user credentials"><i class="fa-solid fa-key"></i></button>
@@ -9,12 +9,12 @@
 {% endblock %}
 
 {% block content %}
-<section class="hero-panel mb-4">
-  <div class="row g-3 dashboard-card-grid">
+<section class="page-layout page-layout-dashboard">
+  <div class="row g-3 dashboard-card-grid card-layout-grid">
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-total dashboard-overview-card app-card app-card--live">
-        {% call legacy_card_header('fa-bolt', 'Total Power', 'Live aggregate output') %}{% endcall %}
-        <div class="app-card-content app-card-content--live card-content-live">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
+        {% call card_header('fa-bolt', 'Total Power', 'Live aggregate output') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="overall">{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -30,14 +30,14 @@
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="overall">{{ status.aggregate_totals.get('overall', {}).get('sensor_count', 0) }}</span></div>
         </div>
-      </div>
+      </article>
     </div>
 
     {% set solar = status.aggregate_totals.get('solar', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-solar dashboard-overview-card app-card app-card--live">
-        {% call legacy_card_header('fa-solar-panel', 'Solar Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content app-card-content--live card-content-live">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-solar">
+        {% call card_header('fa-solar-panel', 'Solar Power', 'Live module output') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="solar">{{ solar.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -53,14 +53,14 @@
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="solar">{{ solar.get('sensor_count', 0) }}</span></div>
         </div>
-      </div>
+      </article>
     </div>
 
     {% set wind = status.aggregate_totals.get('wind', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-wind dashboard-overview-card app-card app-card--live">
-        {% call legacy_card_header('fa-wind', 'Wind Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content app-card-content--live card-content-live">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-wind">
+        {% call card_header('fa-wind', 'Wind Power', 'Live module output') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="wind">{{ wind.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -76,14 +76,14 @@
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="wind">{{ wind.get('sensor_count', 0) }}</span></div>
         </div>
-      </div>
+      </article>
     </div>
 
     {% set battery = status.aggregate_totals.get('battery', {}) %}
     <div class="col-12 col-md-3">
-      <div class="metric-card sensor-battery dashboard-overview-card app-card app-card--live">
-        {% call legacy_card_header('fa-battery-full', 'Battery Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content app-card-content--live card-content-live">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-battery">
+        {% call card_header('fa-battery-full', 'Battery Power', 'Live module output') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="battery">{{ battery.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -99,14 +99,14 @@
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="battery">{{ battery.get('sensor_count', 0) }}</span></div>
         </div>
-      </div>
+      </article>
     </div>
 
     <div class="col-12 col-md-3">
       {% set charger = status.aggregate_totals.get('charger', {}) %}
-      <div class="metric-card sensor-charger dashboard-overview-card app-card app-card--live {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
-        {% call legacy_card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
-        <div class="app-card-content app-card-content--live card-content-live">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
+        {% call card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
         <div class="metric-subline">Watts</div>
         <div class="metric-small">
@@ -122,7 +122,7 @@
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="charger">{{ charger.get('sensor_count', 0) }}</span></div>
         </div>
-      </div>
+      </article>
     </div>
   </div>
 </section>

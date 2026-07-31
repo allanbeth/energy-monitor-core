@@ -20,6 +20,13 @@
   --shadow: 0 8px 28px rgba(15, 23, 42, 0.12);
   --card-default-inner-gap: 0.75rem;
   --card-default-content-padding: 0.85rem;
+  --card-header-icon-size: 2.7rem;
+  --card-header-action-size: 2.35rem;
+  --card-header-gap: 0.75rem;
+  --card-header-margin: 0.35rem;
+  --card-content-gap: 0.42rem;
+  --card-row-label-width: 38%;
+  --card-row-input-width: 62%;
 }
 
 * {
@@ -370,7 +377,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 0.9rem;
+  gap: var(--card-header-gap);
   width: 100%;
 }
 
@@ -378,7 +385,7 @@ body {
   display: flex;
   align-items: flex-start;
   justify-content: flex-start;
-  gap: 0.75rem;
+  gap: var(--card-header-gap);
   min-width: 0;
   flex: 1 1 auto;
 }
@@ -432,6 +439,19 @@ body {
   flex: 0 0 auto;
 }
 
+.card-header-icon {
+  width: var(--card-header-icon-size);
+  height: var(--card-header-icon-size);
+  border-radius: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: linear-gradient(135deg, #6b7280, #4b5563);
+  box-shadow: 0 8px 16px rgba(75, 85, 99, 0.24);
+  flex: 0 0 auto;
+}
+
 .legacy-card-meta {
   min-width: 0;
   text-align: left;
@@ -471,6 +491,20 @@ body {
 }
 
 .legacy-card-actions i {
+  font-size: 0.92rem;
+}
+
+.card-header-actions .action-icon-btn,
+.card-header-actions .sensor-action-btn {
+  text-align: center;
+  width: var(--card-header-action-size);
+  height: var(--card-header-action-size);
+  min-width: var(--card-header-action-size);
+  min-height: var(--card-header-action-size);
+  padding: 0;
+}
+
+.card-header-actions i {
   font-size: 0.92rem;
 }
 
@@ -624,11 +658,23 @@ body {
   background: linear-gradient(135deg, #4f5d75, #3c4a5f);
 }
 
+.dashboard-overview-card .card-header-icon {
+  background: linear-gradient(135deg, #4f5d75, #3c4a5f);
+}
+
 .sensor-solar .legacy-card-icon {
   background: linear-gradient(135deg, #c7802a, #d39a50);
 }
 
+.sensor-solar .card-header-icon {
+  background: linear-gradient(135deg, #c7802a, #d39a50);
+}
+
 .sensor-wind .legacy-card-icon {
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
+}
+
+.sensor-wind .card-header-icon {
   background: linear-gradient(135deg, #4c6a92, #5f7ea7);
 }
 
@@ -637,7 +683,16 @@ body {
   background: linear-gradient(135deg, #56657d, #475569);
 }
 
+.sensor-battery .card-header-icon,
+.sensor-total .card-header-icon {
+  background: linear-gradient(135deg, #56657d, #475569);
+}
+
 .sensor-charger .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
+}
+
+.sensor-charger .card-header-icon {
   background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
@@ -645,7 +700,15 @@ body {
   background: linear-gradient(135deg, #c7802a, #d39a50);
 }
 
+.sensor-grid-card.sensor-type-solar .card-header-icon {
+  background: linear-gradient(135deg, #c7802a, #d39a50);
+}
+
 .sensor-grid-card.sensor-type-wind .legacy-card-icon {
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
+}
+
+.sensor-grid-card.sensor-type-wind .card-header-icon {
   background: linear-gradient(135deg, #4c6a92, #5f7ea7);
 }
 
@@ -653,7 +716,15 @@ body {
   background: linear-gradient(135deg, #6b46c1, #805ad5);
 }
 
+.sensor-grid-card.sensor-type-battery .card-header-icon {
+  background: linear-gradient(135deg, #6b46c1, #805ad5);
+}
+
 .sensor-grid-card.sensor-type-charger .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
+}
+
+.sensor-grid-card.sensor-type-charger .card-header-icon {
   background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
@@ -777,8 +848,18 @@ body {
   background: linear-gradient(135deg, #4f5d75, #3c4a5f);
 }
 
+.settings-card.system-overview .card-header-icon,
+.active-module-panel.module-ina .card-header-icon {
+  background: linear-gradient(135deg, #4f5d75, #3c4a5f);
+}
+
 .settings-card.general-settings .legacy-card-icon,
 .active-module-panel.module-victron .legacy-card-icon {
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
+}
+
+.settings-card.general-settings .card-header-icon,
+.active-module-panel.module-victron .card-header-icon {
   background: linear-gradient(135deg, #4c6a92, #5f7ea7);
 }
 
@@ -790,7 +871,19 @@ body {
   background: linear-gradient(135deg, #6b46c1, #805ad5);
 }
 
+.settings-card.mqtt-settings .card-header-icon,
+.settings-card.webserver-settings .card-header-icon,
+.settings-card.core-backup-settings .card-header-icon,
+.active-module-panel.module-mppt .card-header-icon,
+.module-settings-card .card-header-icon {
+  background: linear-gradient(135deg, #6b46c1, #805ad5);
+}
+
 .settings-card.webserver-settings .legacy-card-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
+}
+
+.settings-card.webserver-settings .card-header-icon {
   background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
@@ -798,10 +891,14 @@ body {
   background: linear-gradient(135deg, #b7791f, #c7802a);
 }
 
+.settings-card.core-backup-settings .card-header-icon {
+  background: linear-gradient(135deg, #b7791f, #c7802a);
+}
+
 .settings-card-content {
   display: flex;
   flex-direction: column;
-  gap: 0.42rem;
+  gap: var(--card-content-gap);
   width: 100%;
 }
 
@@ -809,10 +906,10 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 0.7rem;
+  gap: var(--card-content-gap);
   padding: 0.22rem 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  width: min(100%, 520px);
+  width: 100%;
 }
 
 .settings-entry:last-child {
@@ -826,11 +923,15 @@ body {
   font-weight: 600;
   margin: 0;
   text-align: left;
+  width: var(--card-row-label-width);
+  flex: 0 0 var(--card-row-label-width);
 }
 
 .settings-entry .form-control,
 .settings-entry .form-select {
-  width: 52%;
+  width: var(--card-row-input-width);
+  max-width: 520px;
+  min-width: 160px;
   min-height: 1.95rem;
   height: 1.95rem;
   border-radius: 0.75rem;
@@ -916,15 +1017,25 @@ input.form-check-input[type="checkbox"]:focus {
   overflow: auto;
 }
 
+/* Normalize card-body spacing so all card content blocks share the same inset rhythm. */
+.card-shell > .card-body.app-card-content {
+  padding: var(--card-default-content-padding);
+  overflow: visible;
+}
+
 .settings-card .card-body.legacy-card-content,
 .module-settings-card .card-body.legacy-card-content,
-.active-module-panel .card-body.legacy-card-content {
+.active-module-panel .card-body.legacy-card-content,
+.settings-card .card-body.app-card-content,
+.module-settings-card .card-body.app-card-content,
+.active-module-panel .card-body.app-card-content {
   margin: 0.35rem;
   width: calc(100% - 0.7rem);
   align-self: center;
 }
 
 .legacy-card-content .form-label,
+.app-card-content .form-label,
 .module-settings-card .form-label,
 .sensor-config-form .form-label {
   font-size: 0.74rem;
@@ -935,6 +1046,8 @@ input.form-check-input[type="checkbox"]:focus {
 
 .legacy-card-content .form-control,
 .legacy-card-content .form-select,
+.app-card-content .form-control,
+.app-card-content .form-select,
 .module-settings-card .form-control,
 .module-settings-card .form-select,
 .sensor-config-form .form-control,
@@ -964,11 +1077,11 @@ input.form-check-input[type="checkbox"]:focus {
 }
 
 .sensor-card-config .settings-entry {
-  gap: 0.7rem;
+  gap: var(--card-content-gap);
 }
 
 .sensor-card-config .settings-entry label {
-  min-width: 120px;
+  min-width: 0;
 }
 
 .sensor-main-value-wrap {
@@ -990,7 +1103,7 @@ input.form-check-input[type="checkbox"]:focus {
 }
 
 .sensor-live-rows .settings-entry {
-  width: min(100%, 340px);
+  width: 100%;
 }
 
 .sensor-visibility-toggle {
@@ -1006,6 +1119,11 @@ input.form-check-input[type="checkbox"]:focus {
 }
 
 @media (max-width: 767px) {
+  :root {
+    --card-row-label-width: 42%;
+    --card-row-input-width: 58%;
+  }
+
   .sensor-card-config .row > [class*="col-"] {
     flex-direction: column;
     align-items: stretch;
@@ -1019,7 +1137,8 @@ input.form-check-input[type="checkbox"]:focus {
   }
 }
 
-.legacy-card-content .table-responsive {
+.legacy-card-content .table-responsive,
+.app-card-content .table-responsive {
   border: 1px solid rgba(121, 134, 156, 0.26);
   border-radius: 0.75rem;
   padding: 0.35rem;
@@ -1201,22 +1320,65 @@ input.form-check-input[type="checkbox"]:focus {
 .sensor-card-view,
 .sensor-card-config,
 .sensor-card-logs {
-  display: block;
+  display: none;
   width: 100%;
 }
 
 .sensor-grid-card > .legacy-card-header,
+.sensor-grid-card > .card-header-default,
 .sensor-grid-card > .sensor-card-feedback,
-.sensor-grid-card > .legacy-card-content {
-  width: 100%;
-  margin-left: 0;
-  margin-right: 0;
+.sensor-grid-card > .legacy-card-content,
+.sensor-grid-card > .app-card-content {
+  width: calc(100% - 0.7rem);
+  margin-left: var(--card-header-margin);
+  margin-right: var(--card-header-margin);
 }
 
 .sensor-grid-card > .sensor-card-view {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
+}
+
+/* Card mode contract: show exactly one view block at a time. */
+.sensor-grid-card[data-card-mode="view"] .sensor-card-view {
+  display: flex;
+}
+
+.sensor-grid-card[data-card-mode="view"] .sensor-card-config,
+.sensor-grid-card[data-card-mode="view"] .sensor-card-logs,
+.sensor-grid-card[data-card-mode="view"] .sensor-card-feedback {
+  display: none !important;
+}
+
+.sensor-grid-card[data-card-mode="config"] .sensor-card-config {
+  display: block;
+}
+
+.sensor-grid-card[data-card-mode="config"] .sensor-card-view,
+.sensor-grid-card[data-card-mode="config"] .sensor-card-logs,
+.sensor-grid-card[data-card-mode="config"] .sensor-card-feedback {
+  display: none !important;
+}
+
+.sensor-grid-card[data-card-mode="logs"] .sensor-card-logs {
+  display: block;
+}
+
+.sensor-grid-card[data-card-mode="logs"] .sensor-card-view,
+.sensor-grid-card[data-card-mode="logs"] .sensor-card-config,
+.sensor-grid-card[data-card-mode="logs"] .sensor-card-feedback {
+  display: none !important;
+}
+
+.sensor-grid-card[data-card-mode="feedback"] .sensor-card-feedback {
+  display: block;
+}
+
+.sensor-grid-card[data-card-mode="feedback"] .sensor-card-view,
+.sensor-grid-card[data-card-mode="feedback"] .sensor-card-config,
+.sensor-grid-card[data-card-mode="feedback"] .sensor-card-logs {
+  display: none !important;
 }
 
 .sensor-card-feedback {
@@ -1296,7 +1458,8 @@ input.form-check-input[type="checkbox"]:focus {
   gap: 0.35rem;
 }
 
-.legacy-card-subtitle .sensor-connection {
+.legacy-card-subtitle .sensor-connection,
+.card-header-subtitle .sensor-connection {
   margin: 0;
   padding: 0;
 }
@@ -1418,9 +1581,63 @@ input.form-check-input[type="checkbox"]:focus {
 
 .settings-card > .legacy-card-header,
 .module-settings-card > .legacy-card-header,
-.active-module-panel > .legacy-card-header {
-  margin: 0.35rem;
+.active-module-panel > .legacy-card-header,
+.settings-card > .card-header-default,
+.module-settings-card > .card-header-default,
+.active-module-panel > .card-header-default {
+  margin: var(--card-header-margin);
   width: calc(100% - 0.7rem);
+}
+
+.card-shell {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow);
+  border-radius: var(--app-card-radius);
+  min-height: var(--app-card-min-height);
+}
+
+.view-type-data,
+.view-type-form,
+.view-type-logs,
+.view-type-feedback {
+  width: 100%;
+}
+
+.card-shell > .card-header-default,
+.card-shell > .app-card-content {
+  margin: var(--card-header-margin);
+  width: calc(100% - 0.7rem);
+}
+
+.card-shell > .app-card-content {
+  align-self: center;
+}
+
+.card-type-log .view-type-logs {
+  min-height: 220px;
+}
+
+.logs-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 460px), 1fr));
+}
+
+.logs-output {
+  margin: 0;
+  border-radius: 0.7rem;
+  border: 1px solid rgba(121, 134, 156, 0.28);
+  background: rgba(15, 23, 42, 0.92);
+  color: #dbeafe;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+  line-height: 1.35;
+  padding: 0.75rem;
+  min-height: 180px;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .module-settings-form {

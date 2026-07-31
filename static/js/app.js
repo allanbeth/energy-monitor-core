@@ -692,12 +692,92 @@
     }
   }
 
-  async function refreshLogs() {
-    const data = await request("/api/logs/recent");
-    const logsOutput = document.getElementById("logs-output");
-    if (logsOutput) {
-      logsOutput.textContent = data.lines || "";
+  function toLogText(payload) {
+    if (!payload || typeof payload !== "object") {
+      return "";
     }
+
+    if (typeof payload.lines === "string") {
+      return payload.lines;
+    }
+
+    if (Array.isArray(payload.lines)) {
+      return payload.lines.map((line) => String(line || "")).join("\n");
+    }
+
+    const collectRecentEntries = (value, output = []) => {
+      if (!value || typeof value !== "object") {
+        return output;
+      }
+      if (Array.isArray(value)) {
+        value.forEach((item) => collectRecentEntries(item, output));
+        return output;
+      }
+      if (Array.isArray(value.recent_entries)) {
+        value.recent_entries.forEach((entry) => {
+          const line = String(entry || "").trim();
+          if (line) {
+            output.push(line);
+          }
+        });
+      }
+      Object.values(value).forEach((child) => collectRecentEntries(child, output));
+      return output;
+    };
+
+    const entries = collectRecentEntries(payload, []);
+    if (entries.length) {
+      return entries.join("\n");
+    }
+
+    return "";
+  }
+
+  async function refreshLogCard(moduleName = "core") {
+    const normalizedModule = String(moduleName || "core").trim().toLowerCase();
+    const isCore = normalizedModule === "core";
+    const endpoint = isCore
+      ? "/api/logs/recent"
+      : `/api/logs/recent?module=${encodeURIComponent(normalizedModule)}`;
+    const output = isCore
+      ? document.getElementById("logs-core-output")
+      : document.getElementById(`logs-module-output-${normalizedModule}`);
+    const message = isCore
+      ? document.getElementById("logs-core-message")
+      : document.getElementById(`logs-module-message-${normalizedModule}`);
+
+    if (output) {
+      output.textContent = "Loading logs...";
+    }
+
+    try {
+      const data = await request(endpoint, { method: "GET" });
+      const rendered = toLogText(data);
+      if (output) {
+        output.textContent = rendered || "No log entries available.";
+      }
+      showStatusMessage(message, `Updated ${isCore ? "core" : normalizedModule} logs.`, "success");
+    } catch (err) {
+      if (output) {
+        output.textContent = "Unable to load logs.";
+      }
+      showStatusMessage(message, err.message || "Failed to refresh logs.", "error");
+    }
+  }
+
+  async function refreshLogs() {
+    const coreOutput = document.getElementById("logs-core-output");
+    if (!coreOutput) {
+      return;
+    }
+    const tasks = [refreshLogCard("core")];
+    document.querySelectorAll("[data-logs-refresh]").forEach((button) => {
+      const target = String(button.getAttribute("data-logs-refresh") || "").trim().toLowerCase();
+      if (target && target !== "core") {
+        tasks.push(refreshLogCard(target));
+      }
+    });
+    await Promise.allSettled(tasks);
   }
 
   async function refreshAll() {
@@ -1458,6 +1538,23 @@
     setInterval(refreshModuleSnapshot, 2000);
   }
 
+  function bindLogsPage() {
+    showLoadingScreen("Loading logs...");
+    startServerHeartbeat();
+    document.querySelectorAll("[data-logs-refresh]").forEach((button) => {
+      button.addEventListener("click", async () => {
+        const target = button.getAttribute("data-logs-refresh") || "core";
+        await refreshLogCard(target);
+      });
+    });
+    document.getElementById("refresh-logs-btn")?.addEventListener("click", refreshLogs);
+    document.getElementById("logout-btn")?.addEventListener("click", async function () {
+      await request("/api/auth/logout", { method: "POST" });
+      window.location.reload();
+    });
+    refreshLogs().finally(hideLoadingScreen);
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     syncServerInstanceId();
     bindCredentialsModal();
@@ -1489,6 +1586,10 @@
     }
     if (page === "module") {
       bindModulePage();
+      return;
+    }
+    if (page === "logs") {
+      bindLogsPage();
       return;
     }
   });

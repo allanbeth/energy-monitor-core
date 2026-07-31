@@ -1,24 +1,24 @@
-{% macro legacy_card_header(icon, title, subtitle='', eyebrow='', subtitle_html=false) -%}
-<div class="legacy-card-header app-card-header">
-  <div class="legacy-card-head-main app-card-header-main">
-    <div class="legacy-card-icon app-card-header-icon">
+{% macro card_header(icon, title, subtitle='', eyebrow='', subtitle_html=false) -%}
+<div class="card-header-default app-card-header">
+  <div class="card-header-main app-card-header-main">
+    <div class="card-header-icon app-card-header-icon">
       <i class="fa-solid {{ icon }}"></i>
     </div>
-    <div class="legacy-card-meta app-card-header-meta">
+    <div class="card-header-meta app-card-header-meta">
       {% if eyebrow %}
       <div class="eyebrow">{{ eyebrow }}</div>
       {% endif %}
-      <h3 class="legacy-card-title app-card-title">{{ title }}</h3>
+      <h3 class="card-header-title app-card-title">{{ title }}</h3>
       {% if subtitle %}
       {% if subtitle_html %}
-      <p class="legacy-card-subtitle app-card-subtitle">{{ subtitle|safe }}</p>
+      <p class="card-header-subtitle app-card-subtitle">{{ subtitle|safe }}</p>
       {% else %}
-      <p class="legacy-card-subtitle app-card-subtitle">{{ subtitle }}</p>
+      <p class="card-header-subtitle app-card-subtitle">{{ subtitle }}</p>
       {% endif %}
       {% endif %}
     </div>
   </div>
-  <div class="legacy-card-actions app-card-header-actions">
+  <div class="card-header-actions app-card-header-actions">
     {{ caller() }}
   </div>
 </div>

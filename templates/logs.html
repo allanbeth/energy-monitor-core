@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_card_macros.html" import card_header %}
+
+{% block page_actions %}
+<button id="refresh-logs-btn" class="btn btn-outline-primary btn-sm action-icon-btn" title="Refresh all logs"><i class="fa-solid fa-rotate"></i></button>
+<button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
+{% endblock %}
+
+{% block content %}
+<section class="page-layout page-layout-logs">
+  <div class="card-layout-grid logs-card-grid" id="logs-cards-grid">
+    <article class="app-card card-shell card-type-log log-card-core">
+      {% call card_header('fa-server', 'Core Logs', 'Application runtime events') %}
+      <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-logs-refresh="core" title="Refresh core logs">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      {% endcall %}
+      <div class="app-card-content card-content-logs view-type-logs">
+        <pre class="logs-output" id="logs-core-output">Loading core logs...</pre>
+        <div class="form-text" id="logs-core-message"></div>
+      </div>
+    </article>
+
+    {% for module_name in active_log_modules or [] %}
+    <article class="app-card card-shell card-type-log module-log-card module-{{ module_name }}">
+      {% call card_header('fa-microchip', module_name|title ~ ' Logs', 'Active module log stream') %}
+      <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-logs-refresh="{{ module_name }}" title="Refresh {{ module_name|title }} logs">
+        <i class="fa-solid fa-rotate"></i>
+      </button>
+      {% endcall %}
+      <div class="app-card-content card-content-logs view-type-logs">
+        <pre class="logs-output" id="logs-module-output-{{ module_name }}">Loading {{ module_name }} logs...</pre>
+        <div class="form-text" id="logs-module-message-{{ module_name }}"></div>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+{% endblock %}
