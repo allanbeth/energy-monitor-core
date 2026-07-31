@@ -236,6 +236,20 @@ class ModulePoller(BaseModulePoller):
                 if connected:
                     measurement = self._read_measurements(pi, sensor)
                     connected = bool(measurement.get("connected", False))
+                    if not connected:
+                        address = self._coerce_int(sensor.get("address"), -1)
+                        sensor_present = self._probe_sensor(pi, address) if address >= 0 else False
+                        if sensor_present:
+                            connected = True
+                            measurement = {
+                                "connected": True,
+                                "status": "connected",
+                                "status_detail": "connected-no-data:transient-read-failure",
+                                "voltage": 0.0,
+                                "current": 0.0,
+                                "watts": 0.0,
+                                "power": 0.0,
+                            }
 
                 formatted_address = self._format_i2c_address(sensor.get("address"))
 

@@ -42,11 +42,11 @@
           <i class="fa-solid {{ module.icon }}"></i><span>{{ module.title }}</span>
         </a>
         {% endfor %}
-        <a class="sidebar-link {% if page_name == 'logs' %}active{% endif %}" href="/logs">
-          <i class="fa-solid fa-scroll"></i><span>Logs</span>
-        </a>
         <a class="sidebar-link {% if page_name == 'core-settings' or page_name == 'module-settings' %}active{% endif %}" href="/settings">
           <i class="fa-solid fa-gear"></i><span>Settings</span>
+        </a>
+        <a class="sidebar-link {% if page_name == 'logs' %}active{% endif %}" href="/logs">
+          <i class="fa-solid fa-scroll"></i><span>Logs</span>
         </a>
       </nav>
     </aside>

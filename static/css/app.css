@@ -1087,6 +1087,7 @@ input.form-check-input[type="checkbox"]:focus {
 .sensor-main-value-wrap {
   width: min(100%, 320px);
   text-align: center;
+  margin-inline: auto;
 }
 
 .sensor-main-value {
@@ -1098,8 +1099,9 @@ input.form-check-input[type="checkbox"]:focus {
 .sensor-live-rows {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  width: 100%;
+  align-items: stretch;
+  width: min(100%, 520px);
+  margin-inline: auto;
 }
 
 .sensor-live-rows .settings-entry {
@@ -1540,6 +1542,8 @@ input.form-check-input[type="checkbox"]:focus {
   margin-top: auto;
   color: var(--muted);
   font-size: 0.82rem;
+  width: min(100%, 520px);
+  margin-inline: auto;
 }
 
 .sensor-card-config .form-select,
