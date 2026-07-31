@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from threading import RLock
 from typing import Any
 
 from .base import BaseModulePoller
@@ -12,6 +13,11 @@ except Exception:  # pragma: no cover - optional runtime dependency
 
 
 class ModulePoller(BaseModulePoller):
+    def __init__(self, module_name: str, config_manager: Any, live_data_store: Any = None):
+        super().__init__(module_name, config_manager, live_data_store)
+        self._clients: dict[str, Any] = {}
+        self._client_lock = RLock()
+
     def _build_client(self, device: dict[str, Any]):
         connection_type = str(device.get("connection_type") or "serial_usb").strip().lower()
         timeout = float(device.get("timeout") or device.get("modbus", {}).get("timeout", 1))
@@ -35,17 +41,75 @@ class ModulePoller(BaseModulePoller):
             )
         return None
 
+    def _disconnect_client(self, client: Any) -> None:
+        if client is None:
+            return
+        if hasattr(client, "close"):
+            try:
+                client.close()
+            except Exception:
+                pass
+
+    def _get_device_key(self, device: dict[str, Any]) -> str:
+        key = str(device.get("id") or "").strip()
+        if key:
+            return key
+        tcp = device.get("tcp", {}) if isinstance(device.get("tcp"), dict) else {}
+        serial = device.get("serial", {}) if isinstance(device.get("serial"), dict) else {}
+        host = str(tcp.get("host") or device.get("host") or "").strip()
+        port = str(tcp.get("port") or device.get("port") or "").strip()
+        serial_port = str(serial.get("port") or "").strip()
+        if host:
+            return f"tcp:{host}:{port or '502'}"
+        if serial_port:
+            return f"serial:{serial_port}"
+        return "mppt-device"
+
+    def _ensure_client(self, device_key: str, device: dict[str, Any]) -> Any:
+        with self._client_lock:
+            client = self._clients.get(device_key)
+            if client is None:
+                client = self._build_client(device)
+                self._clients[device_key] = client
+            return client
+
+    def _ensure_connected(self, client: Any) -> bool:
+        if client is None:
+            return False
+        if bool(getattr(client, "connected", False)):
+            return True
+        try:
+            return bool(client.connect())
+        except Exception:
+            return False
+
+    def _close_stale_clients(self, active_keys: set[str]) -> None:
+        with self._client_lock:
+            stale = [key for key in self._clients if key not in active_keys]
+            for key in stale:
+                client = self._clients.pop(key, None)
+                self._disconnect_client(client)
+
+    def shutdown(self) -> None:
+        with self._client_lock:
+            for client in self._clients.values():
+                self._disconnect_client(client)
+            self._clients.clear()
+
     def poll(self, payload: dict[str, Any] | None = None, due_sensor_types: set[str] | None = None) -> dict[str, Any]:
         module_payload = payload if isinstance(payload, dict) else self.config_manager.get_module_payload(self.module_name)
         module_config = module_payload.get("module_config", {}) if isinstance(module_payload, dict) else {}
         sensor_config = module_payload.get("sensor_config", []) if isinstance(module_payload, dict) else []
         devices = module_config.get("devices", []) if isinstance(module_config, dict) else []
+        active_device_keys: set[str] = set()
 
         for device in devices if isinstance(devices, list) else []:
             if not isinstance(device, dict) or not device.get("enabled", True):
                 continue
 
             device_id = str(device.get("id") or "device")
+            device_key = self._get_device_key(device)
+            active_device_keys.add(device_key)
             device_sensors = []
             for sensor in sensor_config if isinstance(sensor_config, list) else []:
                 if not isinstance(sensor, dict):
@@ -58,13 +122,8 @@ class ModulePoller(BaseModulePoller):
             if not device_sensors:
                 continue
 
-            client = self._build_client(device)
-            connected = False
-            if client is not None:
-                try:
-                    connected = bool(client.connect())
-                except Exception:
-                    connected = False
+            client = self._ensure_client(device_key, device)
+            connected = self._ensure_connected(client)
 
             for sensor in device_sensors:
 
@@ -83,10 +142,6 @@ class ModulePoller(BaseModulePoller):
                 }
                 self.live_data_store.ingest_sensor(self.module_name, str(sensor.get("name") or sensor.get("address") or "sensor"), sensor_payload)
 
-            if client is not None:
-                try:
-                    client.close()
-                except Exception:
-                    pass
+        self._close_stale_clients(active_device_keys)
 
         return self.build_snapshot(module_payload)

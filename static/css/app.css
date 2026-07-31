@@ -23,7 +23,7 @@
   --card-header-icon-size: 2.7rem;
   --card-header-action-size: 2.35rem;
   --card-header-gap: 0.75rem;
-  --card-header-margin: 0.35rem;
+  --card-header-margin: 0.7rem;
   --card-content-gap: 0.42rem;
   --card-row-label-width: 38%;
   --card-row-input-width: 62%;
@@ -660,6 +660,26 @@ body {
 
 .dashboard-overview-card .card-header-icon {
   background: linear-gradient(135deg, #4f5d75, #3c4a5f);
+}
+
+.dashboard-overview-card.sensor-type-total .card-header-icon {
+  background: linear-gradient(135deg, #445069, #2f3a4f);
+}
+
+.dashboard-overview-card.sensor-type-solar .card-header-icon {
+  background: linear-gradient(135deg, #c7802a, #d39a50);
+}
+
+.dashboard-overview-card.sensor-type-wind .card-header-icon {
+  background: linear-gradient(135deg, #4c6a92, #5f7ea7);
+}
+
+.dashboard-overview-card.sensor-type-battery .card-header-icon {
+  background: linear-gradient(135deg, #2b6cb0, #4299e1);
+}
+
+.dashboard-overview-card.sensor-type-charger .card-header-icon {
+  background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
 .sensor-solar .legacy-card-icon {

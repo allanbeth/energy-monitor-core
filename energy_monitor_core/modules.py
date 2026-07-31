@@ -244,6 +244,11 @@ class ModuleRuntime:
 
     def stop(self) -> None:
         self.stop_event.set()
+        if self.poller is not None and hasattr(self.poller, "shutdown"):
+            try:
+                self.poller.shutdown()
+            except Exception:
+                self.logger.exception("Module poller shutdown failed")
         self.logger.info("Module runtime stopped")
 
 

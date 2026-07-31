@@ -106,6 +106,7 @@ class SensorDataStore:
         device_key = self._device_key(data, sensor_key)
         device_connected = bool(data.get("device_connected", connected))
         device_paired = bool(data.get("paired", False))
+        connection_session = str(data.get("connection_session") or "").strip()
 
         record = {
             "name": str(data.get("name") or sensor_key).strip() or sensor_key,
@@ -153,6 +154,7 @@ class SensorDataStore:
                     "connected": device_connected,
                     "paired": device_paired or bool(previous_device.get("paired")) if isinstance(previous_device, dict) else device_paired,
                     "last_seen": data.get("last_seen") or now_iso,
+                    "connection_session": connection_session or (str(previous_device.get("connection_session") or "").strip() if isinstance(previous_device, dict) else ""),
                 }
                 if device_connected:
                     device_record["last_seen"] = data.get("last_seen") or now_iso
@@ -305,6 +307,7 @@ class SensorDataStore:
                 "name": str(device.get("name") or "").strip() or device_key,
                 "connected": bool(cached_device.get("connected", False)) or bool(device.get("paired", False)),
                 "paired": bool(cached_device.get("paired", False)) or bool(device.get("paired")),
+                "connection_session": str(cached_device.get("connection_session") or "").strip(),
             }
 
         for row in sensor_rows:
@@ -321,11 +324,15 @@ class SensorDataStore:
                     "name": device_key,
                     "connected": False,
                     "paired": False,
+                    "connection_session": "",
                 }
             if device_connected:
                 device_status_summary[device_key]["connected"] = True
             if bool(raw.get("paired", row.get("paired", False))) or bool(cached_device.get("paired", False)):
                 device_status_summary[device_key]["paired"] = True
+            raw_session = str(raw.get("connection_session") or "").strip()
+            if raw_session:
+                device_status_summary[device_key]["connection_session"] = raw_session
 
         device_count = len(device_status_summary)
         connected_device_count = sum(1 for item in device_status_summary.values() if item.get("connected"))
