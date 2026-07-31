@@ -425,13 +425,17 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         module_config = module_payload.get("module_config", {}) if isinstance(module_payload, dict) else {}
         devices = module_config.get("devices", []) if isinstance(module_config, dict) else []
         target_device = None
-        for candidate in devices if isinstance(devices, list) else []:
+        device_index = -1
+        for index, candidate in enumerate(devices if isinstance(devices, list) else []):
             if not isinstance(candidate, dict):
                 continue
             candidate_id = str(candidate.get("id") if candidate.get("id") is not None else "").strip()
             candidate_mac = str(candidate.get("mac") or "").strip()
-            if str(device_id).strip() in {candidate_id, candidate_mac}:
+            candidate_name = str(candidate.get("name") or "").strip()
+            resolved_device_id = str(device_id).strip()
+            if resolved_device_id in {candidate_id, candidate_mac, candidate_name, str(index)}:
                 target_device = candidate
+                device_index = index
                 break
 
         if target_device is None:
@@ -451,16 +455,30 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         resolved_key = str(target_device.get("id") if target_device.get("id") is not None else target_device.get("mac") or device_id)
         device_state = summary.get(resolved_key) if isinstance(summary, dict) else None
 
+        paired = bool(result.get("paired")) or str(result.get("status_detail") or "") == "paired-not-connected"
         connected = bool(result.get("connected")) or bool((device_state or {}).get("connected"))
+        success = connected or paired
         status_detail = str(result.get("status_detail") or "")
-        message = "Device reconnected." if connected else f"Reconnect failed: {status_detail or 'device not connected'}"
+        if connected:
+            message = "Device reconnected."
+        elif paired:
+            message = "Device paired."
+        else:
+            message = f"Reconnect failed: {status_detail or 'device not connected'}"
+
+        if success:
+            target_device["paired"] = True
+            if device_index >= 0 and isinstance(devices, list):
+                devices[device_index] = target_device
+            config_manager.update_module_config(module_name, module_config, None)
 
         return jsonify({
-            "status": "success" if connected else "warning",
+            "status": "success" if success else "warning",
             "module": module_name,
             "device_id": device_id,
             "device": device_state,
             "connected": connected,
+            "paired": paired,
             "status_detail": status_detail,
             "message": message,
         })

@@ -630,8 +630,11 @@
         const hasDeviceStats = Number(snapshot.device_count || 0) > 0;
         const connectedCount = hasDeviceStats ? Number(snapshot.connected_device_count || 0) : Number(snapshot.connected_sensor_count || 0);
         const totalCount = hasDeviceStats ? Number(snapshot.device_count || 0) : Number(snapshot.sensor_count || 0);
-        const moduleState = connectedCount <= 0 ? "disconnected" : (connectedCount < totalCount ? "partial" : "connected");
-        const statusText = moduleState === "connected" ? "Connected" : (moduleState === "partial" ? "Partial" : "Disconnected");
+        const pairedCount = Number(snapshot.paired_device_count || 0);
+        const moduleState = hasDeviceStats
+          ? (connectedCount <= 0 ? (pairedCount > 0 && moduleName === "victron" ? "partial" : "disconnected") : (connectedCount < totalCount ? "partial" : "connected"))
+          : (connectedCount <= 0 ? "disconnected" : "connected");
+        const statusText = moduleState === "connected" ? "Connected" : (moduleName === "victron" && pairedCount > 0 && connectedCount <= 0 ? "Paired" : (moduleState === "partial" ? "Partial" : "Disconnected"));
         const statusTextNode = statusLabel.querySelector("[data-module-connection-label]");
         if (statusTextNode) {
           statusTextNode.textContent = statusText;
@@ -986,8 +989,10 @@
         method: "POST",
       });
       const connected = !!result?.connected;
-      const text = String(result?.message || (connected ? "Device reconnected." : "Reconnect failed."));
-      showStatusMessages(statusTargets, text, connected ? "success" : "warning");
+      const paired = !!result?.paired;
+      const success = connected || paired;
+      const text = String(result?.message || (connected ? "Device reconnected." : paired ? "Device paired." : "Reconnect failed."));
+      showStatusMessages(statusTargets, text, success ? "success" : "warning");
       await refreshStatus();
     } catch (err) {
       showStatusMessages(statusTargets, err.message, "error");

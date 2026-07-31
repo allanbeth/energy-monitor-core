@@ -253,6 +253,7 @@ class SensorDataStore:
                 "id": device.get("id"),
                 "name": str(device.get("name") or "").strip() or device_key,
                 "connected": False,
+                "paired": bool(device.get("paired")),
             }
 
         for row in sensor_rows:
@@ -267,14 +268,25 @@ class SensorDataStore:
                     "id": row.get("device_id"),
                     "name": device_key,
                     "connected": False,
+                    "paired": False,
                 }
             if device_connected:
                 device_status_summary[device_key]["connected"] = True
+            if bool(raw.get("paired", row.get("paired", False))):
+                device_status_summary[device_key]["paired"] = True
 
         device_count = len(device_status_summary)
         connected_device_count = sum(1 for item in device_status_summary.values() if item.get("connected"))
+        paired_device_count = sum(1 for item in device_status_summary.values() if item.get("paired"))
         if device_count > 0:
-            module_status = "connected" if connected_device_count == device_count else ("partial" if connected_device_count > 0 else "disconnected")
+            if connected_device_count == device_count:
+                module_status = "connected"
+            elif connected_device_count > 0:
+                module_status = "partial"
+            elif paired_device_count > 0 and module_key == "victron":
+                module_status = "paired"
+            else:
+                module_status = "disconnected"
         else:
             module_status = "connected" if connected_sensor_count else "disconnected"
 
@@ -286,6 +298,7 @@ class SensorDataStore:
             "poll_interval": poll_interval,
             "device_count": device_count,
             "connected_device_count": connected_device_count,
+            "paired_device_count": paired_device_count,
             "sensor_count": len(sensor_rows),
             "connected_sensor_count": connected_sensor_count,
             "watts": total_watts,

@@ -142,7 +142,7 @@
               <div class="settings-entry"><label>Passcode</label><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][passcode]" value="{{ device.passcode|default('', true) }}"></div>
               <div class="victron-device-actions">
                 <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-victron-device-close="{{ loop.index0 }}" title="Close device editor"><i class="fa-solid fa-xmark"></i></button>
-                <button type="button" class="btn btn-outline-warning btn-sm action-icon-btn" data-victron-device-reconnect="{{ device_identity }}" data-victron-device-message="victron-device-message-{{ loop.index0 }}" title="Reconnect device"><i class="fa-solid fa-rotate"></i></button>
+                <button type="button" class="btn btn-outline-warning btn-sm action-icon-btn" data-victron-device-reconnect="{{ device_identity }}" data-victron-device-message="victron-device-message-{{ loop.index0 }}" title="Pair and reconnect device"><i class="fa-solid fa-rotate"></i></button>
                 <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save device settings"><i class="fa-solid fa-floppy-disk"></i></button>
               </div>
               <div class="form-text" id="victron-device-message-{{ loop.index0 }}"></div>
