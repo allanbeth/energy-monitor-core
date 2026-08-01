@@ -506,19 +506,65 @@
   function showLoadingScreen(message = "Loading...") {
     const screen = document.getElementById("loading-screen");
     const messageNode = document.getElementById("loading-message");
+    const stepNode = document.getElementById("loading-step-message");
     if (screen) {
       screen.hidden = false;
     }
     if (messageNode) {
       messageNode.textContent = message;
     }
+    if (stepNode) {
+      stepNode.textContent = "";
+    }
+  }
+
+  function createStagedProgress(messages, onStep, intervalMs = 450) {
+    const steps = Array.isArray(messages) ? messages.filter((item) => String(item || "").trim()) : [];
+    let index = 0;
+    if (steps.length && typeof onStep === "function") {
+      onStep(steps[0], 0);
+      index = 1;
+    }
+
+    if (steps.length <= 1) {
+      return { stop: () => void 0 };
+    }
+
+    const timer = window.setInterval(() => {
+      if (index >= steps.length) {
+        window.clearInterval(timer);
+        return;
+      }
+      if (typeof onStep === "function") {
+        onStep(steps[index], index);
+      }
+      index += 1;
+    }, Math.max(250, Number(intervalMs) || 450));
+
+    return {
+      stop: () => {
+        window.clearInterval(timer);
+      },
+    };
   }
 
   function hideLoadingScreen() {
     const screen = document.getElementById("loading-screen");
+    const stepNode = document.getElementById("loading-step-message");
     if (screen) {
       screen.hidden = true;
     }
+    if (stepNode) {
+      stepNode.textContent = "";
+    }
+  }
+
+  function setLoadingStepMessage(message = "") {
+    const stepNode = document.getElementById("loading-step-message");
+    if (!stepNode) {
+      return;
+    }
+    stepNode.textContent = String(message || "");
   }
 
   function parseScalar(value) {
@@ -844,20 +890,77 @@
     const username = document.getElementById("login-username");
     const password = document.getElementById("login-password");
     const error = document.getElementById("login-error");
+    const progress = document.getElementById("login-progress");
+    const submit = document.getElementById("login-submit");
+    const submitText = document.getElementById("login-submit-text");
     const normalizedUsername = String((username && username.value) || username?.placeholder || "").trim();
     const normalizedPassword = String((password && password.value) || "");
+
+    showMessage(error, "");
+    if (progress) {
+      progress.textContent = "";
+      progress.classList.remove("text-danger", "text-success", "text-warning");
+      progress.classList.add("text-secondary");
+    }
+
+    if (submit) {
+      submit.disabled = true;
+    }
+    if (submitText) {
+      submitText.textContent = "Authenticating...";
+    }
+
+    const stagedProgress = createStagedProgress(
+      [
+        "Step 1/3: Validating credentials...",
+        "Step 2/3: Establishing secure session...",
+        "Step 3/3: Preparing dashboard...",
+      ],
+      (message, index) => {
+        if (progress) {
+          progress.textContent = message;
+        }
+        setLoadingStepMessage(message);
+        if (index === 0) {
+          showLoadingScreen("Signing in...");
+        }
+      },
+      500,
+    );
+
     try {
       showLoadingScreen("Signing in...");
+      setLoadingStepMessage("Step 1/3: Validating credentials...");
       const payload = await request("/api/auth/login", {
         method: "POST",
         body: JSON.stringify({ username: normalizedUsername, password: normalizedPassword }),
         headers: {},
       });
       void payload;
-      window.location.reload();
+      stagedProgress.stop();
+      if (progress) {
+        progress.textContent = "Authentication successful. Redirecting...";
+        progress.classList.remove("text-secondary", "text-danger", "text-warning");
+        progress.classList.add("text-success");
+      }
+      showLoadingScreen("Authentication successful.");
+      setLoadingStepMessage("Redirecting to dashboard...");
+      window.location.href = resolvePath("/");
     } catch (err) {
+      stagedProgress.stop();
       hideLoadingScreen();
       showMessage(error, err.payload && err.payload.error ? err.payload.error : err.message, true);
+      if (progress) {
+        progress.textContent = "Authentication failed.";
+        progress.classList.remove("text-secondary", "text-success", "text-warning");
+        progress.classList.add("text-danger");
+      }
+      if (submitText) {
+        submitText.textContent = "Authenticate";
+      }
+      if (submit) {
+        submit.disabled = false;
+      }
     }
   }
 
@@ -1475,6 +1578,7 @@
 
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
+    setLoadingStepMessage("Step 1/2: Loading live status...");
     startServerHeartbeat();
     bindCredentialsModal();
     document.getElementById("refresh-btn")?.addEventListener("click", refreshAll);
@@ -1485,7 +1589,16 @@
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
     });
-    refreshAll().finally(hideLoadingScreen);
+    refreshStatus()
+      .catch(() => void 0)
+      .finally(() => {
+        setLoadingStepMessage("Step 2/2: Rendering dashboard...");
+        hideLoadingScreen();
+      });
+
+    // Backups and logs are non-critical for first paint; load in background.
+    refreshBackups().catch(() => void 0);
+    refreshLogs().catch(() => void 0);
     setInterval(refreshStatus, 3000);
   }
 

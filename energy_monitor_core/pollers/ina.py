@@ -113,6 +113,62 @@ class ModulePoller(BaseModulePoller):
         except Exception:
             return default
 
+    def _estimate_battery_soc(self, voltage: float, rating: float) -> int:
+        # Piecewise-linear approximation carried over from legacy INA behavior.
+        if float(rating) >= 20.0:
+            soc_table = [
+                (25.4, 100),
+                (25.2, 90),
+                (24.8, 75),
+                (24.4, 50),
+                (24.0, 25),
+                (23.8, 10),
+                (23.6, 0),
+            ]
+            min_v, max_v = 23.6, 25.4
+        else:
+            soc_table = [
+                (12.7, 100),
+                (12.6, 90),
+                (12.4, 75),
+                (12.2, 50),
+                (12.0, 25),
+                (11.9, 10),
+                (11.8, 0),
+            ]
+            min_v, max_v = 11.8, 12.7
+
+        clamped_voltage = max(min_v, min(max_v, float(voltage)))
+        for index in range(len(soc_table) - 1):
+            v_high, soc_high = soc_table[index]
+            v_low, soc_low = soc_table[index + 1]
+            if v_low <= clamped_voltage <= v_high:
+                if v_high == v_low:
+                    return int(round(soc_low))
+                soc_value = soc_low + (soc_high - soc_low) * (clamped_voltage - v_low) / (v_high - v_low)
+                return int(round(soc_value))
+        return 0
+
+    def _battery_charge_state(self, current: float) -> str:
+        if float(current) > 0.05:
+            return "discharging"
+        if float(current) < -0.05:
+            return "charging"
+        return "idle"
+
+    def _is_battery_voltage_valid(self, voltage: float, rating: float) -> bool:
+        if float(rating) >= 20.0:
+            min_v, max_v = 21.0, 29.0
+        else:
+            min_v, max_v = 10.5, 14.8
+        return float(min_v) <= float(voltage) <= float(max_v)
+
+    def _ina219_fallback_voltage(self, raw_voltage: int) -> float:
+        return round((int(raw_voltage) >> 3) * 0.004, 3)
+
+    def _ina219_fallback_current(self, raw_current_source: int) -> float:
+        return round(int(raw_current_source) * (3.2 / 32767), 4)
+
     def _format_i2c_address(self, address: Any) -> str:
         try:
             if address is None or address == "":
@@ -252,10 +308,29 @@ class ModulePoller(BaseModulePoller):
                     computed_current = raw_current_source * current_lsb
 
             current = round(computed_current, 4)
-            if str(sensor.get("type") or "").strip().lower() in {"solar", "wind"}:
+            sensor_type = str(sensor.get("type") or "").strip().lower()
+            if sensor_type in {"solar", "wind"}:
                 current = abs(current)
-            elif str(sensor.get("type") or "").strip().lower() == "battery" and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
+            elif sensor_type == "battery" and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
                 current = 0.0
+
+            status_variant_note = effective_variant
+            if sensor_type == "battery":
+                rating = self._coerce_float(sensor.get("rating"), 12.0)
+                if not self._is_battery_voltage_valid(voltage, rating):
+                    # If the configured variant produces an impossible battery voltage,
+                    # reinterpret the raw registers as INA219 to recover from common
+                    # mis-configuration (e.g. INA219 sensor marked as INA226).
+                    fallback_voltage = self._ina219_fallback_voltage(raw_voltage)
+                    if self._is_battery_voltage_valid(fallback_voltage, rating):
+                        voltage = fallback_voltage
+                        if raw_current_source is not None:
+                            fallback_current = self._ina219_fallback_current(raw_current_source)
+                            if abs(fallback_current) < 0.05:
+                                fallback_current = 0.0
+                            current = fallback_current
+                        effective_variant = "INA219"
+                        status_variant_note = "INA219:auto-corrected"
 
             power = round(voltage * current, 3)
 
@@ -270,14 +345,24 @@ class ModulePoller(BaseModulePoller):
                     "power": power,
                 }
 
+            soc_value = None
+            charging_state = ""
+            if sensor_type == "battery":
+                rating = self._coerce_float(sensor.get("rating"), 12.0)
+                soc_value = self._estimate_battery_soc(voltage, rating)
+                charging_state = self._battery_charge_state(current)
+
             return {
                 "connected": True,
                 "status": "connected",
-                "status_detail": f"live-read:{effective_variant}",
+                "status_detail": f"live-read:{status_variant_note}",
                 "voltage": voltage,
                 "current": current,
                 "watts": power,
                 "power": power,
+                "state_of_charge": soc_value,
+                "soc": soc_value,
+                "charging_state": charging_state,
             }
         except Exception as error:
             return {"connected": False, "status_detail": f"read-error:{error.__class__.__name__}"}
@@ -436,6 +521,10 @@ class ModulePoller(BaseModulePoller):
                 "current": measurement.get("current", 0.0),
                 "watts": measurement.get("watts", 0.0),
                 "power": measurement.get("power", 0.0),
+                "state_of_charge": measurement.get("state_of_charge", measurement.get("soc")),
+                "soc": measurement.get("soc", measurement.get("state_of_charge")),
+                "charging_state": measurement.get("charging_state", ""),
+                "calibration_value": self._coerce_int(sensor.get("calibration_value"), DEFAULT_CALIBRATION),
                 "source_topic": f"poller://ina/{sensor.get('device_id') or 'device'}",
             }
             self.live_data_store.ingest_sensor(self.module_name, str(sensor.get("name") or sensor.get("address") or "sensor"), sensor_payload)
