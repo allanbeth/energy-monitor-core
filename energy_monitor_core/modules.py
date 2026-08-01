@@ -41,10 +41,12 @@ def _sensor_name(sensor: dict[str, Any], fallback_index: int) -> str:
 
 def _normalize_sensor_type(value: Any) -> str:
     normalized = str(value or "unknown").strip().lower()
-    if normalized in {"solar", "wind", "battery", "charger"}:
+    if normalized in {"solar", "wind", "battery", "charger", "system"}:
         return normalized
     if normalized in {"charge", "charging", "battery charger"}:
         return "charger"
+    if normalized in {"flow", "net", "bidirectional", "bi-directional", "charge-discharge"}:
+        return "system"
     return normalized or "unknown"
 
 
@@ -75,12 +77,19 @@ class ModuleRuntime:
                 if interval_value <= 0:
                     continue
                 normalized[_normalize_sensor_type(sensor_type)] = max(5, int(interval_value))
+        if "system" not in normalized and "battery" in normalized:
+            normalized["system"] = normalized["battery"]
         if not normalized and self.poller is not None:
             fallback = self.poller.get_poll_interval()
             if fallback:
-                normalized = {"solar": max(5, int(fallback)), "wind": max(5, int(fallback)), "battery": max(5, int(fallback))}
+                normalized = {
+                    "solar": max(5, int(fallback)),
+                    "wind": max(5, int(fallback)),
+                    "battery": max(5, int(fallback)),
+                    "system": max(5, int(fallback)),
+                }
         if not normalized:
-            normalized = {"solar": 10, "wind": 10, "battery": 10}
+            normalized = {"solar": 10, "wind": 10, "battery": 10, "system": 10}
         return normalized
 
     def _determine_poll_interval(self) -> int:
@@ -353,6 +362,7 @@ class ModuleRuntimeManager:
             "wind": [],
             "battery": [],
             "charger": [],
+            "system": [],
             "battery_charge": [],
             "battery_discharge": [],
             "estimated_load": [],
@@ -371,13 +381,14 @@ class ModuleRuntimeManager:
                 "wind": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
                 "battery": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
                 "charger": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "system": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
             }
 
             for history in histories:
                 snapshot = history[-(offset + 1)] if len(history) > offset else None
                 if not isinstance(snapshot, dict):
                     continue
-                for sensor_type in ("solar", "wind", "battery", "charger"):
+                for sensor_type in ("solar", "wind", "battery", "charger", "system"):
                     bucket = snapshot.get("sensor_type_summary", {}).get(sensor_type, {}) if isinstance(snapshot.get("sensor_type_summary", {}), dict) else {}
                     aggregate[sensor_type]["watts"] += _safe_float(bucket.get("watts", bucket.get("power")))
                     aggregate[sensor_type]["voltage"] += _safe_float(bucket.get("voltage"))
@@ -397,7 +408,8 @@ class ModuleRuntimeManager:
                     "sensor_count": bucket["sensor_count"],
                 })
 
-            battery_net_watts = _safe_float(aggregate["battery"]["watts"])
+            flow_source = aggregate["system"] if int(aggregate["system"].get("sensor_count", 0) or 0) > 0 else aggregate["battery"]
+            battery_net_watts = _safe_float(flow_source["watts"])
             battery_discharge_watts = max(0.0, battery_net_watts)
             battery_charge_watts = max(0.0, -battery_net_watts)
             source_watts = (
@@ -409,15 +421,15 @@ class ModuleRuntimeManager:
 
             buckets["battery_discharge"].append({
                 "watts": round(battery_discharge_watts, 2),
-                "voltage": round(aggregate["battery"]["voltage"], 2),
-                "current": round(max(0.0, _safe_float(aggregate["battery"]["current"])), 2),
-                "sensor_count": int(aggregate["battery"]["sensor_count"]),
+                "voltage": round(flow_source["voltage"], 2),
+                "current": round(max(0.0, _safe_float(flow_source["current"])), 2),
+                "sensor_count": int(flow_source["sensor_count"]),
             })
             buckets["battery_charge"].append({
                 "watts": round(battery_charge_watts, 2),
-                "voltage": round(aggregate["battery"]["voltage"], 2),
-                "current": round(max(0.0, -_safe_float(aggregate["battery"]["current"])), 2),
-                "sensor_count": int(aggregate["battery"]["sensor_count"]),
+                "voltage": round(flow_source["voltage"], 2),
+                "current": round(max(0.0, -_safe_float(flow_source["current"])), 2),
+                "sensor_count": int(flow_source["sensor_count"]),
             })
             buckets["estimated_load"].append({
                 "watts": round(estimated_load_watts, 2),
@@ -441,19 +453,21 @@ class ModuleRuntimeManager:
             "wind": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "battery": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "charger": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+            "system": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "derived": {
                 "battery_charge_watts": 0.0,
                 "battery_discharge_watts": 0.0,
                 "source_watts": 0.0,
                 "estimated_load_watts": 0.0,
                 "battery_sensor_count": 0,
+                "flow_sensor_type": "battery",
             },
         }
         for snapshot in live_data.values():
             aggregate["sensor_count"] += int(snapshot.get("sensor_count", 0) or 0)
             aggregate["connected_sensor_count"] += int(snapshot.get("connected_sensor_count", 0) or 0)
             aggregate["device_count"] += int(snapshot.get("device_count", 0) or 0)
-            for sensor_type in ("solar", "wind", "battery", "charger"):
+            for sensor_type in ("solar", "wind", "battery", "charger", "system"):
                 bucket = snapshot.get("sensor_type_summary", {}).get(sensor_type, {})
                 target = aggregate[sensor_type]
                 target["sensor_count"] += int(bucket.get("sensor_count", 0) or 0)
@@ -474,19 +488,27 @@ class ModuleRuntimeManager:
                     continue
                 if not bool(row.get("connected", False)):
                     continue
-                if _normalize_sensor_type(row.get("type")) != "battery":
+                sensor_type = _normalize_sensor_type(row.get("type"))
+                if sensor_type not in {"battery", "system"}:
                     continue
 
                 watts = _safe_float(row.get("watts"))
-                aggregate["derived"]["battery_sensor_count"] += 1
-                if watts >= 0:
-                    aggregate["derived"]["battery_discharge_watts"] += watts
+                if sensor_type == "system":
+                    aggregate["derived"].setdefault("_system_rows", []).append(watts)
                 else:
-                    aggregate["derived"]["battery_charge_watts"] += abs(watts)
+                    aggregate["derived"].setdefault("_battery_rows", []).append(watts)
 
-        for sensor_type in ("overall", "solar", "wind", "battery", "charger"):
+        for sensor_type in ("overall", "solar", "wind", "battery", "charger", "system"):
             for key in ("watts", "voltage", "current"):
                 aggregate[sensor_type][key] = round(aggregate[sensor_type][key], 2)
+
+        system_rows = aggregate["derived"].pop("_system_rows", [])
+        battery_rows = aggregate["derived"].pop("_battery_rows", [])
+        flow_rows = system_rows if system_rows else battery_rows
+        aggregate["derived"]["flow_sensor_type"] = "system" if system_rows else "battery"
+        aggregate["derived"]["battery_sensor_count"] = len(flow_rows)
+        aggregate["derived"]["battery_discharge_watts"] = sum(max(0.0, _safe_float(watts)) for watts in flow_rows)
+        aggregate["derived"]["battery_charge_watts"] = sum(max(0.0, -_safe_float(watts)) for watts in flow_rows)
 
         aggregate["derived"]["battery_charge_watts"] = round(_safe_float(aggregate["derived"].get("battery_charge_watts")), 2)
         aggregate["derived"]["battery_discharge_watts"] = round(_safe_float(aggregate["derived"].get("battery_discharge_watts")), 2)

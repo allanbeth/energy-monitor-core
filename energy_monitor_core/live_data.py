@@ -21,10 +21,12 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 def normalize_sensor_type(value: Any) -> str:
     normalized = str(value or "").strip().lower()
-    if normalized in {"solar", "wind", "battery", "charger"}:
+    if normalized in {"solar", "wind", "battery", "charger", "system"}:
         return normalized
     if normalized in {"charge", "charging", "battery charger"}:
         return "charger"
+    if normalized in {"flow", "net", "bidirectional", "bi-directional", "charge-discharge"}:
+        return "system"
     return normalized or "unknown"
 
 

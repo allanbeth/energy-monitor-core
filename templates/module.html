@@ -12,7 +12,7 @@
 <div class="action-group">
   {% for sensor_type in module_profile.sensor_types or sensor_type_options %}
   <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-sensor-filter="{{ sensor_type }}" title="Filter {{ sensor_type|title }} sensors">
-    <i class="fa-solid {% if sensor_type == 'solar' %}fa-solar-panel{% elif sensor_type == 'wind' %}fa-wind{% elif sensor_type == 'battery' %}fa-car-battery{% elif sensor_type == 'charger' %}fa-charging-station{% else %}fa-filter{% endif %}"></i>
+    <i class="fa-solid {% if sensor_type == 'solar' %}fa-solar-panel{% elif sensor_type == 'wind' %}fa-wind{% elif sensor_type == 'battery' %}fa-car-battery{% elif sensor_type == 'charger' %}fa-charging-station{% elif sensor_type == 'system' %}fa-right-left{% else %}fa-filter{% endif %}"></i>
   </button>
   {% endfor %}
   <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="clear-module-filter-btn" title="Clear sensor filters"><i class="fa-solid fa-xmark"></i></button>
@@ -54,6 +54,7 @@
   {% if row.type|lower == 'wind' %}{% set sensor_icon = 'fa-wind' %}{% endif %}
   {% if row.type|lower == 'battery' %}{% set sensor_icon = 'fa-car-battery' %}{% endif %}
   {% if row.type|lower == 'charger' %}{% set sensor_icon = 'fa-charging-station' %}{% endif %}
+  {% if row.type|lower == 'system' %}{% set sensor_icon = 'fa-right-left' %}{% endif %}
   {% set connection_subtitle %}<span class="sensor-connection" data-field="connection-state"><i class="fa-solid fa-network-wired {% if row.connected %}status-connected{% else %}status-disconnected{% endif %}" data-field="connection-icon"></i><span data-field="connection-text">{{ sensor_device.name }} - {% if row.connected %}Connected{% else %}Disconnected{% endif %}</span></span>{% endset %}
   <article class="sensor-grid-card app-card card-shell card-type-data sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-sensor-connected="{{ 1 if row.connected else 0 }}" data-card-mode="view">
     {% call card_header(sensor_icon, row.name, connection_subtitle, '', true) %}
@@ -110,15 +111,22 @@
         <div class="sensor-main-value" data-field="watts">{{ row.watts }}</div>
       </div>
       <div class="sensor-live-rows">
-        {% if row.type|lower == 'battery' %}
+        {% if row.type|lower in ['battery', 'system'] %}
         <div class="settings-entry">
           <label>Current</label>
           <span class="status-value" data-field="current">{{ row.current }}</span>
         </div>
+        {% if row.type|lower == 'battery' %}
         <div class="settings-entry">
           <label>SoC</label>
           <span class="status-value" data-field="soc">{{ row.soc if row.soc is not none else 0 }}</span>
         </div>
+        {% else %}
+        <div class="settings-entry">
+          <label>Flow</label>
+          <span class="status-value" data-field="flow-state">{{ row.charging_state|default('idle', true)|title }}</span>
+        </div>
+        {% endif %}
         {% else %}
         <div class="settings-entry">
           <label>Voltage</label>

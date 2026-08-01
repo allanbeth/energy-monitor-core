@@ -748,6 +748,14 @@ body {
   background: linear-gradient(135deg, #2f855a, #38a169);
 }
 
+.sensor-grid-card.sensor-type-system .legacy-card-icon {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
+.sensor-grid-card.sensor-type-system .card-header-icon {
+  background: linear-gradient(135deg, #0f766e, #14b8a6);
+}
+
 .metric-footer {
   margin-top: 0.5rem;
   font-size: 0.78rem;

@@ -50,7 +50,7 @@
     "max_power": 100,
     "name": "Battery",
     "rating": 12,
-    "type": "battery",
+    "type": "system",
     "variant": "INA219",
     "variant_tuning": {}
   },

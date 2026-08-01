@@ -688,12 +688,15 @@
     const batteryDischarge = document.querySelector('[data-derived-watts="battery-discharge"]');
     const batteryCharge = document.querySelector('[data-derived-watts="battery-charge"]');
     const estimatedLoad = document.querySelector('[data-derived-watts="estimated-load"]');
-    const sourceTotal = document.querySelector('[data-derived-watts="source-total"]');
+    const flowSensorType = document.querySelector('[data-derived-sensor-type]');
     const batterySensorCount = document.querySelector('[data-derived-count="battery-sensors"]');
     if (batteryDischarge) batteryDischarge.textContent = String(derived.battery_discharge_watts ?? 0);
     if (batteryCharge) batteryCharge.textContent = String(derived.battery_charge_watts ?? 0);
     if (estimatedLoad) estimatedLoad.textContent = String(derived.estimated_load_watts ?? 0);
-    if (sourceTotal) sourceTotal.textContent = String(derived.source_watts ?? 0);
+    if (flowSensorType) {
+      const flowType = String(derived.flow_sensor_type ?? "battery");
+      flowSensorType.textContent = flowType.charAt(0).toUpperCase() + flowType.slice(1);
+    }
     if (batterySensorCount) batterySensorCount.textContent = String(derived.battery_sensor_count ?? 0);
 
     Object.entries(trends).forEach(([sensorType, points]) => {
@@ -1300,12 +1303,13 @@
     const sensorRows = Array.isArray(snapshot.sensor_rows) ? snapshot.sensor_rows : [];
     const sensorByName = new Map(sensorRows.map((sensor) => [String(sensor.name || ""), sensor]));
     const sensorConfigRows = Array.isArray(snapshot.sensor_config) ? snapshot.sensor_config : [];
-    const sensorTypeClassList = ["sensor-type-solar", "sensor-type-wind", "sensor-type-battery", "sensor-type-charger"];
+    const sensorTypeClassList = ["sensor-type-solar", "sensor-type-wind", "sensor-type-battery", "sensor-type-charger", "sensor-type-system"];
     const sensorTypeIconMap = {
       solar: "fa-solar-panel",
       wind: "fa-wind",
       battery: "fa-car-battery",
       charger: "fa-charging-station",
+      system: "fa-right-left",
     };
 
     document.querySelectorAll("[data-sensor-row]").forEach((row) => {
@@ -1342,7 +1346,7 @@
 
       const iconNode = row.querySelector(".app-card-header-icon i");
       if (iconNode) {
-        iconNode.classList.remove("fa-microchip", "fa-solar-panel", "fa-wind", "fa-car-battery", "fa-charging-station");
+        iconNode.classList.remove("fa-microchip", "fa-solar-panel", "fa-wind", "fa-car-battery", "fa-charging-station", "fa-right-left");
         iconNode.classList.add(sensorTypeIconMap[normalizedType] || "fa-microchip");
       }
 
@@ -1380,6 +1384,11 @@
       if (socNode) {
         const socValue = Number(sensor.soc ?? 0);
         socNode.replaceChildren(document.createTextNode(`${Number.isFinite(socValue) ? socValue : 0}%`));
+      }
+      const flowStateNode = row.querySelector("[data-field='flow-state']");
+      if (flowStateNode) {
+        const flowState = String(sensor.charging_state || "idle").replace(/_/g, " ");
+        flowStateNode.replaceChildren(document.createTextNode(flowState.charAt(0).toUpperCase() + flowState.slice(1)));
       }
       const lastUpdated = row.querySelector("[data-field='last-updated']");
       if (lastUpdated) {

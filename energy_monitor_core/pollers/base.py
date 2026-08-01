@@ -25,7 +25,12 @@ class BaseModulePoller:
     def should_poll_sensor(self, sensor: dict[str, Any], due_sensor_types: set[str] | None) -> bool:
         if not due_sensor_types:
             return True
-        return normalize_sensor_type(sensor.get("type")) in due_sensor_types
+        sensor_type = normalize_sensor_type(sensor.get("type"))
+        if sensor_type in due_sensor_types:
+            return True
+        if sensor_type == "system" and "battery" in due_sensor_types:
+            return True
+        return False
 
     def build_snapshot(self, payload: dict[str, Any] | None = None) -> dict[str, Any]:
         module_payload = payload if isinstance(payload, dict) else self.config_manager.get_module_payload(self.module_name)

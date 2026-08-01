@@ -311,11 +311,11 @@ class ModulePoller(BaseModulePoller):
             sensor_type = str(sensor.get("type") or "").strip().lower()
             if sensor_type in {"solar", "wind"}:
                 current = abs(current)
-            elif sensor_type == "battery" and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
+            elif sensor_type in {"battery", "system"} and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
                 current = 0.0
 
             status_variant_note = effective_variant
-            if sensor_type == "battery":
+            if sensor_type in {"battery", "system"}:
                 rating = self._coerce_float(sensor.get("rating"), 12.0)
                 if not self._is_battery_voltage_valid(voltage, rating):
                     # If the configured variant produces an impossible battery voltage,
@@ -347,9 +347,10 @@ class ModulePoller(BaseModulePoller):
 
             soc_value = None
             charging_state = ""
-            if sensor_type == "battery":
+            if sensor_type in {"battery", "system"}:
                 rating = self._coerce_float(sensor.get("rating"), 12.0)
-                soc_value = self._estimate_battery_soc(voltage, rating)
+                if sensor_type == "battery":
+                    soc_value = self._estimate_battery_soc(voltage, rating)
                 charging_state = self._battery_charge_state(current)
 
             return {

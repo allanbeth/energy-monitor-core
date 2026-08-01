@@ -115,7 +115,7 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         return {
             "base_href": app.config.get("BASE_HREF", "/"),
             "server_instance_id": instance_id,
-            "sensor_type_options": ["solar", "wind", "battery", "charger"],
+            "sensor_type_options": ["solar", "wind", "battery", "charger", "system"],
             "module_nav": [
                 {
                     "name": module_name,
