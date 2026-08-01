@@ -353,6 +353,9 @@ class ModuleRuntimeManager:
             "wind": [],
             "battery": [],
             "charger": [],
+            "battery_charge": [],
+            "battery_discharge": [],
+            "estimated_load": [],
         }
 
         histories: list[list[dict[str, Any]]] = []
@@ -394,6 +397,35 @@ class ModuleRuntimeManager:
                     "sensor_count": bucket["sensor_count"],
                 })
 
+            battery_net_watts = _safe_float(aggregate["battery"]["watts"])
+            battery_discharge_watts = max(0.0, battery_net_watts)
+            battery_charge_watts = max(0.0, -battery_net_watts)
+            source_watts = (
+                max(0.0, _safe_float(aggregate["solar"]["watts"]))
+                + max(0.0, _safe_float(aggregate["wind"]["watts"]))
+                + max(0.0, _safe_float(aggregate["charger"]["watts"]))
+            )
+            estimated_load_watts = max(0.0, source_watts + battery_discharge_watts - battery_charge_watts)
+
+            buckets["battery_discharge"].append({
+                "watts": round(battery_discharge_watts, 2),
+                "voltage": round(aggregate["battery"]["voltage"], 2),
+                "current": round(max(0.0, _safe_float(aggregate["battery"]["current"])), 2),
+                "sensor_count": int(aggregate["battery"]["sensor_count"]),
+            })
+            buckets["battery_charge"].append({
+                "watts": round(battery_charge_watts, 2),
+                "voltage": round(aggregate["battery"]["voltage"], 2),
+                "current": round(max(0.0, -_safe_float(aggregate["battery"]["current"])), 2),
+                "sensor_count": int(aggregate["battery"]["sensor_count"]),
+            })
+            buckets["estimated_load"].append({
+                "watts": round(estimated_load_watts, 2),
+                "voltage": round(aggregate["overall"]["voltage"], 2),
+                "current": round(aggregate["overall"]["current"], 2),
+                "sensor_count": int(aggregate["overall"]["sensor_count"]),
+            })
+
         return buckets
 
     def get_aggregate_totals(self) -> dict[str, Any]:
@@ -409,6 +441,13 @@ class ModuleRuntimeManager:
             "wind": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "battery": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "charger": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+            "derived": {
+                "battery_charge_watts": 0.0,
+                "battery_discharge_watts": 0.0,
+                "source_watts": 0.0,
+                "estimated_load_watts": 0.0,
+                "battery_sensor_count": 0,
+            },
         }
         for snapshot in live_data.values():
             aggregate["sensor_count"] += int(snapshot.get("sensor_count", 0) or 0)
@@ -429,9 +468,43 @@ class ModuleRuntimeManager:
                 aggregate["overall"]["voltage"] += _safe_float(bucket.get("voltage"))
                 aggregate["overall"]["current"] += _safe_float(bucket.get("current"))
 
+            sensor_rows = snapshot.get("sensor_rows", []) if isinstance(snapshot, dict) else []
+            for row in sensor_rows if isinstance(sensor_rows, list) else []:
+                if not isinstance(row, dict):
+                    continue
+                if not bool(row.get("connected", False)):
+                    continue
+                if _normalize_sensor_type(row.get("type")) != "battery":
+                    continue
+
+                watts = _safe_float(row.get("watts"))
+                aggregate["derived"]["battery_sensor_count"] += 1
+                if watts >= 0:
+                    aggregate["derived"]["battery_discharge_watts"] += watts
+                else:
+                    aggregate["derived"]["battery_charge_watts"] += abs(watts)
+
         for sensor_type in ("overall", "solar", "wind", "battery", "charger"):
             for key in ("watts", "voltage", "current"):
                 aggregate[sensor_type][key] = round(aggregate[sensor_type][key], 2)
+
+        aggregate["derived"]["battery_charge_watts"] = round(_safe_float(aggregate["derived"].get("battery_charge_watts")), 2)
+        aggregate["derived"]["battery_discharge_watts"] = round(_safe_float(aggregate["derived"].get("battery_discharge_watts")), 2)
+        aggregate["derived"]["source_watts"] = round(
+            max(0.0, _safe_float(aggregate["solar"].get("watts")))
+            + max(0.0, _safe_float(aggregate["wind"].get("watts")))
+            + max(0.0, _safe_float(aggregate["charger"].get("watts"))),
+            2,
+        )
+        aggregate["derived"]["estimated_load_watts"] = round(
+            max(
+                0.0,
+                _safe_float(aggregate["derived"].get("source_watts"))
+                + _safe_float(aggregate["derived"].get("battery_discharge_watts"))
+                - _safe_float(aggregate["derived"].get("battery_charge_watts")),
+            ),
+            2,
+        )
         return aggregate
 
     def get_runtime(self, module_name: str) -> ModuleRuntime | None:

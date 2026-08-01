@@ -104,7 +104,7 @@
 
     <div class="col-12 col-md-3">
       {% set charger = status.aggregate_totals.get('charger', {}) %}
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger {% if charger.get('sensor_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger {% if charger.get('connected_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
         {% call card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
         <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
@@ -121,6 +121,40 @@
           {% endfor %}
         </div>
         <div class="metric-footer">Sensors: <span data-aggregate-count="charger">{{ charger.get('sensor_count', 0) }}</span></div>
+        </div>
+      </article>
+    </div>
+
+    {% set derived = status.aggregate_totals.get('derived', {}) %}
+    <div class="col-12 col-md-3">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-battery">
+        {% call card_header('fa-arrow-up-right-dots', 'Battery Discharge', 'Power leaving battery bank') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
+        <div class="metric-value" data-derived-watts="battery-discharge">{{ derived.get('battery_discharge_watts', 0) }}</div>
+        <div class="metric-subline">Watts Out</div>
+        <div class="metric-footer">Battery Sensors: <span data-derived-count="battery-sensors">{{ derived.get('battery_sensor_count', 0) }}</span></div>
+        </div>
+      </article>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger">
+        {% call card_header('fa-arrow-down', 'Battery Charge', 'Power flowing into battery bank') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
+        <div class="metric-value" data-derived-watts="battery-charge">{{ derived.get('battery_charge_watts', 0) }}</div>
+        <div class="metric-subline">Watts In</div>
+        <div class="metric-footer">Sources: <span data-derived-watts="source-total">{{ derived.get('source_watts', 0) }}</span>W</div>
+        </div>
+      </article>
+    </div>
+
+    <div class="col-12 col-md-3">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
+        {% call card_header('fa-house-bolt', 'Estimated Load', 'Generation plus battery net output') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
+        <div class="metric-value" data-derived-watts="estimated-load">{{ derived.get('estimated_load_watts', 0) }}</div>
+        <div class="metric-subline">Watts</div>
+        <div class="metric-footer">Estimate from shunt + sources</div>
         </div>
       </article>
     </div>

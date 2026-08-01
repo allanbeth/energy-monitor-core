@@ -639,6 +639,7 @@
   function updateAggregateCards(status) {
     const aggregate = status.aggregate_totals || {};
     const trends = status.dashboard_trends || {};
+    const derived = aggregate.derived || {};
 
     const overall = aggregate.overall || {};
     const overallWatts = document.querySelector('[data-aggregate-watts="overall"]');
@@ -683,6 +684,17 @@
     if (chargerVoltage) chargerVoltage.textContent = String(chargerSummary.voltage ?? 0);
     if (chargerCurrent) chargerCurrent.textContent = String(chargerSummary.current ?? 0);
     if (chargerCount) chargerCount.textContent = String(chargerSummary.sensor_count ?? 0);
+
+    const batteryDischarge = document.querySelector('[data-derived-watts="battery-discharge"]');
+    const batteryCharge = document.querySelector('[data-derived-watts="battery-charge"]');
+    const estimatedLoad = document.querySelector('[data-derived-watts="estimated-load"]');
+    const sourceTotal = document.querySelector('[data-derived-watts="source-total"]');
+    const batterySensorCount = document.querySelector('[data-derived-count="battery-sensors"]');
+    if (batteryDischarge) batteryDischarge.textContent = String(derived.battery_discharge_watts ?? 0);
+    if (batteryCharge) batteryCharge.textContent = String(derived.battery_charge_watts ?? 0);
+    if (estimatedLoad) estimatedLoad.textContent = String(derived.estimated_load_watts ?? 0);
+    if (sourceTotal) sourceTotal.textContent = String(derived.source_watts ?? 0);
+    if (batterySensorCount) batterySensorCount.textContent = String(derived.battery_sensor_count ?? 0);
 
     Object.entries(trends).forEach(([sensorType, points]) => {
       const strip = document.querySelector(`[data-trend-series="${sensorType}"]`);
