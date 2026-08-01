@@ -21,6 +21,7 @@ VARIANT_PROFILES: dict[str, dict[str, Any]] = {
         "voltage_lsb": 0.004,
         "voltage_shift": 3,
         "current_lsb": 3.2 / 32767,
+        "calibration_reg": 0x05,
         "requires_calibration": True,
     },
     "INA260": {
@@ -34,10 +35,50 @@ VARIANT_PROFILES: dict[str, dict[str, Any]] = {
     "INA226": {
         "voltage_reg": 0x02,
         "current_reg": 0x04,
+        "shunt_reg": 0x01,
+        "current_fallback_from_shunt": True,
         "voltage_lsb": 0.00125,
         "voltage_shift": 0,
         "current_lsb": 0.001,
+        "shunt_lsb": 0.0000025,
+        "shunt_resistance_ohms": 0.1,
+        "calibration_reg": 0x05,
         "requires_calibration": True,
+    },
+    "INA3221": {
+        "voltage_reg": 0x02,
+        "voltage_lsb": 0.008,
+        "voltage_shift": 3,
+        "current_from_shunt": True,
+        "shunt_reg": 0x01,
+        "shunt_lsb": 0.00004,
+        "shunt_shift": 3,
+        "shunt_resistance_ohms": 0.1,
+        "requires_calibration": False,
+    },
+    "INA228": {
+        "voltage_reg": 0x05,
+        "current_reg": 0x07,
+        "voltage_lsb": 0.0001953125,
+        "voltage_shift": 0,
+        "current_lsb": 0.001,
+        "requires_calibration": False,
+    },
+    "INA237": {
+        "voltage_reg": 0x05,
+        "current_reg": 0x07,
+        "voltage_lsb": 0.003125,
+        "voltage_shift": 0,
+        "current_lsb": 0.001,
+        "requires_calibration": False,
+    },
+    "INA238": {
+        "voltage_reg": 0x05,
+        "current_reg": 0x07,
+        "voltage_lsb": 0.003125,
+        "voltage_shift": 0,
+        "current_lsb": 0.001,
+        "requires_calibration": False,
     },
 }
 
@@ -52,7 +93,7 @@ class ModulePoller(BaseModulePoller):
         text = str(variant or "INA219").strip().upper().replace("_", "").replace("-", "")
         if text.startswith("INA"):
             text = text[3:]
-        if text in {"219", "226", "260"}:
+        if text in {"219", "226", "228", "237", "238", "260", "3221"}:
             return f"INA{text}"
         return "INA219"
 
@@ -63,6 +104,12 @@ class ModulePoller(BaseModulePoller):
                 if text.startswith("0x"):
                     return int(text, 16)
             return int(value)
+        except Exception:
+            return default
+
+    def _coerce_float(self, value: Any, default: float = 0.0) -> float:
+        try:
+            return float(value)
         except Exception:
             return default
 
@@ -105,13 +152,39 @@ class ModulePoller(BaseModulePoller):
             raw -= 0x10000
         return raw
 
-    def _read_measurements(self, pi: Any, sensor: dict[str, Any]) -> dict[str, Any]:
+    def _resolve_variant_profile(self, sensor: dict[str, Any], module_config: dict[str, Any]) -> tuple[dict[str, Any] | None, str]:
+        sensor_variant = self._normalize_variant(sensor.get("variant"))
+        strict_variant_mode = bool((module_config or {}).get("strict_variant_mode", False))
+
+        if sensor_variant in VARIANT_PROFILES:
+            profile = dict(VARIANT_PROFILES[sensor_variant])
+            effective_variant = sensor_variant
+        elif strict_variant_mode:
+            return None, sensor_variant
+        else:
+            profile = dict(VARIANT_PROFILES["INA219"])
+            effective_variant = "INA219"
+
+        variant_profile_overrides = (module_config or {}).get("variant_profile_overrides", {})
+        override_payload = variant_profile_overrides.get(sensor_variant) if isinstance(variant_profile_overrides, dict) else None
+        if isinstance(override_payload, dict):
+            profile.update({key: value for key, value in override_payload.items() if value is not None})
+
+        sensor_variant_tuning = sensor.get("variant_tuning")
+        if isinstance(sensor_variant_tuning, dict):
+            profile.update({key: value for key, value in sensor_variant_tuning.items() if value is not None})
+
+        return profile, effective_variant
+
+    def _read_measurements(self, pi: Any, sensor: dict[str, Any], module_config: dict[str, Any]) -> dict[str, Any]:
         address = self._coerce_int(sensor.get("address"), -1)
         if address < 0:
             return {"connected": False, "status_detail": "invalid-address"}
 
-        variant = self._normalize_variant(sensor.get("variant"))
-        profile = VARIANT_PROFILES.get(variant, VARIANT_PROFILES["INA219"])
+        profile, effective_variant = self._resolve_variant_profile(sensor, module_config)
+        if profile is None:
+            return {"connected": False, "status_detail": "unsupported-variant:strict-mode"}
+
         calibration_value = self._coerce_int(sensor.get("calibration_value"), DEFAULT_CALIBRATION)
 
         handle = None
@@ -120,14 +193,37 @@ class ModulePoller(BaseModulePoller):
 
             if profile.get("requires_calibration"):
                 # pigpio writes words as little-endian; swap so device gets big-endian calibration.
-                pi.i2c_write_word_data(handle, CALIBRATION_REGISTER, self._swap_word_bytes(calibration_value))
+                calibration_register = int(profile.get("calibration_reg", CALIBRATION_REGISTER))
+                pi.i2c_write_word_data(handle, calibration_register, self._swap_word_bytes(calibration_value))
 
             raw_voltage = self._read_register_16_raw(pi, handle, int(profile["voltage_reg"]))
-            raw_current = self._read_register_16_signed(pi, handle, int(profile["current_reg"]))
-            if raw_voltage is None or raw_current is None:
+            raw_current_source: int | None = None
+            computed_current: float | None = None
+
+            if profile.get("current_from_shunt"):
+                shunt_register = int(profile.get("shunt_reg", 0x01))
+                raw_current_source = self._read_register_16_signed(pi, handle, shunt_register)
+            else:
+                current_register = int(profile.get("current_reg", 0x04))
+                raw_current_source = self._read_register_16_signed(pi, handle, current_register)
+                if (
+                    raw_current_source == 0
+                    and profile.get("current_fallback_from_shunt")
+                    and "shunt_reg" in profile
+                ):
+                    shunt_fallback = self._read_register_16_signed(pi, handle, int(profile.get("shunt_reg", 0x01)))
+                    if shunt_fallback is not None and shunt_fallback != 0:
+                        raw_current_source = shunt_fallback
+                        shunt_shift = int(profile.get("shunt_shift", 0))
+                        shunt_voltage = (raw_current_source >> shunt_shift) * self._coerce_float(profile.get("shunt_lsb"), 0.0)
+                        shunt_resistance = self._coerce_float(profile.get("shunt_resistance_ohms"), 0.1)
+                        if shunt_resistance > 0:
+                            computed_current = shunt_voltage / shunt_resistance
+
+            if raw_voltage is None or raw_current_source is None:
                 return {"connected": False, "status_detail": "register-read-failed"}
 
-            if raw_voltage == 0 and raw_current == 0:
+            if raw_voltage == 0 and raw_current_source == 0:
                 return {
                     "connected": True,
                     "status": "connected",
@@ -139,13 +235,28 @@ class ModulePoller(BaseModulePoller):
                 }
 
             voltage_shift = int(profile.get("voltage_shift", 0))
-            voltage_lsb = float(profile["voltage_lsb"])
-            current_lsb = float(profile["current_lsb"])
+            voltage_lsb = self._coerce_float(profile.get("voltage_lsb"), 0.0)
+            current_lsb = self._coerce_float(profile.get("current_lsb"), 0.0)
 
             voltage = round((raw_voltage >> voltage_shift) * voltage_lsb, 3)
-            current = round(raw_current * current_lsb, 4)
+
+            if computed_current is None:
+                if profile.get("current_from_shunt"):
+                    shunt_shift = int(profile.get("shunt_shift", 0))
+                    shunt_voltage = (raw_current_source >> shunt_shift) * self._coerce_float(profile.get("shunt_lsb"), 0.0)
+                    shunt_resistance = self._coerce_float(profile.get("shunt_resistance_ohms"), 0.1)
+                    if shunt_resistance <= 0:
+                        return {"connected": False, "status_detail": "invalid-shunt-resistance"}
+                    computed_current = shunt_voltage / shunt_resistance
+                else:
+                    computed_current = raw_current_source * current_lsb
+
+            current = round(computed_current, 4)
             if str(sensor.get("type") or "").strip().lower() in {"solar", "wind"}:
                 current = abs(current)
+            elif str(sensor.get("type") or "").strip().lower() == "battery" and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
+                current = 0.0
+
             power = round(voltage * current, 3)
 
             if voltage < 0.05 and abs(current) < 0.01:
@@ -162,7 +273,7 @@ class ModulePoller(BaseModulePoller):
             return {
                 "connected": True,
                 "status": "connected",
-                "status_detail": f"live-read:{variant}",
+                "status_detail": f"live-read:{effective_variant}",
                 "voltage": voltage,
                 "current": current,
                 "watts": power,
@@ -284,7 +395,7 @@ class ModulePoller(BaseModulePoller):
             measurement = {"connected": False, "status": "disconnected", "status_detail": "device-unavailable"}
             connected = bool(pi and getattr(pi, "connected", False))
             if connected:
-                measurement = self._read_measurements(pi, sensor)
+                measurement = self._read_measurements(pi, sensor, module_config)
                 connected = bool(measurement.get("connected", False))
                 if not connected:
                     address = self._coerce_int(sensor.get("address"), -1)

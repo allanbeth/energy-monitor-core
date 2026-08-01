@@ -178,7 +178,19 @@
           {% endif %}
         <div class="settings-entry">
           <label>Variant</label>
+          {% if module_name == 'ina' %}
+          {% set current_variant = (sensor_cfg.variant|default(row.variant, true)|string|upper) %}
+          <select class="form-select form-select-sm" name="variant">
+            {% for variant in module_profile.variant_options or ['INA219', 'INA226', 'INA228', 'INA237', 'INA238', 'INA260', 'INA3221'] %}
+            <option value="{{ variant }}" {% if current_variant == variant %}selected{% endif %}>{{ variant }}</option>
+            {% endfor %}
+            {% if current_variant and current_variant not in (module_profile.variant_options or []) %}
+            <option value="{{ current_variant }}" selected>{{ current_variant }}</option>
+            {% endif %}
+          </select>
+          {% else %}
           <input class="form-control form-control-sm" type="text" name="variant" value="{{ sensor_cfg.variant|default(row.variant, true) }}">
+          {% endif %}
         </div>
         <div class="settings-entry">
           <label>Max power</label>
@@ -251,7 +263,15 @@
             {% endif %}
           <div class="settings-entry">
             <label>Variant</label>
+            {% if module_name == 'ina' %}
+            <select class="form-select form-select-sm" name="variant">
+              {% for variant in module_profile.variant_options or ['INA219', 'INA226', 'INA228', 'INA237', 'INA238', 'INA260', 'INA3221'] %}
+              <option value="{{ variant }}" {% if variant == 'INA219' %}selected{% endif %}>{{ variant }}</option>
+              {% endfor %}
+            </select>
+            {% else %}
             <input class="form-control form-control-sm" type="text" name="variant" value="">
+            {% endif %}
           </div>
           <div class="settings-entry">
             <label>Max power</label>

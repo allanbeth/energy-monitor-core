@@ -1167,11 +1167,73 @@
     }
     const sensorRows = Array.isArray(snapshot.sensor_rows) ? snapshot.sensor_rows : [];
     const sensorByName = new Map(sensorRows.map((sensor) => [String(sensor.name || ""), sensor]));
+    const sensorConfigRows = Array.isArray(snapshot.sensor_config) ? snapshot.sensor_config : [];
+    const sensorTypeClassList = ["sensor-type-solar", "sensor-type-wind", "sensor-type-battery", "sensor-type-charger"];
+    const sensorTypeIconMap = {
+      solar: "fa-solar-panel",
+      wind: "fa-wind",
+      battery: "fa-car-battery",
+      charger: "fa-charging-station",
+    };
 
     document.querySelectorAll("[data-sensor-row]").forEach((row) => {
+      const sensorRowId = String(row.getAttribute("data-sensor-row") || "");
+      if (sensorRowId === "new") {
+        return;
+      }
+
       const sensorName = String(row.getAttribute("data-sensor-name") || "");
-      const sensor = sensorByName.get(sensorName);
+      let sensor = null;
+      const sensorIndex = Number.parseInt(sensorRowId, 10);
+      if (Number.isInteger(sensorIndex) && sensorIndex >= 0 && sensorIndex < sensorRows.length) {
+        sensor = sensorRows[sensorIndex];
+      }
+      if (!sensor) {
+        sensor = sensorByName.get(sensorName);
+      }
       if (!sensor) return;
+
+      const normalizedType = String(sensor.type || "unknown").trim().toLowerCase();
+      row.setAttribute("data-sensor-name", String(sensor.name || sensorName));
+      row.setAttribute("data-sensor-type", normalizedType);
+      row.dataset.sensorConnected = sensor.connected ? "1" : "0";
+
+      row.classList.remove(...sensorTypeClassList);
+      if (sensorTypeClassList.includes(`sensor-type-${normalizedType}`)) {
+        row.classList.add(`sensor-type-${normalizedType}`);
+      }
+
+      const titleNode = row.querySelector(".app-card-title");
+      if (titleNode) {
+        titleNode.textContent = String(sensor.name || sensorName);
+      }
+
+      const iconNode = row.querySelector(".app-card-header-icon i");
+      if (iconNode) {
+        iconNode.classList.remove("fa-microchip", "fa-solar-panel", "fa-wind", "fa-car-battery", "fa-charging-station");
+        iconNode.classList.add(sensorTypeIconMap[normalizedType] || "fa-microchip");
+      }
+
+      const form = row.querySelector(".sensor-config-form");
+      if (form) {
+        form.setAttribute("data-sensor-name", String(sensor.name || sensorName));
+        form.setAttribute("data-sensor-type", normalizedType);
+        const indexConfig = Number.isInteger(sensorIndex) && sensorIndex >= 0 ? sensorConfigRows[sensorIndex] : null;
+        const variantValue = String((indexConfig && indexConfig.variant) || sensor.variant || "").trim();
+        const variantField = form.querySelector("[name='variant']");
+        if (variantField) {
+          variantField.value = variantValue;
+        }
+        const typeField = form.querySelector("[name='type']");
+        if (typeField && normalizedType) {
+          typeField.value = normalizedType;
+        }
+        const nameField = form.querySelector("[name='name']");
+        if (nameField) {
+          nameField.value = String((indexConfig && indexConfig.name) || sensor.name || "");
+        }
+      }
+
       setConnectionIndicator(row, sensor, snapshot);
       row.querySelector("[data-field='watts']")?.replaceChildren(document.createTextNode(String(sensor.watts ?? 0)));
       row.querySelector("[data-field='voltage']")?.replaceChildren(document.createTextNode(String(sensor.voltage ?? 0)));

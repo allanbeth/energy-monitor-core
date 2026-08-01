@@ -44,14 +44,14 @@
     "variant_tuning": {}
   },
   {
-    "address": 64,
+    "address": "0x40",
     "calibration_value": 4191,
     "device_id": 0,
     "max_power": 100,
-    "name": "Solar Panel 6W",
+    "name": "Battery",
     "rating": 12,
-    "type": "Solar",
-    "variant": "INA260",
+    "type": "battery",
+    "variant": "INA219",
     "variant_tuning": {}
   },
   {
