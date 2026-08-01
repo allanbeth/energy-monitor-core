@@ -200,7 +200,7 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         active_modules = config_manager.get_active_modules()
         dashboard_modules = []
         for module_name, module_data in active_modules.items():
-            module_snapshot = runtime_manager.get_module_snapshot(module_name)
+            module_snapshot = runtime_manager.get_module_snapshot_cached(module_name)
             dashboard_modules.append({
                 "module": module_name,
                 **module_data,

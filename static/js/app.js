@@ -677,7 +677,7 @@
     const chargerCount = document.querySelector('[data-aggregate-count="charger"]');
     const chargerCard = document.querySelector('[data-dashboard-charger-card]');
     if (chargerCard) {
-      chargerCard.classList.toggle("hidden", Number(chargerSummary.sensor_count ?? 0) <= 0);
+      chargerCard.classList.toggle("hidden", Number(chargerSummary.connected_count ?? 0) <= 0);
     }
     if (chargerWatts) chargerWatts.textContent = String(chargerSummary.watts ?? 0);
     if (chargerVoltage) chargerVoltage.textContent = String(chargerSummary.voltage ?? 0);
@@ -690,12 +690,29 @@
         return;
       }
       const list = Array.isArray(points) ? points : [];
-      const maxWatts = list.reduce((max, point) => Math.max(max, Number(point && point.watts) || 0), 0);
-      strip.innerHTML = list.map((point) => {
-        const watts = Number(point && point.watts) || 0;
-        const height = maxWatts > 0 ? Math.max(6, (watts / maxWatts) * 100) : 6;
-        return `<span class="trend-bar" style="height:${height}%"></span>`;
-      }).join("");
+      const wattsSeries = list.map((point) => Number(point && point.watts) || 0);
+      const maxWatts = wattsSeries.reduce((max, value) => Math.max(max, value), 0);
+      const minWatts = wattsSeries.reduce((min, value) => Math.min(min, value), Number.POSITIVE_INFINITY);
+      const range = Math.max(1, maxWatts - (Number.isFinite(minWatts) ? minWatts : 0));
+
+      if (!wattsSeries.length) {
+        strip.innerHTML = "";
+        return;
+      }
+
+      const width = 100;
+      const height = 24;
+      const pointsAttr = wattsSeries.map((watts, index) => {
+        const x = wattsSeries.length === 1 ? 0 : (index / (wattsSeries.length - 1)) * width;
+        const y = height - (((watts - (Number.isFinite(minWatts) ? minWatts : 0)) / range) * height);
+        return `${x.toFixed(2)},${Math.max(1, Math.min(height - 1, y)).toFixed(2)}`;
+      }).join(" ");
+
+      strip.innerHTML = `
+        <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none" class="trend-line-chart" role="img" aria-label="${sensorType} trend">
+          <polyline points="${pointsAttr}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></polyline>
+        </svg>
+      `;
     });
 
     document.querySelectorAll("[data-module-status]").forEach((node) => {
@@ -1341,6 +1358,12 @@
       row.querySelector("[data-field='watts']")?.replaceChildren(document.createTextNode(String(sensor.watts ?? 0)));
       row.querySelector("[data-field='voltage']")?.replaceChildren(document.createTextNode(String(sensor.voltage ?? 0)));
       row.querySelector("[data-field='current']")?.replaceChildren(document.createTextNode(String(sensor.current ?? 0)));
+      const powerTrendNode = row.querySelector("[data-field='power-trend']");
+      if (powerTrendNode) {
+        const trend = Number(sensor.power_trend ?? 0);
+        const trendText = `${trend > 0 ? "+" : ""}${Number.isFinite(trend) ? trend.toFixed(2) : "0.00"} W`;
+        powerTrendNode.replaceChildren(document.createTextNode(trendText));
+      }
       const socNode = row.querySelector("[data-field='soc']");
       if (socNode) {
         const socValue = Number(sensor.soc ?? 0);

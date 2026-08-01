@@ -203,6 +203,20 @@ class ModuleRuntime:
             backups=payload.get("backups", []),
         )
 
+    def build_cached_snapshot(self) -> dict[str, Any]:
+        payload = self.config_manager.get_module_payload(self.module_name)
+        module_config = payload.get("module_config", {}) if isinstance(payload, dict) else {}
+        sensor_config = payload.get("sensor_config", []) if isinstance(payload, dict) else []
+        return self.live_data_store.build_module_snapshot(
+            self.module_name,
+            sensor_config,
+            module_config=module_config,
+            active=bool(payload.get("active", False)),
+            poll_interval=self.poll_interval,
+            definition=payload.get("definitions", {}),
+            backups=payload.get("backups", []),
+        )
+
     def poll_once(self, due_sensor_types: set[str] | None = None) -> dict[str, Any]:
         snapshot = self._build_snapshot(due_sensor_types)
         self.latest_snapshot = snapshot
@@ -287,6 +301,14 @@ class ModuleRuntimeManager:
         if not runtime.latest_snapshot:
             return runtime.poll_once()
         return runtime.latest_snapshot
+
+    def get_module_snapshot_cached(self, module_name: str) -> dict[str, Any]:
+        runtime = self.get_runtime(module_name)
+        if runtime is None:
+            return {}
+        if runtime.latest_snapshot:
+            return runtime.latest_snapshot
+        return runtime.build_cached_snapshot()
 
     def get_module_sensor_rows(self, module_name: str) -> list[dict[str, Any]]:
         snapshot = self.get_module_snapshot(module_name)

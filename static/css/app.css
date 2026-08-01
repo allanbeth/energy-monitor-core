@@ -756,11 +756,11 @@ body {
 }
 
 .trend-strip {
-  display: flex;
-  align-items: end;
-  gap: 0.18rem;
+  display: block;
   min-height: 2.2rem;
+  height: 2.2rem;
   margin-top: 0.65rem;
+  color: #2563eb;
 }
 
 .trend-bar {
@@ -768,6 +768,12 @@ body {
   min-width: 0.35rem;
   border-radius: 999px 999px 0 0;
   background: linear-gradient(180deg, rgba(37, 99, 235, 0.18), rgba(37, 99, 235, 0.86));
+}
+
+.trend-line-chart {
+  width: 100%;
+  height: 100%;
+  display: block;
 }
 
 .section-heading {

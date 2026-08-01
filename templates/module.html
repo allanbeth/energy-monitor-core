@@ -128,6 +128,10 @@
           <label>Current</label>
           <span class="status-value" data-field="current">{{ row.current }}</span>
         </div>
+        <div class="settings-entry">
+          <label>Trend</label>
+          <span class="status-value" data-field="power-trend">{{ row.power_trend or 0 }}</span>
+        </div>
         {% endif %}
       </div>
       {% endif %}

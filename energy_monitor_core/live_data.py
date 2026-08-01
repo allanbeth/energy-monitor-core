@@ -114,6 +114,9 @@ class SensorDataStore:
             "watts": round(watts, 2),
             "voltage": round(voltage, 2),
             "current": round(current, 2),
+            "power_trend": 0.0,
+            "voltage_trend": 0.0,
+            "current_trend": 0.0,
             "connected": connected,
             "status": status,
             "last_seen": data.get("last_seen") or now_iso,
@@ -126,6 +129,14 @@ class SensorDataStore:
             previous = module_bucket["sensors"].get(sensor_key) if isinstance(module_bucket.get("sensors"), dict) else None
             devices = module_bucket.setdefault("devices", {}) if isinstance(module_bucket.get("devices"), dict) else module_bucket.setdefault("devices", {})
             previous_device = devices.get(device_key) if isinstance(devices, dict) and device_key else None
+
+            if isinstance(previous, dict):
+                previous_watts = _safe_float(previous.get("watts"))
+                previous_voltage = _safe_float(previous.get("voltage"))
+                previous_current = _safe_float(previous.get("current"))
+                record["power_trend"] = round(record["watts"] - previous_watts, 3)
+                record["voltage_trend"] = round(record["voltage"] - previous_voltage, 3)
+                record["current_trend"] = round(record["current"] - previous_current, 3)
 
             if connected:
                 record["last_seen"] = data.get("last_seen") or now_iso
@@ -254,6 +265,9 @@ class SensorDataStore:
                 "voltage": round(voltage, 2),
                 "current": round(current, 2),
                 "soc": round(_safe_float(live.get("soc", live.get("state_of_charge", live.get("raw", {}).get("state_of_charge", 0.0)))), 2),
+                "power_trend": round(_safe_float(live.get("power_trend", live.get("raw", {}).get("power_trend", 0.0))), 3),
+                "voltage_trend": round(_safe_float(live.get("voltage_trend", live.get("raw", {}).get("voltage_trend", 0.0))), 3),
+                "current_trend": round(_safe_float(live.get("current_trend", live.get("raw", {}).get("current_trend", 0.0))), 3),
                 "connected": connected,
                 "status": str(live.get("status") or ("connected" if connected else "disconnected")).strip().lower(),
                 "status_detail": str(live.get("status_detail") or live.get("raw", {}).get("status_detail") or "").strip(),
