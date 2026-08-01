@@ -676,9 +676,14 @@
     const chargerVoltage = document.querySelector('[data-aggregate-voltage="charger"]');
     const chargerCurrent = document.querySelector('[data-aggregate-current="charger"]');
     const chargerCount = document.querySelector('[data-aggregate-count="charger"]');
+    const chargerSlot = document.querySelector('[data-dashboard-charger-slot]');
     const chargerCard = document.querySelector('[data-dashboard-charger-card]');
+    const hideCharger = Number(chargerSummary.connected_count ?? 0) <= 0;
+    if (chargerSlot) {
+      chargerSlot.classList.toggle("hidden", hideCharger);
+    }
     if (chargerCard) {
-      chargerCard.classList.toggle("hidden", Number(chargerSummary.connected_count ?? 0) <= 0);
+      chargerCard.classList.toggle("hidden", hideCharger);
     }
     if (chargerWatts) chargerWatts.textContent = String(chargerSummary.watts ?? 0);
     if (chargerVoltage) chargerVoltage.textContent = String(chargerSummary.voltage ?? 0);

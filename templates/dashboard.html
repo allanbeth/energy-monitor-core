@@ -102,9 +102,9 @@
       </article>
     </div>
 
-    <div class="col-12 col-md-3">
-      {% set charger = status.aggregate_totals.get('charger', {}) %}
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger {% if charger.get('connected_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-card>
+    {% set charger = status.aggregate_totals.get('charger', {}) %}
+    <div class="col-12 col-md-3 {% if charger.get('connected_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-slot>
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger" data-dashboard-charger-card>
         {% call card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
         <div class="app-card-content card-content-live view-type-data">
         <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
