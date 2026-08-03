@@ -52,7 +52,9 @@
     "rating": 12,
     "type": "system",
     "variant": "INA219",
-    "variant_tuning": {}
+    "variant_tuning": {},
+    "external_shunt_enabled": true,
+    "external_shunt_variant": "75mv_100a"
   },
   {
     "address": "0x44",

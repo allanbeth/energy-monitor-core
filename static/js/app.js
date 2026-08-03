@@ -502,6 +502,38 @@
         populateInaAddressSelect(form, sensorIndex);
       });
     }
+    function syncInaExternalShuntControls(form) {
+      if ((window.EM_MODULE_NAME || "") !== "ina" || !form) {
+        return;
+      }
+      const toggle = form.querySelector("[data-ina-external-shunt-toggle]");
+      const fields = form.querySelector("[data-ina-external-shunt-fields]");
+      const select = form.querySelector("[data-ina-external-shunt-select]");
+      const variantField = form.querySelector("[name='variant']");
+      if (!toggle || !fields || !select) {
+        return;
+      }
+
+      const variant = String(variantField?.value || "INA219").trim().toUpperCase();
+      const supportsExternalShunt = variant === "INA219";
+      const enabled = supportsExternalShunt && !!toggle.checked;
+      fields.classList.toggle("hidden", !enabled);
+      toggle.disabled = !supportsExternalShunt;
+      if (!supportsExternalShunt) {
+        toggle.checked = false;
+        select.value = "";
+      }
+      select.disabled = !enabled;
+      if (!enabled) {
+        select.value = "";
+      }
+    }
+
+    function refreshInaExternalShuntControls() {
+      document.querySelectorAll(".sensor-config-form").forEach((form) => {
+        syncInaExternalShuntControls(form);
+      });
+    }
 
   function showLoadingScreen(message = "Loading...") {
     const screen = document.getElementById("loading-screen");
@@ -1292,7 +1324,9 @@
       grid.appendChild(fragment);
       const newCard = document.getElementById("sensor-row-new-sensor");
       setSensorCardMode("new", "config");
-      populateInaAddressSelect(document.querySelector(".sensor-config-form[data-sensor-index='new']"), "new");
+      const newForm = document.querySelector(".sensor-config-form[data-sensor-index='new']");
+      populateInaAddressSelect(newForm, "new");
+      syncInaExternalShuntControls(newForm);
       newCard?.scrollIntoView({ behavior: "smooth", block: "center" });
     }
   }
@@ -1359,19 +1393,31 @@
       if (form) {
         form.setAttribute("data-sensor-name", String(sensor.name || sensorName));
         form.setAttribute("data-sensor-type", normalizedType);
-        const indexConfig = Number.isInteger(sensorIndex) && sensorIndex >= 0 ? sensorConfigRows[sensorIndex] : null;
-        const variantValue = String((indexConfig && indexConfig.variant) || sensor.variant || "").trim();
-        const variantField = form.querySelector("[name='variant']");
-        if (variantField) {
-          variantField.value = variantValue;
-        }
-        const typeField = form.querySelector("[name='type']");
-        if (typeField && normalizedType) {
-          typeField.value = normalizedType;
-        }
-        const nameField = form.querySelector("[name='name']");
-        if (nameField) {
-          nameField.value = String((indexConfig && indexConfig.name) || sensor.name || "");
+        const cardMode = String(row.getAttribute("data-card-mode") || "view").trim().toLowerCase();
+        if (cardMode !== "config") {
+          const indexConfig = Number.isInteger(sensorIndex) && sensorIndex >= 0 ? sensorConfigRows[sensorIndex] : null;
+          const variantValue = String((indexConfig && indexConfig.variant) || sensor.variant || "").trim();
+          const variantField = form.querySelector("[name='variant']");
+          if (variantField) {
+            variantField.value = variantValue;
+          }
+          const externalShuntToggle = form.querySelector("[data-ina-external-shunt-toggle]");
+          if (externalShuntToggle) {
+            const enabledValue = (indexConfig && indexConfig.external_shunt_enabled) ?? sensor.external_shunt_enabled ?? false;
+            externalShuntToggle.checked = enabledValue === true || String(enabledValue).toLowerCase() === "true";
+          }
+          const externalShuntSelect = form.querySelector("[data-ina-external-shunt-select]");
+          if (externalShuntSelect) {
+            externalShuntSelect.value = String((indexConfig && indexConfig.external_shunt_variant) || sensor.external_shunt_variant || "");
+          }
+          const typeField = form.querySelector("[name='type']");
+          if (typeField && normalizedType) {
+            typeField.value = normalizedType;
+          }
+          const nameField = form.querySelector("[name='name']");
+          if (nameField) {
+            nameField.value = String((indexConfig && indexConfig.name) || sensor.name || "");
+          }
         }
       }
 
@@ -1403,9 +1449,11 @@
       if (String(sensor.type || "").trim().toLowerCase() === "charger") {
         updateChargeCycleIndicator(row, sensor);
       }
+      syncInaExternalShuntControls(form);
     });
 
     refreshInaAddressSelectors();
+    refreshInaExternalShuntControls();
     enforceSensorCardModeState();
     applyModuleFilter(window.EM_MODULE_FILTER || null);
   }
@@ -1810,6 +1858,19 @@
         await saveSensorConfigCard(Number(saveIndex));
       }
     });
+    grid?.addEventListener("change", (event) => {
+      const target = event.target instanceof HTMLElement ? event.target : null;
+      const form = target?.closest(".sensor-config-form");
+      if (!form) {
+        return;
+      }
+      if (target.matches("[data-ina-device-select]")) {
+        populateInaAddressSelect(form, form.getAttribute("data-sensor-index") || "");
+      }
+      if (target.matches("[data-ina-external-shunt-toggle], [name='variant']")) {
+        syncInaExternalShuntControls(form);
+      }
+    });
     document.getElementById("logout-btn")?.addEventListener("click", async function () {
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
@@ -1820,6 +1881,7 @@
       if ((window.EM_MODULE_NAME || "") === "ina") {
         refreshInaAddressSelectors();
       }
+      refreshInaExternalShuntControls();
       hideLoadingScreen();
     });
     setInterval(refreshModuleSnapshot, 2000);

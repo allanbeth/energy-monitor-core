@@ -152,6 +152,11 @@ class MQTTSubscriber:
             if not module_name:
                 return
 
+            # Ignore this app's published module-status envelope to avoid
+            # recursively storing snapshots inside sensor raw payloads.
+            if isinstance(payload.get("live_data"), dict):
+                return
+
             if sensor_name:
                 sensor_payload = dict(payload)
                 sensor_payload.setdefault("name", payload.get("name") or sensor_name)

@@ -386,7 +386,6 @@ class SensorDataStore:
             "sensor_config": deepcopy(list(sensor_config)) if sensor_config else [],
             "definition": deepcopy(definition) if isinstance(definition, dict) else {},
             "backups": deepcopy(backups) if isinstance(backups, list) else [],
-            "live_sensors": live_sensors,
         }
 
     def get_full_live_data(self) -> Dict[str, Any]:

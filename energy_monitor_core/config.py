@@ -399,7 +399,15 @@ class ConfigManager:
             return []
 
         backups: list[dict[str, Any]] = []
-        for entry in sorted([item for item in root.iterdir() if item.is_dir()], key=lambda item: item.stat().st_mtime, reverse=True):
+        entries: list[Path] = []
+        for item in root.iterdir():
+            try:
+                if item.is_dir():
+                    entries.append(item)
+            except FileNotFoundError:
+                continue
+
+        for entry in sorted(entries, key=lambda item: item.stat().st_mtime if item.exists() else 0, reverse=True):
             if not entry.exists():
                 continue
 

@@ -13,6 +13,15 @@ except Exception:  # pragma: no cover - optional runtime dependency
 
 DEFAULT_CALIBRATION = 4191
 CALIBRATION_REGISTER = 0x05
+INA219_CALIBRATION_FACTOR = 0.04096
+
+EXTERNAL_SHUNT_PRESETS: dict[str, dict[str, float]] = {
+    "75mv_50a": {"max_current_amps": 50.0, "shunt_mv": 75.0},
+    "75mv_100a": {"max_current_amps": 100.0, "shunt_mv": 75.0},
+    "75mv_150a": {"max_current_amps": 150.0, "shunt_mv": 75.0},
+    "75mv_200a": {"max_current_amps": 200.0, "shunt_mv": 75.0},
+    "75mv_300a": {"max_current_amps": 300.0, "shunt_mv": 75.0},
+}
 
 VARIANT_PROFILES: dict[str, dict[str, Any]] = {
     "INA219": {
@@ -232,6 +241,36 @@ class ModulePoller(BaseModulePoller):
 
         return profile, effective_variant
 
+    def _resolve_external_shunt_profile(self, sensor: dict[str, Any], effective_variant: str) -> tuple[dict[str, Any], int | None]:
+        enabled = str(sensor.get("external_shunt_enabled") or "").strip().lower() in {"1", "true", "yes", "on"}
+        if not enabled or effective_variant != "INA219":
+            return {}, None
+
+        preset_key = str(sensor.get("external_shunt_variant") or "").strip().lower()
+        preset = EXTERNAL_SHUNT_PRESETS.get(preset_key)
+        if not preset:
+            return {}, None
+
+        max_current_amps = self._coerce_float(preset.get("max_current_amps"), 0.0)
+        shunt_mv = self._coerce_float(preset.get("shunt_mv"), 0.0)
+        if max_current_amps <= 0 or shunt_mv <= 0:
+            return {}, None
+
+        shunt_resistance_ohms = (shunt_mv / 1000.0) / max_current_amps
+        if shunt_resistance_ohms <= 0:
+            return {}, None
+
+        current_lsb = max_current_amps / 32767.0
+        if current_lsb <= 0:
+            return {}, None
+
+        calibration_value = int(INA219_CALIBRATION_FACTOR / (current_lsb * shunt_resistance_ohms))
+        calibration_value = max(1, min(0xFFFF, calibration_value))
+        return {
+            "current_lsb": current_lsb,
+            "shunt_resistance_ohms": shunt_resistance_ohms,
+        }, calibration_value
+
     def _read_measurements(self, pi: Any, sensor: dict[str, Any], module_config: dict[str, Any]) -> dict[str, Any]:
         address = self._coerce_int(sensor.get("address"), -1)
         if address < 0:
@@ -242,6 +281,11 @@ class ModulePoller(BaseModulePoller):
             return {"connected": False, "status_detail": "unsupported-variant:strict-mode"}
 
         calibration_value = self._coerce_int(sensor.get("calibration_value"), DEFAULT_CALIBRATION)
+        external_shunt_profile, external_calibration = self._resolve_external_shunt_profile(sensor, effective_variant)
+        if external_shunt_profile:
+            profile.update(external_shunt_profile)
+        if external_calibration is not None:
+            calibration_value = external_calibration
 
         handle = None
         try:
@@ -309,13 +353,21 @@ class ModulePoller(BaseModulePoller):
 
             current = round(computed_current, 4)
             sensor_type = str(sensor.get("type") or "").strip().lower()
+            external_system_sensor = sensor_type == "system" and bool(external_shunt_profile)
+            if external_system_sensor:
+                # A low-side external shunt on a system-flow sensor is wired so
+                # discharge often appears as negative current. Normalize to the
+                # app convention: positive = discharging, negative = charging.
+                current = round(-current, 4)
             if sensor_type in {"solar", "wind"}:
                 current = abs(current)
             elif sensor_type in {"battery", "system"} and effective_variant in {"INA219", "INA226"} and abs(current) < 0.05:
                 current = 0.0
 
             status_variant_note = effective_variant
-            if sensor_type in {"battery", "system"}:
+            if external_shunt_profile:
+                status_variant_note = f"{status_variant_note}:external-shunt"
+            if sensor_type == "battery" or (sensor_type == "system" and not external_system_sensor):
                 rating = self._coerce_float(sensor.get("rating"), 12.0)
                 if not self._is_battery_voltage_valid(voltage, rating):
                     # If the configured variant produces an impossible battery voltage,
@@ -332,7 +384,14 @@ class ModulePoller(BaseModulePoller):
                         effective_variant = "INA219"
                         status_variant_note = "INA219:auto-corrected"
 
-            power = round(voltage * current, 3)
+            effective_power_voltage = voltage
+            if external_system_sensor and effective_power_voltage < 0.05:
+                nominal_voltage = self._coerce_float(sensor.get("rating"), 12.0)
+                if nominal_voltage > 0:
+                    effective_power_voltage = nominal_voltage
+                    status_variant_note = f"{status_variant_note}:nominal-voltage-power"
+
+            power = round(effective_power_voltage * current, 3)
 
             if voltage < 0.05 and abs(current) < 0.01:
                 return {
@@ -526,6 +585,8 @@ class ModulePoller(BaseModulePoller):
                 "soc": measurement.get("soc", measurement.get("state_of_charge")),
                 "charging_state": measurement.get("charging_state", ""),
                 "calibration_value": self._coerce_int(sensor.get("calibration_value"), DEFAULT_CALIBRATION),
+                "external_shunt_enabled": bool(str(sensor.get("external_shunt_enabled") or "").strip().lower() in {"1", "true", "yes", "on"}),
+                "external_shunt_variant": str(sensor.get("external_shunt_variant") or "").strip(),
                 "source_topic": f"poller://ina/{sensor.get('device_id') or 'device'}",
             }
             self.live_data_store.ingest_sensor(self.module_name, str(sensor.get("name") or sensor.get("address") or "sensor"), sensor_payload)
