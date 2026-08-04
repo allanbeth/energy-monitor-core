@@ -1,12 +1,13 @@
 [
   {
-    "address": 64,
+    "address": "0x40",
     "calibration_value": 4191,
     "device_id": 1,
+    "external_shunt_enabled": false,
     "max_power": 30,
     "name": "Garden Battery",
     "rating": 12,
-    "type": "Battery",
+    "type": "battery",
     "variant": "INA219",
     "variant_tuning": {}
   },
@@ -14,10 +15,11 @@
     "address": "0x41",
     "calibration_value": 4191,
     "device_id": 0,
+    "external_shunt_enabled": false,
     "max_power": 100,
-    "name": "Turbine 220W",
+    "name": "Garden Battery Bank SoC",
     "rating": 12,
-    "type": "wind",
+    "type": "battery",
     "variant": "INA219",
     "variant_tuning": {}
   },
@@ -47,14 +49,14 @@
     "address": "0x40",
     "calibration_value": 4191,
     "device_id": 0,
+    "external_shunt_enabled": true,
+    "external_shunt_variant": "75mv_100a",
     "max_power": 100,
-    "name": "Battery",
+    "name": "Garden Battery Bank Flow",
     "rating": 12,
     "type": "system",
     "variant": "INA219",
-    "variant_tuning": {},
-    "external_shunt_enabled": true,
-    "external_shunt_variant": "75mv_100a"
+    "variant_tuning": {}
   },
   {
     "address": "0x44",

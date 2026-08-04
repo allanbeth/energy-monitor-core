@@ -136,6 +136,12 @@
         <div class="metric-small">
           Discharge Out: <span data-derived-watts="battery-discharge">{{ derived.get('battery_discharge_watts', 0) }}</span> W
         </div>
+        <div class="metric-small">
+          Battery Bank: <span data-derived-battery-voltage>{{ derived.get('battery_bank_voltage', 0) }}</span> V |
+          <span data-derived-battery-current>{{ derived.get('battery_bank_current', 0) }}</span> A |
+          SoC <span data-derived-battery-soc>{{ derived.get('battery_bank_soc', 0) }}</span>% |
+          <span data-derived-battery-state>{{ derived.get('battery_bank_state', 'idle')|title }}</span>
+        </div>
         <div class="metric-value" data-derived-watts="estimated-load">{{ derived.get('estimated_load_watts', 0) }}</div>
         <div class="metric-subline">Estimated Load (W)</div>
         {% set flow_trend = dashboard_trends.get('estimated_load', []) %}
@@ -145,7 +151,7 @@
           <span class="trend-bar" style="height: {{ ((point.watts / flow_max) * 100) if flow_max else 0 }}%"></span>
           {% endfor %}
         </div>
-        <div class="metric-footer">Source: <span data-derived-sensor-type>{{ derived.get('flow_sensor_type', 'battery')|title }}</span> | Sensors: <span data-derived-count="battery-sensors">{{ derived.get('battery_sensor_count', 0) }}</span></div>
+        <div class="metric-footer">Source: <span data-derived-sensor-type>{{ derived.get('flow_sensor_type', 'battery')|title }}</span> | Current sensors: <span data-derived-count="battery-current-sensors">{{ derived.get('battery_current_sensor_count', 0) }}</span> | Voltage sensors: <span data-derived-count="battery-voltage-sensors">{{ derived.get('battery_voltage_sensor_count', 0) }}</span></div>
         </div>
       </article>
     </div>

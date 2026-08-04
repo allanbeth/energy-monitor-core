@@ -50,6 +50,42 @@ def _normalize_sensor_type(value: Any) -> str:
     return normalized or "unknown"
 
 
+def _estimate_battery_soc_from_voltage(voltage: float, rating: float) -> int:
+    if float(rating) >= 20.0:
+        soc_table = [
+            (25.4, 100),
+            (25.2, 90),
+            (24.8, 75),
+            (24.4, 50),
+            (24.0, 25),
+            (23.8, 10),
+            (23.6, 0),
+        ]
+        min_v, max_v = 23.6, 25.4
+    else:
+        soc_table = [
+            (12.7, 100),
+            (12.6, 90),
+            (12.4, 75),
+            (12.2, 50),
+            (12.0, 25),
+            (11.9, 10),
+            (11.8, 0),
+        ]
+        min_v, max_v = 11.8, 12.7
+
+    clamped_voltage = max(min_v, min(max_v, float(voltage)))
+    for index in range(len(soc_table) - 1):
+        v_high, soc_high = soc_table[index]
+        v_low, soc_low = soc_table[index + 1]
+        if v_low <= clamped_voltage <= v_high:
+            if v_high == v_low:
+                return int(round(soc_low))
+            soc_value = soc_low + (soc_high - soc_low) * (clamped_voltage - v_low) / (v_high - v_low)
+            return int(round(soc_value))
+    return 0
+
+
 class ModuleRuntime:
     def __init__(self, app_root: Path, config_manager: Any, module_name: str, live_data_store: Any = None):
         self.app_root = Path(app_root)
@@ -461,6 +497,13 @@ class ModuleRuntimeManager:
                 "estimated_load_watts": 0.0,
                 "battery_sensor_count": 0,
                 "flow_sensor_type": "battery",
+                "battery_bank_voltage": 0.0,
+                "battery_bank_current": 0.0,
+                "battery_bank_watts": 0.0,
+                "battery_bank_soc": 0,
+                "battery_bank_state": "idle",
+                "battery_current_sensor_count": 0,
+                "battery_voltage_sensor_count": 0,
             },
         }
         for snapshot in live_data.values():
@@ -493,10 +536,25 @@ class ModuleRuntimeManager:
                     continue
 
                 watts = _safe_float(row.get("watts"))
+                current = _safe_float(row.get("current"))
+                voltage = _safe_float(row.get("voltage"))
+                rating = _safe_float(row.get("rating"))
+                soc = _safe_float(row.get("soc"), -1)
                 if sensor_type == "system":
                     aggregate["derived"].setdefault("_system_rows", []).append(watts)
+                    aggregate["derived"].setdefault("_system_currents", []).append(current)
+                    if voltage > 0.05:
+                        aggregate["derived"].setdefault("_system_voltages", []).append(voltage)
                 else:
                     aggregate["derived"].setdefault("_battery_rows", []).append(watts)
+                    if abs(current) > 0.01 or abs(watts) > 0.01:
+                        aggregate["derived"].setdefault("_battery_currents", []).append(current)
+                    if voltage > 0.05:
+                        aggregate["derived"].setdefault("_battery_voltages", []).append(voltage)
+                    if soc >= 0:
+                        aggregate["derived"].setdefault("_battery_soc_values", []).append(soc)
+                if rating > 0:
+                    aggregate["derived"].setdefault("_battery_nominal_voltages", []).append(rating)
 
         for sensor_type in ("overall", "solar", "wind", "battery", "charger", "system"):
             for key in ("watts", "voltage", "current"):
@@ -527,6 +585,49 @@ class ModuleRuntimeManager:
             ),
             2,
         )
+
+        system_currents = aggregate["derived"].pop("_system_currents", [])
+        battery_currents = aggregate["derived"].pop("_battery_currents", [])
+        battery_voltages = aggregate["derived"].pop("_battery_voltages", [])
+        system_voltages = aggregate["derived"].pop("_system_voltages", [])
+        battery_soc_values = aggregate["derived"].pop("_battery_soc_values", [])
+        nominal_voltages = aggregate["derived"].pop("_battery_nominal_voltages", [])
+
+        flow_currents = system_currents if system_currents else battery_currents
+        battery_bank_current = round(sum(_safe_float(current) for current in flow_currents), 3)
+        voltage_source_values = battery_voltages if battery_voltages else system_voltages
+        battery_bank_voltage = 0.0
+        if voltage_source_values:
+            battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in voltage_source_values) / len(voltage_source_values), 3)
+        elif nominal_voltages:
+            battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in nominal_voltages) / len(nominal_voltages), 3)
+
+        battery_bank_watts = round(battery_bank_voltage * battery_bank_current, 2)
+        if battery_bank_current > 0.05:
+            battery_bank_state = "discharging"
+        elif battery_bank_current < -0.05:
+            battery_bank_state = "charging"
+        else:
+            battery_bank_state = "idle"
+
+        if battery_soc_values:
+            battery_bank_soc = int(round(sum(_safe_float(value) for value in battery_soc_values) / len(battery_soc_values)))
+        else:
+            reference_rating = nominal_voltages[0] if nominal_voltages else battery_bank_voltage
+            battery_bank_soc = _estimate_battery_soc_from_voltage(battery_bank_voltage, reference_rating) if battery_bank_voltage > 0 else 0
+
+        aggregate["derived"]["battery_bank_voltage"] = round(battery_bank_voltage, 3)
+        aggregate["derived"]["battery_bank_current"] = round(battery_bank_current, 3)
+        aggregate["derived"]["battery_bank_watts"] = round(battery_bank_watts, 2)
+        aggregate["derived"]["battery_bank_soc"] = int(max(0, min(100, battery_bank_soc)))
+        aggregate["derived"]["battery_bank_state"] = battery_bank_state
+        aggregate["derived"]["battery_current_sensor_count"] = len(flow_currents)
+        aggregate["derived"]["battery_voltage_sensor_count"] = len(voltage_source_values)
+
+        if flow_currents:
+            aggregate["derived"]["battery_discharge_watts"] = round(max(0.0, battery_bank_watts), 2)
+            aggregate["derived"]["battery_charge_watts"] = round(max(0.0, -battery_bank_watts), 2)
+
         return aggregate
 
     def get_runtime(self, module_name: str) -> ModuleRuntime | None:

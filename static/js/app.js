@@ -727,6 +727,12 @@
     const estimatedLoad = document.querySelector('[data-derived-watts="estimated-load"]');
     const flowSensorType = document.querySelector('[data-derived-sensor-type]');
     const batterySensorCount = document.querySelector('[data-derived-count="battery-sensors"]');
+    const batteryCurrentSensors = document.querySelector('[data-derived-count="battery-current-sensors"]');
+    const batteryVoltageSensors = document.querySelector('[data-derived-count="battery-voltage-sensors"]');
+    const batteryBankVoltage = document.querySelector('[data-derived-battery-voltage]');
+    const batteryBankCurrent = document.querySelector('[data-derived-battery-current]');
+    const batteryBankSoc = document.querySelector('[data-derived-battery-soc]');
+    const batteryBankState = document.querySelector('[data-derived-battery-state]');
     if (batteryDischarge) batteryDischarge.textContent = String(derived.battery_discharge_watts ?? 0);
     if (batteryCharge) batteryCharge.textContent = String(derived.battery_charge_watts ?? 0);
     if (estimatedLoad) estimatedLoad.textContent = String(derived.estimated_load_watts ?? 0);
@@ -735,6 +741,15 @@
       flowSensorType.textContent = flowType.charAt(0).toUpperCase() + flowType.slice(1);
     }
     if (batterySensorCount) batterySensorCount.textContent = String(derived.battery_sensor_count ?? 0);
+    if (batteryCurrentSensors) batteryCurrentSensors.textContent = String(derived.battery_current_sensor_count ?? 0);
+    if (batteryVoltageSensors) batteryVoltageSensors.textContent = String(derived.battery_voltage_sensor_count ?? 0);
+    if (batteryBankVoltage) batteryBankVoltage.textContent = String(derived.battery_bank_voltage ?? 0);
+    if (batteryBankCurrent) batteryBankCurrent.textContent = String(derived.battery_bank_current ?? 0);
+    if (batteryBankSoc) batteryBankSoc.textContent = String(derived.battery_bank_soc ?? 0);
+    if (batteryBankState) {
+      const state = String(derived.battery_bank_state ?? "idle");
+      batteryBankState.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+    }
 
     Object.entries(trends).forEach(([sensorType, points]) => {
       const strip = document.querySelector(`[data-trend-series="${sensorType}"]`);
