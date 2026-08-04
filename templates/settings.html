@@ -43,7 +43,10 @@
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-        <div class="settings-entry"><label>Config version</label><input class="form-control" type="text" name="general[version]" value="{{ core_config.general.version }}"></div>
+        {% set single_location = (location_options[0] if location_options and (location_options|length) > 0 else {'id': 'home', 'name': 'Home'}) %}
+        <input type="hidden" name="locations[0][id]" value="{{ single_location.id|default('home', true) }}">
+        <input type="hidden" name="locations[0][is_default]" value="true">
+        <div class="settings-entry"><label>Location</label><input class="form-control" type="text" name="locations[0][name]" value="{{ single_location.name|default('Home', true) }}"></div>
         <div class="settings-entry"><label>Auto backup frequency</label><input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}"></div>
         <div class="settings-entry"><label>Max backup files</label><input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}"></div>
         <div class="settings-entry"><label>Log size</label><input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}"></div>
@@ -52,53 +55,60 @@
     </article>
 
     <article class="panel card shadow-sm settings-card app-card card-shell card-type-form system-group-settings" id="system-group-settings-card">
-      {% call card_header('fa-layer-group', 'Locations and Systems', 'Group sensors into separate off-grid systems') %}
+      {% call card_header('fa-layer-group', 'Systems', 'Manage off-grid systems and associated sensors') %}
       <div class="settings-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-location-add title="Add location"><i class="fa-solid fa-location-dot"></i></button>
         <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-add title="Add system"><i class="fa-solid fa-plus"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save locations and systems"><i class="fa-solid fa-save"></i></button>
+        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save systems"><i class="fa-solid fa-save"></i></button>
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-        <div class="text-secondary small mb-2">Default rows are used when sensors do not specify a system.</div>
-
-        <div class="settings-entry d-block">
-          <label class="mb-2">Locations</label>
-          <div id="locations-rows" class="vstack gap-2">
-            {% for location in location_options %}
-            <div class="d-flex flex-wrap gap-2 align-items-center" data-location-row data-row-index="{{ loop.index0 }}">
-              <input class="form-control form-control-sm" type="text" name="locations[{{ loop.index0 }}][id]" value="{{ location.id }}" placeholder="location-id" style="max-width: 160px;">
-              <input class="form-control form-control-sm" type="text" name="locations[{{ loop.index0 }}][name]" value="{{ location.name }}" placeholder="Location name" style="min-width: 220px;">
-              <span class="form-check form-switch m-0">
-                <input type="hidden" name="locations[{{ loop.index0 }}][is_default]" value="false">
-                <input class="form-check-input" type="checkbox" name="locations[{{ loop.index0 }}][is_default]" value="true" {% if location.is_default %}checked{% endif %}>
-              </span>
-              <span class="text-secondary small">Default</span>
+        <div class="text-secondary small mb-2">Assign sensors to systems in module sensor settings, then review associations here.</div>
+        <div id="systems-rows" class="vstack gap-2" style="max-height: 360px; overflow-y: auto; padding-right: 4px;">
+          {% for system in system_options %}
+          {% set sensors = system_sensor_index.get(system.id, []) if system_sensor_index is defined else [] %}
+          <article class="app-card card-shell card-type-data p-2" data-system-row data-row-index="{{ loop.index0 }}" data-system-card-mode="view">
+            <div class="settings-entry justify-content-between" data-system-view="{{ loop.index0 }}">
+              <div class="d-flex flex-column">
+                <strong>{{ system.name }}</strong>
+                <span class="text-secondary small">Sensors: {{ sensors|length }}</span>
+              </div>
+              <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="edit" data-system-index="{{ loop.index0 }}" title="Edit system">
+                <i class="fa-solid fa-gear"></i>
+              </button>
             </div>
-            {% endfor %}
-          </div>
-        </div>
-
-        <div class="settings-entry d-block">
-          <label class="mb-2">Off-grid systems</label>
-          <div id="systems-rows" class="vstack gap-2">
-            {% for system in system_options %}
-            <div class="d-flex flex-wrap gap-2 align-items-center" data-system-row data-row-index="{{ loop.index0 }}">
-              <input class="form-control form-control-sm" type="text" name="systems[{{ loop.index0 }}][id]" value="{{ system.id }}" placeholder="system-id" style="max-width: 170px;">
-              <input class="form-control form-control-sm" type="text" name="systems[{{ loop.index0 }}][name]" value="{{ system.name }}" placeholder="System name" style="min-width: 190px;">
-              <select class="form-select form-select-sm" name="systems[{{ loop.index0 }}][location_id]" style="min-width: 170px;">
-                {% for location in location_options %}
-                <option value="{{ location.id }}" {% if system.location_id == location.id %}selected{% endif %}>{{ location.name }}</option>
-                {% endfor %}
-              </select>
-              <span class="form-check form-switch m-0">
-                <input type="hidden" name="systems[{{ loop.index0 }}][is_default]" value="false">
-                <input class="form-check-input" type="checkbox" name="systems[{{ loop.index0 }}][is_default]" value="true" {% if system.is_default %}checked{% endif %}>
-              </span>
-              <span class="text-secondary small">Default</span>
+            <div class="app-card-content card-content-form view-type-form hidden" data-system-edit="{{ loop.index0 }}">
+              <input type="hidden" name="systems[{{ loop.index0 }}][id]" value="{{ system.id }}">
+              <input type="hidden" name="systems[{{ loop.index0 }}][location_id]" value="{{ system.location_id }}">
+              <div class="settings-entry">
+                <label>System name</label>
+                <input class="form-control form-control-sm" type="text" name="systems[{{ loop.index0 }}][name]" value="{{ system.name }}">
+              </div>
+              <div class="settings-entry">
+                <label>Default system</label>
+                <span class="form-check form-switch m-0">
+                  <input type="hidden" name="systems[{{ loop.index0 }}][is_default]" value="false">
+                  <input class="form-check-input" type="checkbox" name="systems[{{ loop.index0 }}][is_default]" value="true" {% if system.is_default %}checked{% endif %}>
+                </span>
+              </div>
+              <div class="settings-entry d-block">
+                <label class="mb-1">Associated sensors</label>
+                {% if sensors %}
+                <div class="vstack gap-1 text-secondary small">
+                  {% for sensor in sensors %}
+                  <span>{{ sensor.module|title }} - {{ sensor.name }} ({{ sensor.type|title }})</span>
+                  {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-secondary small">No sensors currently assigned.</div>
+                {% endif %}
+              </div>
+              <div class="d-flex justify-content-end gap-2 mt-2">
+                <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-system-card-action="save" data-system-index="{{ loop.index0 }}" title="Save system"><i class="fa-solid fa-floppy-disk"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="back" data-system-index="{{ loop.index0 }}" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+              </div>
             </div>
-            {% endfor %}
-          </div>
+          </article>
+          {% endfor %}
         </div>
       </div>
     </article>

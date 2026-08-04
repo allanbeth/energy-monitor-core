@@ -110,7 +110,7 @@
   "auth": {
     "enabled": true,
     "username": "admin",
-    "password_hash": "pbkdf2_sha256$260000$4fe39174153a8d105fbd1bc4d59fa373$fc6cff2b3e6325fc5bfb65b7e89b0aa6ff82ec9403e56e311f2eee6dc455fb72"
+    "password_hash": "pbkdf2_sha256$260000$67ee226d28c1b66cbf6a10feedee20b1$88b27c97b71b20784c2e853d9a24d184b44f359960e2534341463e5fe9464339"
   },
   "logs": {
     "max_size": 10

@@ -333,37 +333,18 @@ class ConfigManager:
         return normalized
 
     def _normalize_locations(self, locations: Any) -> list[dict[str, Any]]:
-        normalized_locations: list[dict[str, Any]] = []
-        seen_ids: set[str] = set()
         source = locations if isinstance(locations, list) else []
-        for index, location in enumerate(source):
-            if not isinstance(location, dict):
-                continue
-            location_id = _slugify_identifier(location.get("id") or location.get("name"), f"location-{index + 1}")
-            if location_id in seen_ids:
-                continue
-            seen_ids.add(location_id)
-            location_name = str(location.get("name") or location_id.replace("-", " ").title()).strip() or location_id.replace("-", " ").title()
-            normalized_locations.append({
-                "id": location_id,
-                "name": location_name,
-                "is_default": _as_bool(location.get("is_default")),
-            })
+        candidate = next((location for location in source if isinstance(location, dict)), {})
 
-        if not normalized_locations:
-            normalized_locations = deepcopy(DEFAULT_CORE_CONFIG["locations"])
+        default_location = DEFAULT_CORE_CONFIG["locations"][0]
+        location_id = _slugify_identifier(candidate.get("id"), str(default_location.get("id") or "home"))
+        location_name = str(candidate.get("name") or default_location.get("name") or "Home").strip() or "Home"
 
-        if not any(_as_bool(location.get("is_default")) for location in normalized_locations):
-            normalized_locations[0]["is_default"] = True
-
-        default_assigned = False
-        for location in normalized_locations:
-            if _as_bool(location.get("is_default")) and not default_assigned:
-                location["is_default"] = True
-                default_assigned = True
-            else:
-                location["is_default"] = False
-        return normalized_locations
+        return [{
+            "id": location_id,
+            "name": location_name,
+            "is_default": True,
+        }]
 
     def _normalize_systems(self, systems: Any, locations: list[dict[str, Any]]) -> list[dict[str, Any]]:
         location_ids = {str(location.get("id") or "") for location in locations}

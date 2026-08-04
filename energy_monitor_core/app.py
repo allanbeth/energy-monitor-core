@@ -243,6 +243,25 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
         webserver_enabled = bool((core_config.get("webserver") or {}).get("enabled", True))
         webserver_connection_state = "Connected" if webserver_enabled else "Disabled"
 
+        system_sensor_index: Dict[str, list[dict[str, str]]] = {}
+        default_system_id = config_manager.get_default_system_id()
+        for module_name, snapshot in runtime_manager.get_full_live_data().items():
+            if not isinstance(snapshot, dict):
+                continue
+            sensor_rows = snapshot.get("sensor_rows", [])
+            for row in sensor_rows if isinstance(sensor_rows, list) else []:
+                if not isinstance(row, dict):
+                    continue
+                system_id = str(row.get("system_id") or (row.get("config", {}) or {}).get("system_id") or default_system_id).strip() or default_system_id
+                sensor_label = str(row.get("name") or "sensor").strip() or "sensor"
+                module_label = str(module_name or "module").strip() or "module"
+                sensor_type = str(row.get("type") or "unknown").strip() or "unknown"
+                system_sensor_index.setdefault(system_id, []).append({
+                    "module": module_label,
+                    "name": sensor_label,
+                    "type": sensor_type,
+                })
+
         def _connection_class(state: str) -> str:
             normalized = str(state or "").strip().lower()
             if normalized == "connected":
@@ -256,9 +275,8 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             app_title="Core Settings",
             page_name="core-settings",
             core_config=core_config,
-            location_options=config_manager.get_location_definitions(),
-            system_options=config_manager.get_system_definitions(),
             modules=active_modules,
+            system_sensor_index=system_sensor_index,
             status=config_manager.get_public_status(runtime_manager),
             mqtt_connection_state=mqtt_connection_state,
             mqtt_connection_class=_connection_class(mqtt_connection_state),
@@ -287,8 +305,6 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             module_name=module_name,
             module_profile=module_profile,
             module_snapshot=module_snapshot,
-            system_options=config_manager.get_system_definitions(),
-            default_system_id=config_manager.get_default_system_id(),
             module_history=runtime_manager.get_module_history(module_name),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             page_name="module",

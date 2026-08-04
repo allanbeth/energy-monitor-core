@@ -675,27 +675,31 @@
     const systemsSummary = aggregate.systems_summary || {};
     const systems = aggregate.systems || {};
 
+    const globalSystemsGeneration = document.querySelector('[data-systems-global-generation]');
     const globalSystemsWatts = document.querySelector('[data-systems-global-watts]');
-    const globalSystemsSource = document.querySelector('[data-systems-global-source]');
-    const globalSystemsCharge = document.querySelector('[data-systems-global-charge]');
-    const globalSystemsDischarge = document.querySelector('[data-systems-global-discharge]');
-    const globalSystemsLoad = document.querySelector('[data-systems-global-load]');
+    const globalSystemsSolar = document.querySelector('[data-systems-global-solar]');
+    const globalSystemsWind = document.querySelector('[data-systems-global-wind]');
     const globalSystemsVoltage = document.querySelector('[data-systems-global-voltage]');
     const globalSystemsCurrent = document.querySelector('[data-systems-global-current]');
     const globalSystemsSoc = document.querySelector('[data-systems-global-soc]');
     const globalSystemsState = document.querySelector('[data-systems-global-state]');
+    const globalSystemsBatteryFlow = document.querySelector('[data-systems-global-battery-flow]');
     const globalSystemsCount = document.querySelector('[data-systems-global-count]');
     const globalSystemsActive = document.querySelector('[data-systems-global-active]');
     const globalSystemsLocations = document.querySelector('[data-systems-global-locations]');
 
+    const solarWatts = Number((aggregate.solar || {}).watts ?? 0);
+    const windWatts = Number((aggregate.wind || {}).watts ?? 0);
+    const generationWatts = solarWatts + windWatts;
+
+    if (globalSystemsGeneration) globalSystemsGeneration.textContent = String(generationWatts);
     if (globalSystemsWatts) globalSystemsWatts.textContent = String((aggregate.overall || {}).watts ?? 0);
-    if (globalSystemsSource) globalSystemsSource.textContent = String(derived.source_watts ?? 0);
-    if (globalSystemsCharge) globalSystemsCharge.textContent = String(derived.battery_charge_watts ?? 0);
-    if (globalSystemsDischarge) globalSystemsDischarge.textContent = String(derived.battery_discharge_watts ?? 0);
-    if (globalSystemsLoad) globalSystemsLoad.textContent = String(derived.estimated_load_watts ?? 0);
+    if (globalSystemsSolar) globalSystemsSolar.textContent = String(solarWatts);
+    if (globalSystemsWind) globalSystemsWind.textContent = String(windWatts);
     if (globalSystemsVoltage) globalSystemsVoltage.textContent = String(derived.battery_bank_voltage ?? 0);
     if (globalSystemsCurrent) globalSystemsCurrent.textContent = String(derived.battery_bank_current ?? 0);
     if (globalSystemsSoc) globalSystemsSoc.textContent = String(derived.battery_bank_soc ?? 0);
+    if (globalSystemsBatteryFlow) globalSystemsBatteryFlow.textContent = String(derived.battery_bank_watts ?? 0);
     if (globalSystemsState) {
       const state = String(derived.battery_bank_state ?? "idle");
       globalSystemsState.textContent = state.charAt(0).toUpperCase() + state.slice(1);
@@ -710,28 +714,28 @@
       const byAttr = (name) => document.querySelector(`[${name}="${systemId}"]`);
 
       const overallWattsNode = byAttr("data-system-overall-watts");
+      const generationWattsNode = byAttr("data-system-generation-watts");
       const solarWattsNode = byAttr("data-system-solar-watts");
       const windWattsNode = byAttr("data-system-wind-watts");
-      const chargerWattsNode = byAttr("data-system-charger-watts");
-      const chargeWattsNode = byAttr("data-system-charge-watts");
-      const dischargeWattsNode = byAttr("data-system-discharge-watts");
-      const loadWattsNode = byAttr("data-system-load-watts");
       const voltageNode = byAttr("data-system-voltage");
       const currentNode = byAttr("data-system-current");
       const socNode = byAttr("data-system-soc");
       const stateNode = byAttr("data-system-state");
+      const batteryFlowNode = byAttr("data-system-battery-flow");
       const countNode = byAttr("data-system-count");
 
+      const systemSolarWatts = Number((summary.solar || {}).watts ?? 0);
+      const systemWindWatts = Number((summary.wind || {}).watts ?? 0);
+      const systemGenerationWatts = systemSolarWatts + systemWindWatts;
+
       if (overallWattsNode) overallWattsNode.textContent = String((summary.overall || {}).watts ?? 0);
-      if (solarWattsNode) solarWattsNode.textContent = String((summary.solar || {}).watts ?? 0);
-      if (windWattsNode) windWattsNode.textContent = String((summary.wind || {}).watts ?? 0);
-      if (chargerWattsNode) chargerWattsNode.textContent = String((summary.charger || {}).watts ?? 0);
-      if (chargeWattsNode) chargeWattsNode.textContent = String(systemDerived.battery_charge_watts ?? 0);
-      if (dischargeWattsNode) dischargeWattsNode.textContent = String(systemDerived.battery_discharge_watts ?? 0);
-      if (loadWattsNode) loadWattsNode.textContent = String(systemDerived.estimated_load_watts ?? 0);
+      if (generationWattsNode) generationWattsNode.textContent = String(systemGenerationWatts);
+      if (solarWattsNode) solarWattsNode.textContent = String(systemSolarWatts);
+      if (windWattsNode) windWattsNode.textContent = String(systemWindWatts);
       if (voltageNode) voltageNode.textContent = String(systemDerived.battery_bank_voltage ?? 0);
       if (currentNode) currentNode.textContent = String(systemDerived.battery_bank_current ?? 0);
       if (socNode) socNode.textContent = String(systemDerived.battery_bank_soc ?? 0);
+      if (batteryFlowNode) batteryFlowNode.textContent = String(systemDerived.battery_bank_watts ?? 0);
       if (stateNode) {
         const state = String(systemDerived.battery_bank_state ?? "idle");
         stateNode.textContent = state.charAt(0).toUpperCase() + state.slice(1);
@@ -1794,43 +1798,32 @@
     });
   }
 
-  function getLocationEntries() {
-    const rows = Array.from(document.querySelectorAll("#locations-rows [data-location-row]"));
-    return rows.map((row) => {
-      const idField = row.querySelector('input[name$="[id]"]');
-      const nameField = row.querySelector('input[name$="[name]"]');
-      const idValue = String(idField && "value" in idField ? idField.value : "").trim();
-      const nameValue = String(nameField && "value" in nameField ? nameField.value : "").trim();
-      if (!idValue && !nameValue) {
-        return null;
-      }
-      return {
-        id: idValue || nameValue.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
-        name: nameValue || idValue,
-      };
-    }).filter(Boolean);
+  function getSingleLocationId() {
+    const locationIdField = document.querySelector('input[name="locations[0][id]"]');
+    return String(locationIdField && "value" in locationIdField ? locationIdField.value : "home").trim() || "home";
   }
 
-  function appendLocationRow() {
-    const container = document.getElementById("locations-rows");
-    if (!container) {
+  function toSystemId(value, fallbackIndex) {
+    const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    return normalized || `system-${fallbackIndex + 1}`;
+  }
+
+  function setSystemCardMode(index, mode) {
+    const row = document.querySelector(`[data-system-row][data-row-index="${index}"]`);
+    if (!row) {
       return;
     }
-    const index = nextIndexedRow(container, "[data-location-row]");
-    const row = document.createElement("div");
-    row.className = "d-flex flex-wrap gap-2 align-items-center";
-    row.setAttribute("data-location-row", "");
-    row.setAttribute("data-row-index", String(index));
-    row.innerHTML = `
-      <input class="form-control form-control-sm" type="text" name="locations[${index}][id]" value="" placeholder="location-id" style="max-width: 160px;">
-      <input class="form-control form-control-sm" type="text" name="locations[${index}][name]" value="" placeholder="Location name" style="min-width: 220px;">
-      <span class="form-check form-switch m-0">
-        <input type="hidden" name="locations[${index}][is_default]" value="false">
-        <input class="form-check-input" type="checkbox" name="locations[${index}][is_default]" value="true">
-      </span>
-      <span class="text-secondary small">Default</span>
-    `;
-    container.appendChild(row);
+    const normalized = mode === "edit" ? "edit" : "view";
+    row.setAttribute("data-system-card-mode", normalized);
+
+    const viewSection = row.querySelector(`[data-system-view="${index}"]`);
+    const editSection = row.querySelector(`[data-system-edit="${index}"]`);
+    if (viewSection) {
+      viewSection.classList.toggle("hidden", normalized !== "view");
+    }
+    if (editSection) {
+      editSection.classList.toggle("hidden", normalized !== "edit");
+    }
   }
 
   function appendSystemRow() {
@@ -1838,26 +1831,83 @@
     if (!container) {
       return;
     }
-    const locations = getLocationEntries();
+
     const index = nextIndexedRow(container, "[data-system-row]");
-    const options = locations.length
-      ? locations.map((location) => `<option value="${location.id}">${location.name}</option>`).join("")
-      : '<option value="home">Home</option>';
-    const row = document.createElement("div");
-    row.className = "d-flex flex-wrap gap-2 align-items-center";
+    const defaultName = `System ${index + 1}`;
+    const defaultId = toSystemId(defaultName, index);
+    const locationId = getSingleLocationId();
+
+    const row = document.createElement("article");
+    row.className = "app-card card-shell card-type-data p-2";
     row.setAttribute("data-system-row", "");
     row.setAttribute("data-row-index", String(index));
+    row.setAttribute("data-system-card-mode", "view");
     row.innerHTML = `
-      <input class="form-control form-control-sm" type="text" name="systems[${index}][id]" value="" placeholder="system-id" style="max-width: 170px;">
-      <input class="form-control form-control-sm" type="text" name="systems[${index}][name]" value="" placeholder="System name" style="min-width: 190px;">
-      <select class="form-select form-select-sm" name="systems[${index}][location_id]" style="min-width: 170px;">${options}</select>
-      <span class="form-check form-switch m-0">
-        <input type="hidden" name="systems[${index}][is_default]" value="false">
-        <input class="form-check-input" type="checkbox" name="systems[${index}][is_default]" value="true">
-      </span>
-      <span class="text-secondary small">Default</span>
+      <div class="settings-entry justify-content-between" data-system-view="${index}">
+        <div class="d-flex flex-column">
+          <strong>${defaultName}</strong>
+          <span class="text-secondary small">Sensors: 0</span>
+        </div>
+        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="edit" data-system-index="${index}" title="Edit system">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+      <div class="app-card-content card-content-form view-type-form hidden" data-system-edit="${index}">
+        <input type="hidden" name="systems[${index}][id]" value="${defaultId}">
+        <input type="hidden" name="systems[${index}][location_id]" value="${locationId}">
+        <div class="settings-entry">
+          <label>System name</label>
+          <input class="form-control form-control-sm" type="text" name="systems[${index}][name]" value="${defaultName}">
+        </div>
+        <div class="settings-entry">
+          <label>Default system</label>
+          <span class="form-check form-switch m-0">
+            <input type="hidden" name="systems[${index}][is_default]" value="false">
+            <input class="form-check-input" type="checkbox" name="systems[${index}][is_default]" value="true">
+          </span>
+        </div>
+        <div class="settings-entry d-block">
+          <label class="mb-1">Associated sensors</label>
+          <div class="text-secondary small">No sensors currently assigned.</div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-2">
+          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-system-card-action="save" data-system-index="${index}" title="Save system"><i class="fa-solid fa-floppy-disk"></i></button>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="back" data-system-index="${index}" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+        </div>
+      </div>
     `;
+
     container.appendChild(row);
+    bindSystemEditorButtons();
+    setSystemCardMode(index, "edit");
+  }
+
+  function bindSystemEditorButtons() {
+    document.querySelectorAll("[data-system-card-action]").forEach((button) => {
+      if (button.dataset.bound === "true") {
+        return;
+      }
+      button.dataset.bound = "true";
+      button.addEventListener("click", async () => {
+        const action = String(button.getAttribute("data-system-card-action") || "").trim();
+        const index = String(button.getAttribute("data-system-index") || "").trim();
+        if (!index) {
+          return;
+        }
+        if (action === "edit") {
+          setSystemCardMode(index, "edit");
+          return;
+        }
+        if (action === "back") {
+          setSystemCardMode(index, "view");
+          return;
+        }
+        if (action === "save") {
+          await saveCoreSettings();
+          setSystemCardMode(index, "view");
+        }
+      });
+    });
   }
 
   function bindDashboard() {
@@ -1880,7 +1930,6 @@
         hideLoadingScreen();
       });
 
-    // Backups and logs are non-critical for first paint; load in background.
     refreshBackups().catch(() => void 0);
     refreshLogs().catch(() => void 0);
     setInterval(refreshStatus, 3000);
@@ -1907,9 +1956,6 @@
     });
     document.querySelectorAll('[data-core-action="export"]').forEach((button) => {
       button.addEventListener("click", exportCoreConfig);
-    });
-    document.querySelectorAll("[data-location-add]").forEach((button) => {
-      button.addEventListener("click", appendLocationRow);
     });
     document.querySelectorAll("[data-system-add]").forEach((button) => {
       button.addEventListener("click", appendSystemRow);
@@ -1976,8 +2022,8 @@
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
     });
-    bindSingleDefaultToggle("#locations-rows");
     bindSingleDefaultToggle("#systems-rows");
+    bindSystemEditorButtons();
     setMqttPanelMode("main");
     loadCoreBackups();
     refreshStatus();
