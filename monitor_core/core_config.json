@@ -10,8 +10,7 @@
     {
       "id": "home-main",
       "name": "Home Main",
-      "location_id": "home",
-      "is_default": true
+      "location_id": "home"
     }
   ],
   "modules": {

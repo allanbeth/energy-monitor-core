@@ -1779,137 +1779,6 @@
     return Math.max(...indexes) + 1;
   }
 
-  function bindSingleDefaultToggle(scopeSelector) {
-    document.querySelectorAll(scopeSelector).forEach((scope) => {
-      scope.addEventListener("change", (event) => {
-        const target = event.target;
-        if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
-          return;
-        }
-        if (!target.checked) {
-          return;
-        }
-        scope.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
-          if (checkbox !== target) {
-            checkbox.checked = false;
-          }
-        });
-      });
-    });
-  }
-
-  function getSingleLocationId() {
-    const locationIdField = document.querySelector('input[name="locations[0][id]"]');
-    return String(locationIdField && "value" in locationIdField ? locationIdField.value : "home").trim() || "home";
-  }
-
-  function toSystemId(value, fallbackIndex) {
-    const normalized = String(value || "").trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-    return normalized || `system-${fallbackIndex + 1}`;
-  }
-
-  function setSystemCardMode(index, mode) {
-    const row = document.querySelector(`[data-system-row][data-row-index="${index}"]`);
-    if (!row) {
-      return;
-    }
-    const normalized = mode === "edit" ? "edit" : "view";
-    row.setAttribute("data-system-card-mode", normalized);
-
-    const viewSection = row.querySelector(`[data-system-view="${index}"]`);
-    const editSection = row.querySelector(`[data-system-edit="${index}"]`);
-    if (viewSection) {
-      viewSection.classList.toggle("hidden", normalized !== "view");
-    }
-    if (editSection) {
-      editSection.classList.toggle("hidden", normalized !== "edit");
-    }
-  }
-
-  function appendSystemRow() {
-    const container = document.getElementById("systems-rows");
-    if (!container) {
-      return;
-    }
-
-    const index = nextIndexedRow(container, "[data-system-row]");
-    const defaultName = `System ${index + 1}`;
-    const defaultId = toSystemId(defaultName, index);
-    const locationId = getSingleLocationId();
-
-    const row = document.createElement("article");
-    row.className = "app-card card-shell card-type-data p-2";
-    row.setAttribute("data-system-row", "");
-    row.setAttribute("data-row-index", String(index));
-    row.setAttribute("data-system-card-mode", "view");
-    row.innerHTML = `
-      <div class="settings-entry justify-content-between" data-system-view="${index}">
-        <div class="d-flex flex-column">
-          <strong>${defaultName}</strong>
-          <span class="text-secondary small">Sensors: 0</span>
-        </div>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="edit" data-system-index="${index}" title="Edit system">
-          <i class="fa-solid fa-gear"></i>
-        </button>
-      </div>
-      <div class="app-card-content card-content-form view-type-form hidden" data-system-edit="${index}">
-        <input type="hidden" name="systems[${index}][id]" value="${defaultId}">
-        <input type="hidden" name="systems[${index}][location_id]" value="${locationId}">
-        <div class="settings-entry">
-          <label>System name</label>
-          <input class="form-control form-control-sm" type="text" name="systems[${index}][name]" value="${defaultName}">
-        </div>
-        <div class="settings-entry">
-          <label>Default system</label>
-          <span class="form-check form-switch m-0">
-            <input type="hidden" name="systems[${index}][is_default]" value="false">
-            <input class="form-check-input" type="checkbox" name="systems[${index}][is_default]" value="true">
-          </span>
-        </div>
-        <div class="settings-entry d-block">
-          <label class="mb-1">Associated sensors</label>
-          <div class="text-secondary small">No sensors currently assigned.</div>
-        </div>
-        <div class="d-flex justify-content-end gap-2 mt-2">
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-system-card-action="save" data-system-index="${index}" title="Save system"><i class="fa-solid fa-floppy-disk"></i></button>
-          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-system-card-action="back" data-system-index="${index}" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
-        </div>
-      </div>
-    `;
-
-    container.appendChild(row);
-    bindSystemEditorButtons();
-    setSystemCardMode(index, "edit");
-  }
-
-  function bindSystemEditorButtons() {
-    document.querySelectorAll("[data-system-card-action]").forEach((button) => {
-      if (button.dataset.bound === "true") {
-        return;
-      }
-      button.dataset.bound = "true";
-      button.addEventListener("click", async () => {
-        const action = String(button.getAttribute("data-system-card-action") || "").trim();
-        const index = String(button.getAttribute("data-system-index") || "").trim();
-        if (!index) {
-          return;
-        }
-        if (action === "edit") {
-          setSystemCardMode(index, "edit");
-          return;
-        }
-        if (action === "back") {
-          setSystemCardMode(index, "view");
-          return;
-        }
-        if (action === "save") {
-          await saveCoreSettings();
-          setSystemCardMode(index, "view");
-        }
-      });
-    });
-  }
-
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
     setLoadingStepMessage("Step 1/2: Loading live status...");
@@ -1956,9 +1825,6 @@
     });
     document.querySelectorAll('[data-core-action="export"]').forEach((button) => {
       button.addEventListener("click", exportCoreConfig);
-    });
-    document.querySelectorAll("[data-system-add]").forEach((button) => {
-      button.addEventListener("click", appendSystemRow);
     });
     document.querySelectorAll('[data-core-action="mqtt-credentials"]').forEach((button) => {
       button.addEventListener("click", () => setMqttPanelMode("credentials"));
@@ -2022,8 +1888,6 @@
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
     });
-    bindSingleDefaultToggle("#systems-rows");
-    bindSystemEditorButtons();
     setMqttPanelMode("main");
     loadCoreBackups();
     refreshStatus();

@@ -42,7 +42,6 @@ DEFAULT_CORE_CONFIG: dict[str, Any] = {
             "id": "home-main",
             "name": "Home Main",
             "location_id": "home",
-            "is_default": True,
         }
     ],
     "modules": {
@@ -370,22 +369,10 @@ class ConfigManager:
                 "id": system_id,
                 "name": system_name,
                 "location_id": location_id,
-                "is_default": _as_bool(system.get("is_default")),
             })
 
         if not normalized_systems:
             normalized_systems = deepcopy(DEFAULT_CORE_CONFIG["systems"])
-
-        if not any(_as_bool(system.get("is_default")) for system in normalized_systems):
-            normalized_systems[0]["is_default"] = True
-
-        default_assigned = False
-        for system in normalized_systems:
-            if _as_bool(system.get("is_default")) and not default_assigned:
-                system["is_default"] = True
-                default_assigned = True
-            else:
-                system["is_default"] = False
         return normalized_systems
 
     def reload(self) -> dict[str, Any]:
@@ -434,9 +421,6 @@ class ConfigManager:
 
     def get_default_system_id(self) -> str:
         systems = self.get_system_definitions()
-        default_system = next((system for system in systems if _as_bool(system.get("is_default"))), None)
-        if isinstance(default_system, dict):
-            return str(default_system.get("id") or "")
         if systems and isinstance(systems[0], dict):
             return str(systems[0].get("id") or "")
         return "home-main"
