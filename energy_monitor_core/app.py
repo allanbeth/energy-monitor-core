@@ -116,6 +116,9 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             "base_href": app.config.get("BASE_HREF", "/"),
             "server_instance_id": instance_id,
             "sensor_type_options": ["solar", "wind", "battery", "charger", "system"],
+            "location_options": config_manager.get_location_definitions(),
+            "system_options": config_manager.get_system_definitions(),
+            "default_system_id": config_manager.get_default_system_id(),
             "module_nav": [
                 {
                     "name": module_name,
@@ -253,6 +256,8 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             app_title="Core Settings",
             page_name="core-settings",
             core_config=core_config,
+            location_options=config_manager.get_location_definitions(),
+            system_options=config_manager.get_system_definitions(),
             modules=active_modules,
             status=config_manager.get_public_status(runtime_manager),
             mqtt_connection_state=mqtt_connection_state,
@@ -282,6 +287,8 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
             module_name=module_name,
             module_profile=module_profile,
             module_snapshot=module_snapshot,
+            system_options=config_manager.get_system_definitions(),
+            default_system_id=config_manager.get_default_system_id(),
             module_history=runtime_manager.get_module_history(module_name),
             username=session.get("username", config_manager.get_auth_public_config().get("username")),
             page_name="module",

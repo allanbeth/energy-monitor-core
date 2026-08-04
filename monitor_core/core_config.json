@@ -1,4 +1,19 @@
 {
+  "locations": [
+    {
+      "id": "home",
+      "name": "Home",
+      "is_default": true
+    }
+  ],
+  "systems": [
+    {
+      "id": "home-main",
+      "name": "Home Main",
+      "location_id": "home",
+      "is_default": true
+    }
+  ],
   "modules": {
     "ina": {
       "active": true,

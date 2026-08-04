@@ -86,6 +86,106 @@ def _estimate_battery_soc_from_voltage(voltage: float, rating: float) -> int:
     return 0
 
 
+def _new_derived_bucket() -> dict[str, Any]:
+    return {
+        "battery_charge_watts": 0.0,
+        "battery_discharge_watts": 0.0,
+        "source_watts": 0.0,
+        "estimated_load_watts": 0.0,
+        "battery_sensor_count": 0,
+        "flow_sensor_type": "battery",
+        "battery_bank_voltage": 0.0,
+        "battery_bank_current": 0.0,
+        "battery_bank_watts": 0.0,
+        "battery_bank_soc": 0,
+        "battery_bank_state": "idle",
+        "battery_current_sensor_count": 0,
+        "battery_voltage_sensor_count": 0,
+    }
+
+
+def _new_system_bucket(system_id: str, name: str, location_id: str, location_name: str, is_default: bool) -> dict[str, Any]:
+    return {
+        "id": system_id,
+        "name": name,
+        "location_id": location_id,
+        "location_name": location_name,
+        "is_default": bool(is_default),
+        "overall": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "solar": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "wind": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "battery": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "charger": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "system": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
+        "derived": _new_derived_bucket(),
+    }
+
+
+def _finalize_derived_bucket(derived: dict[str, Any], solar_watts: float, wind_watts: float, charger_watts: float) -> None:
+    system_rows = derived.pop("_system_rows", [])
+    battery_rows = derived.pop("_battery_rows", [])
+    flow_rows = system_rows if system_rows else battery_rows
+    derived["flow_sensor_type"] = "system" if system_rows else "battery"
+    derived["battery_sensor_count"] = len(flow_rows)
+    derived["battery_discharge_watts"] = sum(max(0.0, _safe_float(watts)) for watts in flow_rows)
+    derived["battery_charge_watts"] = sum(max(0.0, -_safe_float(watts)) for watts in flow_rows)
+
+    derived["battery_charge_watts"] = round(_safe_float(derived.get("battery_charge_watts")), 2)
+    derived["battery_discharge_watts"] = round(_safe_float(derived.get("battery_discharge_watts")), 2)
+    derived["source_watts"] = round(max(0.0, _safe_float(solar_watts)) + max(0.0, _safe_float(wind_watts)) + max(0.0, _safe_float(charger_watts)), 2)
+    derived["estimated_load_watts"] = round(
+        max(
+            0.0,
+            _safe_float(derived.get("source_watts"))
+            + _safe_float(derived.get("battery_discharge_watts"))
+            - _safe_float(derived.get("battery_charge_watts")),
+        ),
+        2,
+    )
+
+    system_currents = derived.pop("_system_currents", [])
+    battery_currents = derived.pop("_battery_currents", [])
+    battery_voltages = derived.pop("_battery_voltages", [])
+    system_voltages = derived.pop("_system_voltages", [])
+    battery_soc_values = derived.pop("_battery_soc_values", [])
+    nominal_voltages = derived.pop("_battery_nominal_voltages", [])
+
+    flow_currents = system_currents if system_currents else battery_currents
+    battery_bank_current = round(sum(_safe_float(current) for current in flow_currents), 3)
+    voltage_source_values = battery_voltages if battery_voltages else system_voltages
+    battery_bank_voltage = 0.0
+    if voltage_source_values:
+        battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in voltage_source_values) / len(voltage_source_values), 3)
+    elif nominal_voltages:
+        battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in nominal_voltages) / len(nominal_voltages), 3)
+
+    battery_bank_watts = round(battery_bank_voltage * battery_bank_current, 2)
+    if battery_bank_current > 0.05:
+        battery_bank_state = "discharging"
+    elif battery_bank_current < -0.05:
+        battery_bank_state = "charging"
+    else:
+        battery_bank_state = "idle"
+
+    if battery_soc_values:
+        battery_bank_soc = int(round(sum(_safe_float(value) for value in battery_soc_values) / len(battery_soc_values)))
+    else:
+        reference_rating = nominal_voltages[0] if nominal_voltages else battery_bank_voltage
+        battery_bank_soc = _estimate_battery_soc_from_voltage(battery_bank_voltage, reference_rating) if battery_bank_voltage > 0 else 0
+
+    derived["battery_bank_voltage"] = round(battery_bank_voltage, 3)
+    derived["battery_bank_current"] = round(battery_bank_current, 3)
+    derived["battery_bank_watts"] = round(battery_bank_watts, 2)
+    derived["battery_bank_soc"] = int(max(0, min(100, battery_bank_soc)))
+    derived["battery_bank_state"] = battery_bank_state
+    derived["battery_current_sensor_count"] = len(flow_currents)
+    derived["battery_voltage_sensor_count"] = len(voltage_source_values)
+
+    if flow_currents:
+        derived["battery_discharge_watts"] = round(max(0.0, battery_bank_watts), 2)
+        derived["battery_charge_watts"] = round(max(0.0, -battery_bank_watts), 2)
+
+
 class ModuleRuntime:
     def __init__(self, app_root: Path, config_manager: Any, module_name: str, live_data_store: Any = None):
         self.app_root = Path(app_root)
@@ -478,6 +578,12 @@ class ModuleRuntimeManager:
 
     def get_aggregate_totals(self) -> dict[str, Any]:
         live_data = self.get_full_live_data()
+
+        locations = self.config_manager.get_location_definitions() if hasattr(self.config_manager, "get_location_definitions") else []
+        systems = self.config_manager.get_system_definitions() if hasattr(self.config_manager, "get_system_definitions") else []
+        default_system_id = self.config_manager.get_default_system_id() if hasattr(self.config_manager, "get_default_system_id") else "home-main"
+        location_names = {str(item.get("id") or ""): str(item.get("name") or "") for item in locations if isinstance(item, dict)}
+
         aggregate = {
             "modules": len(live_data),
             "sensor_count": 0,
@@ -490,22 +596,32 @@ class ModuleRuntimeManager:
             "battery": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "charger": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
             "system": {"sensor_count": 0, "connected_count": 0, "watts": 0.0, "voltage": 0.0, "current": 0.0},
-            "derived": {
-                "battery_charge_watts": 0.0,
-                "battery_discharge_watts": 0.0,
-                "source_watts": 0.0,
-                "estimated_load_watts": 0.0,
-                "battery_sensor_count": 0,
-                "flow_sensor_type": "battery",
-                "battery_bank_voltage": 0.0,
-                "battery_bank_current": 0.0,
-                "battery_bank_watts": 0.0,
-                "battery_bank_soc": 0,
-                "battery_bank_state": "idle",
-                "battery_current_sensor_count": 0,
-                "battery_voltage_sensor_count": 0,
+            "derived": _new_derived_bucket(),
+            "systems": {},
+            "locations": {},
+            "systems_summary": {
+                "configured_system_count": 0,
+                "configured_location_count": 0,
+                "active_system_count": 0,
+                "active_location_count": 0,
             },
         }
+
+        for system in systems if isinstance(systems, list) else []:
+            if not isinstance(system, dict):
+                continue
+            system_id = str(system.get("id") or "").strip()
+            if not system_id:
+                continue
+            location_id = str(system.get("location_id") or "").strip()
+            aggregate["systems"][system_id] = _new_system_bucket(
+                system_id,
+                str(system.get("name") or system_id.replace("-", " ").title()),
+                location_id,
+                location_names.get(location_id, location_id),
+                bool(system.get("is_default", False)),
+            )
+
         for snapshot in live_data.values():
             aggregate["sensor_count"] += int(snapshot.get("sensor_count", 0) or 0)
             aggregate["connected_sensor_count"] += int(snapshot.get("connected_sensor_count", 0) or 0)
@@ -556,77 +672,101 @@ class ModuleRuntimeManager:
                 if rating > 0:
                     aggregate["derived"].setdefault("_battery_nominal_voltages", []).append(rating)
 
+                system_id = str(row.get("system_id") or (row.get("config", {}) or {}).get("system_id") or "").strip() or default_system_id
+                if system_id not in aggregate["systems"]:
+                    fallback_location_id = str(next((location.get("id") for location in locations if isinstance(location, dict) and location.get("is_default")), "home"))
+                    aggregate["systems"][system_id] = _new_system_bucket(
+                        system_id,
+                        system_id.replace("-", " ").title(),
+                        fallback_location_id,
+                        location_names.get(fallback_location_id, fallback_location_id),
+                        system_id == default_system_id,
+                    )
+
+                system_bucket = aggregate["systems"][system_id]
+                sensor_bucket = system_bucket[sensor_type]
+                sensor_bucket["sensor_count"] += 1
+                sensor_bucket["connected_count"] += 1
+                sensor_bucket["watts"] += watts
+                sensor_bucket["voltage"] += voltage
+                sensor_bucket["current"] += current
+
+                system_bucket["overall"]["sensor_count"] += 1
+                system_bucket["overall"]["connected_count"] += 1
+                system_bucket["overall"]["watts"] += watts
+                system_bucket["overall"]["voltage"] += voltage
+                system_bucket["overall"]["current"] += current
+
+                if sensor_type == "system":
+                    system_bucket["derived"].setdefault("_system_rows", []).append(watts)
+                    system_bucket["derived"].setdefault("_system_currents", []).append(current)
+                    if voltage > 0.05:
+                        system_bucket["derived"].setdefault("_system_voltages", []).append(voltage)
+                else:
+                    system_bucket["derived"].setdefault("_battery_rows", []).append(watts)
+                    if abs(current) > 0.01 or abs(watts) > 0.01:
+                        system_bucket["derived"].setdefault("_battery_currents", []).append(current)
+                    if voltage > 0.05:
+                        system_bucket["derived"].setdefault("_battery_voltages", []).append(voltage)
+                    if soc >= 0:
+                        system_bucket["derived"].setdefault("_battery_soc_values", []).append(soc)
+                if rating > 0:
+                    system_bucket["derived"].setdefault("_battery_nominal_voltages", []).append(rating)
+
         for sensor_type in ("overall", "solar", "wind", "battery", "charger", "system"):
             for key in ("watts", "voltage", "current"):
                 aggregate[sensor_type][key] = round(aggregate[sensor_type][key], 2)
 
-        system_rows = aggregate["derived"].pop("_system_rows", [])
-        battery_rows = aggregate["derived"].pop("_battery_rows", [])
-        flow_rows = system_rows if system_rows else battery_rows
-        aggregate["derived"]["flow_sensor_type"] = "system" if system_rows else "battery"
-        aggregate["derived"]["battery_sensor_count"] = len(flow_rows)
-        aggregate["derived"]["battery_discharge_watts"] = sum(max(0.0, _safe_float(watts)) for watts in flow_rows)
-        aggregate["derived"]["battery_charge_watts"] = sum(max(0.0, -_safe_float(watts)) for watts in flow_rows)
-
-        aggregate["derived"]["battery_charge_watts"] = round(_safe_float(aggregate["derived"].get("battery_charge_watts")), 2)
-        aggregate["derived"]["battery_discharge_watts"] = round(_safe_float(aggregate["derived"].get("battery_discharge_watts")), 2)
-        aggregate["derived"]["source_watts"] = round(
-            max(0.0, _safe_float(aggregate["solar"].get("watts")))
-            + max(0.0, _safe_float(aggregate["wind"].get("watts")))
-            + max(0.0, _safe_float(aggregate["charger"].get("watts"))),
-            2,
-        )
-        aggregate["derived"]["estimated_load_watts"] = round(
-            max(
-                0.0,
-                _safe_float(aggregate["derived"].get("source_watts"))
-                + _safe_float(aggregate["derived"].get("battery_discharge_watts"))
-                - _safe_float(aggregate["derived"].get("battery_charge_watts")),
-            ),
-            2,
+        _finalize_derived_bucket(
+            aggregate["derived"],
+            _safe_float(aggregate["solar"].get("watts")),
+            _safe_float(aggregate["wind"].get("watts")),
+            _safe_float(aggregate["charger"].get("watts")),
         )
 
-        system_currents = aggregate["derived"].pop("_system_currents", [])
-        battery_currents = aggregate["derived"].pop("_battery_currents", [])
-        battery_voltages = aggregate["derived"].pop("_battery_voltages", [])
-        system_voltages = aggregate["derived"].pop("_system_voltages", [])
-        battery_soc_values = aggregate["derived"].pop("_battery_soc_values", [])
-        nominal_voltages = aggregate["derived"].pop("_battery_nominal_voltages", [])
+        for system_id, system_bucket in aggregate["systems"].items():
+            for sensor_type in ("overall", "solar", "wind", "battery", "charger", "system"):
+                for key in ("watts", "voltage", "current"):
+                    system_bucket[sensor_type][key] = round(_safe_float(system_bucket[sensor_type].get(key)), 2)
+            _finalize_derived_bucket(
+                system_bucket["derived"],
+                _safe_float(system_bucket["solar"].get("watts")),
+                _safe_float(system_bucket["wind"].get("watts")),
+                _safe_float(system_bucket["charger"].get("watts")),
+            )
 
-        flow_currents = system_currents if system_currents else battery_currents
-        battery_bank_current = round(sum(_safe_float(current) for current in flow_currents), 3)
-        voltage_source_values = battery_voltages if battery_voltages else system_voltages
-        battery_bank_voltage = 0.0
-        if voltage_source_values:
-            battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in voltage_source_values) / len(voltage_source_values), 3)
-        elif nominal_voltages:
-            battery_bank_voltage = round(sum(_safe_float(voltage) for voltage in nominal_voltages) / len(nominal_voltages), 3)
+            location_id = str(system_bucket.get("location_id") or "")
+            location_entry = aggregate["locations"].setdefault(location_id, {
+                "id": location_id,
+                "name": system_bucket.get("location_name") or location_id,
+                "system_count": 0,
+                "overall_watts": 0.0,
+                "source_watts": 0.0,
+                "battery_charge_watts": 0.0,
+                "battery_discharge_watts": 0.0,
+                "estimated_load_watts": 0.0,
+            })
+            location_entry["system_count"] += 1
+            location_entry["overall_watts"] += _safe_float(system_bucket["overall"].get("watts"))
+            location_entry["source_watts"] += _safe_float(system_bucket["derived"].get("source_watts"))
+            location_entry["battery_charge_watts"] += _safe_float(system_bucket["derived"].get("battery_charge_watts"))
+            location_entry["battery_discharge_watts"] += _safe_float(system_bucket["derived"].get("battery_discharge_watts"))
+            location_entry["estimated_load_watts"] += _safe_float(system_bucket["derived"].get("estimated_load_watts"))
 
-        battery_bank_watts = round(battery_bank_voltage * battery_bank_current, 2)
-        if battery_bank_current > 0.05:
-            battery_bank_state = "discharging"
-        elif battery_bank_current < -0.05:
-            battery_bank_state = "charging"
-        else:
-            battery_bank_state = "idle"
+        for location in aggregate["locations"].values():
+            for key in ("overall_watts", "source_watts", "battery_charge_watts", "battery_discharge_watts", "estimated_load_watts"):
+                location[key] = round(_safe_float(location.get(key)), 2)
 
-        if battery_soc_values:
-            battery_bank_soc = int(round(sum(_safe_float(value) for value in battery_soc_values) / len(battery_soc_values)))
-        else:
-            reference_rating = nominal_voltages[0] if nominal_voltages else battery_bank_voltage
-            battery_bank_soc = _estimate_battery_soc_from_voltage(battery_bank_voltage, reference_rating) if battery_bank_voltage > 0 else 0
-
-        aggregate["derived"]["battery_bank_voltage"] = round(battery_bank_voltage, 3)
-        aggregate["derived"]["battery_bank_current"] = round(battery_bank_current, 3)
-        aggregate["derived"]["battery_bank_watts"] = round(battery_bank_watts, 2)
-        aggregate["derived"]["battery_bank_soc"] = int(max(0, min(100, battery_bank_soc)))
-        aggregate["derived"]["battery_bank_state"] = battery_bank_state
-        aggregate["derived"]["battery_current_sensor_count"] = len(flow_currents)
-        aggregate["derived"]["battery_voltage_sensor_count"] = len(voltage_source_values)
-
-        if flow_currents:
-            aggregate["derived"]["battery_discharge_watts"] = round(max(0.0, battery_bank_watts), 2)
-            aggregate["derived"]["battery_charge_watts"] = round(max(0.0, -battery_bank_watts), 2)
+        configured_system_count = len(aggregate["systems"])
+        active_system_count = sum(1 for system in aggregate["systems"].values() if _safe_float(system.get("overall", {}).get("watts")) != 0.0 or int(system.get("overall", {}).get("connected_count", 0) or 0) > 0)
+        configured_location_count = len({str(system.get("location_id") or "") for system in aggregate["systems"].values()})
+        active_location_count = sum(1 for location in aggregate["locations"].values() if _safe_float(location.get("overall_watts")) != 0.0)
+        aggregate["systems_summary"] = {
+            "configured_system_count": configured_system_count,
+            "configured_location_count": configured_location_count,
+            "active_system_count": active_system_count,
+            "active_location_count": active_location_count,
+        }
 
         return aggregate
 

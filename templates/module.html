@@ -162,6 +162,15 @@
             {% endif %}
           </select>
         </div>
+        <div class="settings-entry">
+          <label>System</label>
+          {% set assigned_system_id = sensor_cfg.system_id|default(row.system_id|default(default_system_id, true), true) %}
+          <select class="form-select form-select-sm" name="system_id">
+            {% for system in system_options %}
+            <option value="{{ system.id }}" {% if assigned_system_id == system.id %}selected{% endif %}>{{ system.name }} ({{ system.location_name|default(system.location_id, true) }})</option>
+            {% endfor %}
+          </select>
+        </div>
           {% if module_name == 'ina' %}
         <div class="settings-entry">
           <label>Device</label>
@@ -264,6 +273,14 @@
             <select class="form-select form-select-sm" name="type">
               {% for sensor_type in module_profile.sensor_types or sensor_type_options %}
               <option value="{{ sensor_type }}">{{ sensor_type|title }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="settings-entry">
+            <label>System</label>
+            <select class="form-select form-select-sm" name="system_id">
+              {% for system in system_options %}
+              <option value="{{ system.id }}" {% if system.id == default_system_id %}selected{% endif %}>{{ system.name }} ({{ system.location_name|default(system.location_id, true) }})</option>
               {% endfor %}
             </select>
           </div>

@@ -16,7 +16,35 @@ from .logging import get_logger
 logger = get_logger(__name__)
 
 
+def _slugify_identifier(value: Any, fallback: str) -> str:
+    text = str(value or "").strip().lower()
+    cleaned = "".join(char if (char.isalnum() or char in {"-", "_"}) else "-" for char in text)
+    normalized = "-".join(part for part in cleaned.replace("_", "-").split("-") if part)
+    return normalized or fallback
+
+
+def _as_bool(value: Any) -> bool:
+    if isinstance(value, bool):
+        return value
+    return str(value or "").strip().lower() in {"1", "true", "yes", "on"}
+
+
 DEFAULT_CORE_CONFIG: dict[str, Any] = {
+    "locations": [
+        {
+            "id": "home",
+            "name": "Home",
+            "is_default": True,
+        }
+    ],
+    "systems": [
+        {
+            "id": "home-main",
+            "name": "Home Main",
+            "location_id": "home",
+            "is_default": True,
+        }
+    ],
     "modules": {
         "ina": {
             "active": True,
@@ -260,6 +288,9 @@ class ConfigManager:
         if isinstance(config, dict):
             normalized = _deep_merge(normalized, config)
 
+        normalized["locations"] = self._normalize_locations(normalized.get("locations"))
+        normalized["systems"] = self._normalize_systems(normalized.get("systems"), normalized["locations"])
+
         if not isinstance(normalized.get("modules"), dict):
             normalized["modules"] = deepcopy(DEFAULT_CORE_CONFIG["modules"])
 
@@ -301,6 +332,81 @@ class ConfigManager:
 
         return normalized
 
+    def _normalize_locations(self, locations: Any) -> list[dict[str, Any]]:
+        normalized_locations: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        source = locations if isinstance(locations, list) else []
+        for index, location in enumerate(source):
+            if not isinstance(location, dict):
+                continue
+            location_id = _slugify_identifier(location.get("id") or location.get("name"), f"location-{index + 1}")
+            if location_id in seen_ids:
+                continue
+            seen_ids.add(location_id)
+            location_name = str(location.get("name") or location_id.replace("-", " ").title()).strip() or location_id.replace("-", " ").title()
+            normalized_locations.append({
+                "id": location_id,
+                "name": location_name,
+                "is_default": _as_bool(location.get("is_default")),
+            })
+
+        if not normalized_locations:
+            normalized_locations = deepcopy(DEFAULT_CORE_CONFIG["locations"])
+
+        if not any(_as_bool(location.get("is_default")) for location in normalized_locations):
+            normalized_locations[0]["is_default"] = True
+
+        default_assigned = False
+        for location in normalized_locations:
+            if _as_bool(location.get("is_default")) and not default_assigned:
+                location["is_default"] = True
+                default_assigned = True
+            else:
+                location["is_default"] = False
+        return normalized_locations
+
+    def _normalize_systems(self, systems: Any, locations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        location_ids = {str(location.get("id") or "") for location in locations}
+        default_location_id = next((str(location.get("id") or "") for location in locations if _as_bool(location.get("is_default"))), "home")
+
+        normalized_systems: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        source = systems if isinstance(systems, list) else []
+        for index, system in enumerate(source):
+            if not isinstance(system, dict):
+                continue
+            system_id = _slugify_identifier(system.get("id") or system.get("name"), f"system-{index + 1}")
+            if system_id in seen_ids:
+                continue
+            seen_ids.add(system_id)
+
+            location_id = _slugify_identifier(system.get("location_id"), default_location_id)
+            if location_id not in location_ids:
+                location_id = default_location_id
+
+            system_name = str(system.get("name") or system_id.replace("-", " ").title()).strip() or system_id.replace("-", " ").title()
+            normalized_systems.append({
+                "id": system_id,
+                "name": system_name,
+                "location_id": location_id,
+                "is_default": _as_bool(system.get("is_default")),
+            })
+
+        if not normalized_systems:
+            normalized_systems = deepcopy(DEFAULT_CORE_CONFIG["systems"])
+
+        if not any(_as_bool(system.get("is_default")) for system in normalized_systems):
+            normalized_systems[0]["is_default"] = True
+
+        default_assigned = False
+        for system in normalized_systems:
+            if _as_bool(system.get("is_default")) and not default_assigned:
+                system["is_default"] = True
+                default_assigned = True
+            else:
+                system["is_default"] = False
+        return normalized_systems
+
     def reload(self) -> dict[str, Any]:
         self.config = self._normalize_config(_read_json(self.core_config_path, DEFAULT_CORE_CONFIG))
         return self.config
@@ -330,6 +436,29 @@ class ConfigManager:
             "dependencies": module_root / "module_dependencies.json",
             "backups": module_root / "backups",
         }
+
+    def get_location_definitions(self) -> list[dict[str, Any]]:
+        return deepcopy(self.config.get("locations", [])) if isinstance(self.config.get("locations"), list) else []
+
+    def get_system_definitions(self) -> list[dict[str, Any]]:
+        locations = self.get_location_definitions()
+        location_names = {str(location.get("id") or ""): str(location.get("name") or "") for location in locations}
+        systems = deepcopy(self.config.get("systems", [])) if isinstance(self.config.get("systems"), list) else []
+        for system in systems:
+            if not isinstance(system, dict):
+                continue
+            location_id = str(system.get("location_id") or "")
+            system["location_name"] = location_names.get(location_id, location_id)
+        return systems
+
+    def get_default_system_id(self) -> str:
+        systems = self.get_system_definitions()
+        default_system = next((system for system in systems if _as_bool(system.get("is_default"))), None)
+        if isinstance(default_system, dict):
+            return str(default_system.get("id") or "")
+        if systems and isinstance(systems[0], dict):
+            return str(systems[0].get("id") or "")
+        return "home-main"
 
     def _module_backup_dir(self, module_name: str) -> Path:
         return self.get_module_paths(module_name)["backups"]
@@ -543,6 +672,9 @@ class ConfigManager:
         return {
             "auth": self.get_auth_public_config(),
             "general": deepcopy(self.config.get("general", {})),
+            "locations": self.get_location_definitions(),
+            "systems": self.get_system_definitions(),
+            "default_system_id": self.get_default_system_id(),
             "webserver": deepcopy(self.config.get("webserver", {})),
             "mqtt": deepcopy(self.config.get("mqtt", {})),
             "modules": {

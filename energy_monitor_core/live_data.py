@@ -258,6 +258,7 @@ class SensorDataStore:
             row = {
                 "name": sensor_name,
                 "type": sensor_type,
+                "system_id": str(sensor.get("system_id") or "").strip(),
                 "variant": str(sensor.get("variant") or sensor.get("source_device_type") or "").strip(),
                 "device_id": sensor.get("device_id"),
                 "address": normalize_i2c_address(sensor.get("address")) if module_name == "ina" else sensor.get("address"),

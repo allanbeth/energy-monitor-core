@@ -10,6 +10,69 @@
 
 {% block content %}
 <section class="page-layout page-layout-dashboard">
+  {% set systems_summary = status.aggregate_totals.get('systems_summary', {}) %}
+  {% set global_derived = status.aggregate_totals.get('derived', {}) %}
+  <div class="row g-3 mb-2">
+    <div class="col-12">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
+        {% call card_header('fa-layer-group', 'Off-grid Systems Overview', 'All configured systems combined') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
+          <div class="metric-value" data-systems-global-watts>{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</div>
+          <div class="metric-subline">Total Live Power (W)</div>
+          <div class="metric-small">
+            Source: <span data-systems-global-source>{{ global_derived.get('source_watts', 0) }}</span> W |
+            Charge: <span data-systems-global-charge>{{ global_derived.get('battery_charge_watts', 0) }}</span> W |
+            Discharge: <span data-systems-global-discharge>{{ global_derived.get('battery_discharge_watts', 0) }}</span> W |
+            Load: <span data-systems-global-load>{{ global_derived.get('estimated_load_watts', 0) }}</span> W
+          </div>
+          <div class="metric-small">
+            Battery Bank: <span data-systems-global-voltage>{{ global_derived.get('battery_bank_voltage', 0) }}</span> V |
+            <span data-systems-global-current>{{ global_derived.get('battery_bank_current', 0) }}</span> A |
+            SoC <span data-systems-global-soc>{{ global_derived.get('battery_bank_soc', 0) }}</span>% |
+            <span data-systems-global-state>{{ global_derived.get('battery_bank_state', 'idle')|title }}</span>
+          </div>
+          <div class="metric-footer">
+            Systems: <span data-systems-global-count>{{ systems_summary.get('configured_system_count', 0) }}</span>
+            | Active: <span data-systems-global-active>{{ systems_summary.get('active_system_count', 0) }}</span>
+            | Locations: <span data-systems-global-locations>{{ systems_summary.get('configured_location_count', 0) }}</span>
+          </div>
+        </div>
+      </article>
+    </div>
+  </div>
+
+  {% set configured_systems = status.aggregate_totals.get('systems', {}) %}
+  <div class="row g-3 mb-4" id="dashboard-system-cards">
+    {% for system_id, system in configured_systems.items() %}
+    {% set system_derived = system.get('derived', {}) %}
+    <div class="col-12 col-md-6 col-xl-4" data-system-card="{{ system_id }}">
+      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-system">
+        {% call card_header('fa-house-signal', system.get('name', system_id), system.get('location_name', system.get('location_id', '')) ) %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data">
+          <div class="metric-value" data-system-overall-watts="{{ system_id }}">{{ system.get('overall', {}).get('watts', 0) }}</div>
+          <div class="metric-subline">System Power (W)</div>
+          <div class="metric-small">
+            Solar: <span data-system-solar-watts="{{ system_id }}">{{ system.get('solar', {}).get('watts', 0) }}</span> W |
+            Wind: <span data-system-wind-watts="{{ system_id }}">{{ system.get('wind', {}).get('watts', 0) }}</span> W |
+            Charger: <span data-system-charger-watts="{{ system_id }}">{{ system.get('charger', {}).get('watts', 0) }}</span> W
+          </div>
+          <div class="metric-small">
+            Charge: <span data-system-charge-watts="{{ system_id }}">{{ system_derived.get('battery_charge_watts', 0) }}</span> W |
+            Discharge: <span data-system-discharge-watts="{{ system_id }}">{{ system_derived.get('battery_discharge_watts', 0) }}</span> W |
+            Load: <span data-system-load-watts="{{ system_id }}">{{ system_derived.get('estimated_load_watts', 0) }}</span> W
+          </div>
+          <div class="metric-small">
+            Bank: <span data-system-voltage="{{ system_id }}">{{ system_derived.get('battery_bank_voltage', 0) }}</span> V |
+            <span data-system-current="{{ system_id }}">{{ system_derived.get('battery_bank_current', 0) }}</span> A |
+            SoC <span data-system-soc="{{ system_id }}">{{ system_derived.get('battery_bank_soc', 0) }}</span>%
+          </div>
+          <div class="metric-footer">State: <span data-system-state="{{ system_id }}">{{ system_derived.get('battery_bank_state', 'idle')|title }}</span> | Sensors: <span data-system-count="{{ system_id }}">{{ system.get('overall', {}).get('sensor_count', 0) }}</span></div>
+        </div>
+      </article>
+    </div>
+    {% endfor %}
+  </div>
+
   <div class="row g-3 dashboard-card-grid card-layout-grid">
     <div class="col-12 col-md-3">
       <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">

@@ -672,6 +672,72 @@
     const aggregate = status.aggregate_totals || {};
     const trends = status.dashboard_trends || {};
     const derived = aggregate.derived || {};
+    const systemsSummary = aggregate.systems_summary || {};
+    const systems = aggregate.systems || {};
+
+    const globalSystemsWatts = document.querySelector('[data-systems-global-watts]');
+    const globalSystemsSource = document.querySelector('[data-systems-global-source]');
+    const globalSystemsCharge = document.querySelector('[data-systems-global-charge]');
+    const globalSystemsDischarge = document.querySelector('[data-systems-global-discharge]');
+    const globalSystemsLoad = document.querySelector('[data-systems-global-load]');
+    const globalSystemsVoltage = document.querySelector('[data-systems-global-voltage]');
+    const globalSystemsCurrent = document.querySelector('[data-systems-global-current]');
+    const globalSystemsSoc = document.querySelector('[data-systems-global-soc]');
+    const globalSystemsState = document.querySelector('[data-systems-global-state]');
+    const globalSystemsCount = document.querySelector('[data-systems-global-count]');
+    const globalSystemsActive = document.querySelector('[data-systems-global-active]');
+    const globalSystemsLocations = document.querySelector('[data-systems-global-locations]');
+
+    if (globalSystemsWatts) globalSystemsWatts.textContent = String((aggregate.overall || {}).watts ?? 0);
+    if (globalSystemsSource) globalSystemsSource.textContent = String(derived.source_watts ?? 0);
+    if (globalSystemsCharge) globalSystemsCharge.textContent = String(derived.battery_charge_watts ?? 0);
+    if (globalSystemsDischarge) globalSystemsDischarge.textContent = String(derived.battery_discharge_watts ?? 0);
+    if (globalSystemsLoad) globalSystemsLoad.textContent = String(derived.estimated_load_watts ?? 0);
+    if (globalSystemsVoltage) globalSystemsVoltage.textContent = String(derived.battery_bank_voltage ?? 0);
+    if (globalSystemsCurrent) globalSystemsCurrent.textContent = String(derived.battery_bank_current ?? 0);
+    if (globalSystemsSoc) globalSystemsSoc.textContent = String(derived.battery_bank_soc ?? 0);
+    if (globalSystemsState) {
+      const state = String(derived.battery_bank_state ?? "idle");
+      globalSystemsState.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+    }
+    if (globalSystemsCount) globalSystemsCount.textContent = String(systemsSummary.configured_system_count ?? 0);
+    if (globalSystemsActive) globalSystemsActive.textContent = String(systemsSummary.active_system_count ?? 0);
+    if (globalSystemsLocations) globalSystemsLocations.textContent = String(systemsSummary.configured_location_count ?? 0);
+
+    Object.entries(systems).forEach(([systemId, system]) => {
+      const summary = system && typeof system === "object" ? system : {};
+      const systemDerived = summary.derived || {};
+      const byAttr = (name) => document.querySelector(`[${name}="${systemId}"]`);
+
+      const overallWattsNode = byAttr("data-system-overall-watts");
+      const solarWattsNode = byAttr("data-system-solar-watts");
+      const windWattsNode = byAttr("data-system-wind-watts");
+      const chargerWattsNode = byAttr("data-system-charger-watts");
+      const chargeWattsNode = byAttr("data-system-charge-watts");
+      const dischargeWattsNode = byAttr("data-system-discharge-watts");
+      const loadWattsNode = byAttr("data-system-load-watts");
+      const voltageNode = byAttr("data-system-voltage");
+      const currentNode = byAttr("data-system-current");
+      const socNode = byAttr("data-system-soc");
+      const stateNode = byAttr("data-system-state");
+      const countNode = byAttr("data-system-count");
+
+      if (overallWattsNode) overallWattsNode.textContent = String((summary.overall || {}).watts ?? 0);
+      if (solarWattsNode) solarWattsNode.textContent = String((summary.solar || {}).watts ?? 0);
+      if (windWattsNode) windWattsNode.textContent = String((summary.wind || {}).watts ?? 0);
+      if (chargerWattsNode) chargerWattsNode.textContent = String((summary.charger || {}).watts ?? 0);
+      if (chargeWattsNode) chargeWattsNode.textContent = String(systemDerived.battery_charge_watts ?? 0);
+      if (dischargeWattsNode) dischargeWattsNode.textContent = String(systemDerived.battery_discharge_watts ?? 0);
+      if (loadWattsNode) loadWattsNode.textContent = String(systemDerived.estimated_load_watts ?? 0);
+      if (voltageNode) voltageNode.textContent = String(systemDerived.battery_bank_voltage ?? 0);
+      if (currentNode) currentNode.textContent = String(systemDerived.battery_bank_current ?? 0);
+      if (socNode) socNode.textContent = String(systemDerived.battery_bank_soc ?? 0);
+      if (stateNode) {
+        const state = String(systemDerived.battery_bank_state ?? "idle");
+        stateNode.textContent = state.charAt(0).toUpperCase() + state.slice(1);
+      }
+      if (countNode) countNode.textContent = String((summary.overall || {}).sensor_count ?? 0);
+    });
 
     const overall = aggregate.overall || {};
     const overallWatts = document.querySelector('[data-aggregate-watts="overall"]');
@@ -1429,6 +1495,13 @@
           if (typeField && normalizedType) {
             typeField.value = normalizedType;
           }
+          const systemField = form.querySelector("[name='system_id']");
+          if (systemField) {
+            const assignedSystem = String((indexConfig && indexConfig.system_id) || sensor.system_id || "");
+            if (assignedSystem) {
+              systemField.value = assignedSystem;
+            }
+          }
           const nameField = form.querySelector("[name='name']");
           if (nameField) {
             nameField.value = String((indexConfig && indexConfig.name) || sensor.name || "");
@@ -1688,6 +1761,105 @@
     button.title = willShow ? "Close module edit" : "Edit modules";
   }
 
+  function nextIndexedRow(container, selector) {
+    const rows = Array.from(container.querySelectorAll(selector));
+    if (!rows.length) {
+      return 0;
+    }
+    const indexes = rows
+      .map((row) => Number(row.getAttribute("data-row-index")))
+      .filter((value) => Number.isFinite(value));
+    if (!indexes.length) {
+      return rows.length;
+    }
+    return Math.max(...indexes) + 1;
+  }
+
+  function bindSingleDefaultToggle(scopeSelector) {
+    document.querySelectorAll(scopeSelector).forEach((scope) => {
+      scope.addEventListener("change", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLInputElement) || target.type !== "checkbox") {
+          return;
+        }
+        if (!target.checked) {
+          return;
+        }
+        scope.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+          if (checkbox !== target) {
+            checkbox.checked = false;
+          }
+        });
+      });
+    });
+  }
+
+  function getLocationEntries() {
+    const rows = Array.from(document.querySelectorAll("#locations-rows [data-location-row]"));
+    return rows.map((row) => {
+      const idField = row.querySelector('input[name$="[id]"]');
+      const nameField = row.querySelector('input[name$="[name]"]');
+      const idValue = String(idField && "value" in idField ? idField.value : "").trim();
+      const nameValue = String(nameField && "value" in nameField ? nameField.value : "").trim();
+      if (!idValue && !nameValue) {
+        return null;
+      }
+      return {
+        id: idValue || nameValue.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, ""),
+        name: nameValue || idValue,
+      };
+    }).filter(Boolean);
+  }
+
+  function appendLocationRow() {
+    const container = document.getElementById("locations-rows");
+    if (!container) {
+      return;
+    }
+    const index = nextIndexedRow(container, "[data-location-row]");
+    const row = document.createElement("div");
+    row.className = "d-flex flex-wrap gap-2 align-items-center";
+    row.setAttribute("data-location-row", "");
+    row.setAttribute("data-row-index", String(index));
+    row.innerHTML = `
+      <input class="form-control form-control-sm" type="text" name="locations[${index}][id]" value="" placeholder="location-id" style="max-width: 160px;">
+      <input class="form-control form-control-sm" type="text" name="locations[${index}][name]" value="" placeholder="Location name" style="min-width: 220px;">
+      <span class="form-check form-switch m-0">
+        <input type="hidden" name="locations[${index}][is_default]" value="false">
+        <input class="form-check-input" type="checkbox" name="locations[${index}][is_default]" value="true">
+      </span>
+      <span class="text-secondary small">Default</span>
+    `;
+    container.appendChild(row);
+  }
+
+  function appendSystemRow() {
+    const container = document.getElementById("systems-rows");
+    if (!container) {
+      return;
+    }
+    const locations = getLocationEntries();
+    const index = nextIndexedRow(container, "[data-system-row]");
+    const options = locations.length
+      ? locations.map((location) => `<option value="${location.id}">${location.name}</option>`).join("")
+      : '<option value="home">Home</option>';
+    const row = document.createElement("div");
+    row.className = "d-flex flex-wrap gap-2 align-items-center";
+    row.setAttribute("data-system-row", "");
+    row.setAttribute("data-row-index", String(index));
+    row.innerHTML = `
+      <input class="form-control form-control-sm" type="text" name="systems[${index}][id]" value="" placeholder="system-id" style="max-width: 170px;">
+      <input class="form-control form-control-sm" type="text" name="systems[${index}][name]" value="" placeholder="System name" style="min-width: 190px;">
+      <select class="form-select form-select-sm" name="systems[${index}][location_id]" style="min-width: 170px;">${options}</select>
+      <span class="form-check form-switch m-0">
+        <input type="hidden" name="systems[${index}][is_default]" value="false">
+        <input class="form-check-input" type="checkbox" name="systems[${index}][is_default]" value="true">
+      </span>
+      <span class="text-secondary small">Default</span>
+    `;
+    container.appendChild(row);
+  }
+
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
     setLoadingStepMessage("Step 1/2: Loading live status...");
@@ -1735,6 +1907,12 @@
     });
     document.querySelectorAll('[data-core-action="export"]').forEach((button) => {
       button.addEventListener("click", exportCoreConfig);
+    });
+    document.querySelectorAll("[data-location-add]").forEach((button) => {
+      button.addEventListener("click", appendLocationRow);
+    });
+    document.querySelectorAll("[data-system-add]").forEach((button) => {
+      button.addEventListener("click", appendSystemRow);
     });
     document.querySelectorAll('[data-core-action="mqtt-credentials"]').forEach((button) => {
       button.addEventListener("click", () => setMqttPanelMode("credentials"));
@@ -1798,6 +1976,8 @@
       await request("/api/auth/logout", { method: "POST" });
       window.location.reload();
     });
+    bindSingleDefaultToggle("#locations-rows");
+    bindSingleDefaultToggle("#systems-rows");
     setMqttPanelMode("main");
     loadCoreBackups();
     refreshStatus();
