@@ -683,6 +683,12 @@
     const derived = aggregate.derived || {};
     const systemsSummary = aggregate.systems_summary || {};
     const systems = aggregate.systems || {};
+    const setText = (nodeOrSelector, value) => {
+      const node = typeof nodeOrSelector === "string" ? document.querySelector(nodeOrSelector) : nodeOrSelector;
+      if (node) {
+        node.textContent = String(value);
+      }
+    };
 
     const globalSystemsGeneration = document.querySelector('[data-systems-global-generation]');
     const globalSystemsWatts = document.querySelector('[data-systems-global-watts]');
@@ -717,6 +723,24 @@
     if (globalSystemsActive) globalSystemsActive.textContent = String(systemsSummary.active_system_count ?? 0);
     if (globalSystemsLocations) globalSystemsLocations.textContent = String(systemsSummary.configured_location_count ?? 0);
 
+    setText('[data-dashboard-location-total]', (aggregate.overall || {}).watts ?? 0);
+    setText('[data-dashboard-location-total-voltage]', (aggregate.overall || {}).voltage ?? 0);
+    setText('[data-dashboard-location-total-current]', (aggregate.overall || {}).current ?? 0);
+    setText('[data-dashboard-location-solar]', (aggregate.solar || {}).watts ?? 0);
+    setText('[data-dashboard-location-solar-voltage]', (aggregate.solar || {}).voltage ?? 0);
+    setText('[data-dashboard-location-solar-current]', (aggregate.solar || {}).current ?? 0);
+    setText('[data-dashboard-location-wind]', (aggregate.wind || {}).watts ?? 0);
+    setText('[data-dashboard-location-wind-voltage]', (aggregate.wind || {}).voltage ?? 0);
+    setText('[data-dashboard-location-wind-current]', (aggregate.wind || {}).current ?? 0);
+    setText('[data-dashboard-location-battery]', derived.battery_bank_watts ?? 0);
+    setText('[data-dashboard-location-battery-voltage]', derived.battery_bank_voltage ?? 0);
+    setText('[data-dashboard-location-battery-current]', derived.battery_bank_current ?? 0);
+    setText('[data-dashboard-location-battery-soc]', derived.battery_bank_soc ?? 0);
+    setText('[data-dashboard-location-battery-state]', (String(derived.battery_bank_state ?? "idle").charAt(0).toUpperCase() + String(derived.battery_bank_state ?? "idle").slice(1)));
+    setText('[data-dashboard-location-systems]', systemsSummary.configured_system_count ?? 0);
+    setText('[data-dashboard-location-active]', systemsSummary.active_system_count ?? 0);
+    setText('[data-dashboard-location-sensors]', (aggregate.overall || {}).sensor_count ?? 0);
+
     Object.entries(systems).forEach(([systemId, system]) => {
       const summary = system && typeof system === "object" ? system : {};
       const systemDerived = summary.derived || {};
@@ -736,6 +760,23 @@
       const systemSolarWatts = Number((summary.solar || {}).watts ?? 0);
       const systemWindWatts = Number((summary.wind || {}).watts ?? 0);
       const systemGenerationWatts = systemSolarWatts + systemWindWatts;
+
+      setText(`[data-dashboard-system-total="${systemId}"]`, (summary.overall || {}).watts ?? 0);
+      setText(`[data-dashboard-system-total-voltage="${systemId}"]`, (summary.overall || {}).voltage ?? 0);
+      setText(`[data-dashboard-system-total-current="${systemId}"]`, (summary.overall || {}).current ?? 0);
+      setText(`[data-dashboard-system-solar="${systemId}"]`, (summary.solar || {}).watts ?? 0);
+      setText(`[data-dashboard-system-solar-voltage="${systemId}"]`, (summary.solar || {}).voltage ?? 0);
+      setText(`[data-dashboard-system-solar-current="${systemId}"]`, (summary.solar || {}).current ?? 0);
+      setText(`[data-dashboard-system-wind="${systemId}"]`, (summary.wind || {}).watts ?? 0);
+      setText(`[data-dashboard-system-wind-voltage="${systemId}"]`, (summary.wind || {}).voltage ?? 0);
+      setText(`[data-dashboard-system-wind-current="${systemId}"]`, (summary.wind || {}).current ?? 0);
+      setText(`[data-dashboard-system-battery="${systemId}"]`, systemDerived.battery_bank_watts ?? 0);
+      setText(`[data-dashboard-system-battery-voltage="${systemId}"]`, systemDerived.battery_bank_voltage ?? 0);
+      setText(`[data-dashboard-system-battery-current="${systemId}"]`, systemDerived.battery_bank_current ?? 0);
+      setText(`[data-dashboard-system-battery-soc="${systemId}"]`, systemDerived.battery_bank_soc ?? 0);
+      setText(`[data-dashboard-system-battery-state="${systemId}"]`, String(systemDerived.battery_bank_state ?? "idle").charAt(0).toUpperCase() + String(systemDerived.battery_bank_state ?? "idle").slice(1));
+      setText(`[data-dashboard-system-sensors="${systemId}"]`, (summary.overall || {}).sensor_count ?? 0);
+      setText(`[data-dashboard-system-state="${systemId}"]`, String(systemDerived.battery_bank_state ?? "idle").charAt(0).toUpperCase() + String(systemDerived.battery_bank_state ?? "idle").slice(1));
 
       if (overallWattsNode) overallWattsNode.textContent = String((summary.overall || {}).watts ?? 0);
       if (generationWattsNode) generationWattsNode.textContent = String(systemGenerationWatts);

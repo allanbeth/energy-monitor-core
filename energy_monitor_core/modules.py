@@ -492,6 +492,7 @@ class ModuleRuntimeManager:
 
     def get_aggregate_trends(self, limit: int = 8) -> dict[str, list[dict[str, Any]]]:
         limit = max(2, int(limit or 8))
+        default_system_id = self.config_manager.get_default_system_id() if hasattr(self.config_manager, "get_default_system_id") else "home-main"
         buckets: dict[str, list[dict[str, Any]]] = {
             "overall": [],
             "solar": [],
@@ -503,6 +504,15 @@ class ModuleRuntimeManager:
             "battery_discharge": [],
             "estimated_load": [],
         }
+
+        systems = self.config_manager.get_system_definitions() if hasattr(self.config_manager, "get_system_definitions") else []
+        for system in systems if isinstance(systems, list) else []:
+            if not isinstance(system, dict):
+                continue
+            system_id = str(system.get("id") or "").strip()
+            if not system_id:
+                continue
+            buckets[f"system-{system_id}"] = []
 
         histories: list[list[dict[str, Any]]] = []
         for runtime in self.runtimes.values():
@@ -518,12 +528,30 @@ class ModuleRuntimeManager:
                 "battery": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
                 "charger": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
                 "system": {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0},
+                "systems": {},
             }
 
             for history in histories:
                 snapshot = history[-(offset + 1)] if len(history) > offset else None
                 if not isinstance(snapshot, dict):
                     continue
+                sensor_rows = snapshot.get("sensor_rows", []) if isinstance(snapshot.get("sensor_rows", []), list) else []
+                for row in sensor_rows:
+                    if not isinstance(row, dict) or not bool(row.get("connected", False)):
+                        continue
+                    system_id = str(row.get("system_id") or (row.get("config", {}) or {}).get("system_id") or default_system_id).strip() or default_system_id
+                    system_bucket = aggregate["systems"].setdefault(system_id, {"watts": 0.0, "voltage": 0.0, "current": 0.0, "sensor_count": 0})
+                    watts = _safe_float(row.get("watts"))
+                    voltage = _safe_float(row.get("voltage"))
+                    current = _safe_float(row.get("current"))
+                    system_bucket["watts"] += watts
+                    system_bucket["voltage"] += voltage
+                    system_bucket["current"] += current
+                    system_bucket["sensor_count"] += 1
+
+                    if f"system-{system_id}" not in buckets:
+                        buckets[f"system-{system_id}"] = []
+
                 for sensor_type in ("solar", "wind", "battery", "charger", "system"):
                     bucket = snapshot.get("sensor_type_summary", {}).get(sensor_type, {}) if isinstance(snapshot.get("sensor_type_summary", {}), dict) else {}
                     aggregate[sensor_type]["watts"] += _safe_float(bucket.get("watts", bucket.get("power")))
@@ -537,11 +565,21 @@ class ModuleRuntimeManager:
                     aggregate["overall"]["sensor_count"] += int(bucket.get("sensor_count", 0) or 0)
 
             for sensor_type, bucket in aggregate.items():
+                if sensor_type == "systems":
+                    continue
                 buckets[sensor_type].append({
                     "watts": round(bucket["watts"], 2),
                     "voltage": round(bucket["voltage"], 2),
                     "current": round(bucket["current"], 2),
                     "sensor_count": bucket["sensor_count"],
+                })
+
+            for system_id, bucket in aggregate["systems"].items():
+                buckets[f"system-{system_id}"].append({
+                    "watts": round(_safe_float(bucket.get("watts")), 2),
+                    "voltage": round(_safe_float(bucket.get("voltage")), 2),
+                    "current": round(_safe_float(bucket.get("current")), 2),
+                    "sensor_count": int(bucket.get("sensor_count", 0) or 0),
                 })
 
             flow_source = aggregate["system"] if int(aggregate["system"].get("sensor_count", 0) or 0) > 0 else aggregate["battery"]

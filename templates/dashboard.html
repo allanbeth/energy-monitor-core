@@ -10,210 +10,149 @@
 
 {% block content %}
 <section class="page-layout page-layout-dashboard">
-  {% set systems_summary = status.aggregate_totals.get('systems_summary', {}) %}
-  {% set global_derived = status.aggregate_totals.get('derived', {}) %}
-  <div class="row g-3 mb-2">
+  {% set location = location_options[0] if location_options and (location_options|length) > 0 else {'id': 'home', 'name': 'Home'} %}
+  {% set aggregate_totals = status.aggregate_totals %}
+  {% set location_derived = aggregate_totals.get('derived', {}) %}
+  {% set systems_summary = aggregate_totals.get('systems_summary', {}) %}
+  {% set configured_systems = aggregate_totals.get('systems', {}) %}
+  {% set location_trend = dashboard_trends.get('overall', []) %}
+  {% set location_trend_max = location_trend | map(attribute='watts') | max if location_trend else 0 %}
+
+  <div class="row g-3 mb-4">
     <div class="col-12">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
-        {% call card_header('fa-layer-group', 'Off-grid Systems Overview', 'All configured systems combined') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-          <div class="metric-value" data-systems-global-generation>{{ (status.aggregate_totals.get('solar', {}).get('watts', 0) + status.aggregate_totals.get('wind', {}).get('watts', 0))|round(2) }}</div>
-          <div class="metric-subline">Total Generation (W)</div>
-          <div class="metric-small">
-            Solar: <span data-systems-global-solar>{{ status.aggregate_totals.get('solar', {}).get('watts', 0) }}</span> W |
-            Wind: <span data-systems-global-wind>{{ status.aggregate_totals.get('wind', {}).get('watts', 0) }}</span> W |
-            System Power: <span data-systems-global-watts>{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</span> W
+      <article id="dashboard-location-card" class="metric-card dashboard-scope-card app-card card-shell card-type-data sensor-type-total">
+        {% call card_header('fa-location-dot', location.name|default('Home', true), 'Location overview') %}{% endcall %}
+        <div class="app-card-content card-content-live view-type-data dashboard-scope-content">
+          <div class="dashboard-scope-grid dashboard-scope-grid--location">
+            <section class="dashboard-stat-tile sensor-type-total">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-bolt"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Total Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-location-total>{{ aggregate_totals.get('overall', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-location-total-voltage>{{ aggregate_totals.get('overall', {}).get('voltage', 0) }}</span> | A <span data-dashboard-location-total-current>{{ aggregate_totals.get('overall', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-solar">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-solar-panel"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Solar Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-location-solar>{{ aggregate_totals.get('solar', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-location-solar-voltage>{{ aggregate_totals.get('solar', {}).get('voltage', 0) }}</span> | A <span data-dashboard-location-solar-current>{{ aggregate_totals.get('solar', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-wind">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-wind"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Wind Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-location-wind>{{ aggregate_totals.get('wind', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-location-wind-voltage>{{ aggregate_totals.get('wind', {}).get('voltage', 0) }}</span> | A <span data-dashboard-location-wind-current>{{ aggregate_totals.get('wind', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-battery dashboard-stat-tile--battery">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-battery-full"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Battery Bank</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-location-battery>{{ location_derived.get('battery_bank_watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta dashboard-stat-meta--stacked">
+                  <span>V <span data-dashboard-location-battery-voltage>{{ location_derived.get('battery_bank_voltage', 0) }}</span></span>
+                  <span>A <span data-dashboard-location-battery-current>{{ location_derived.get('battery_bank_current', 0) }}</span></span>
+                  <span>SoC <span data-dashboard-location-battery-soc>{{ location_derived.get('battery_bank_soc', 0) }}</span>%</span>
+                  <span data-dashboard-location-battery-state>{{ location_derived.get('battery_bank_state', 'idle')|title }}</span>
+                </div>
+              </div>
+            </section>
           </div>
-          <div class="metric-small">
-            Battery Bank: <span data-systems-global-voltage>{{ global_derived.get('battery_bank_voltage', 0) }}</span> V |
-            <span data-systems-global-current>{{ global_derived.get('battery_bank_current', 0) }}</span> A |
-            SoC <span data-systems-global-soc>{{ global_derived.get('battery_bank_soc', 0) }}</span>% |
-            <span data-systems-global-state>{{ global_derived.get('battery_bank_state', 'idle')|title }}</span> |
-            <span data-systems-global-battery-flow>{{ global_derived.get('battery_bank_watts', 0) }}</span> W
+
+          <div class="trend-strip dashboard-trend-strip" data-trend-series="overall">
+            {% for point in location_trend %}
+            <span class="trend-bar" style="height: {{ ((point.watts / location_trend_max) * 100) if location_trend_max else 0 }}%"></span>
+            {% endfor %}
           </div>
-          <div class="metric-footer">
-            Systems: <span data-systems-global-count>{{ systems_summary.get('configured_system_count', 0) }}</span>
-            | Active: <span data-systems-global-active>{{ systems_summary.get('active_system_count', 0) }}</span>
-            | Locations: <span data-systems-global-locations>{{ systems_summary.get('configured_location_count', 0) }}</span>
+
+          <div class="metric-footer dashboard-scope-footer">
+            Systems: <span data-dashboard-location-systems>{{ systems_summary.get('configured_system_count', 0) }}</span>
+            | Active: <span data-dashboard-location-active>{{ systems_summary.get('active_system_count', 0) }}</span>
+            | Sensors: <span data-dashboard-location-sensors>{{ aggregate_totals.get('overall', {}).get('sensor_count', 0) }}</span>
           </div>
         </div>
       </article>
     </div>
   </div>
 
-  {% set configured_systems = status.aggregate_totals.get('systems', {}) %}
+  {% set system_count = configured_systems|length %}
   <div class="row g-3 mb-4" id="dashboard-system-cards">
     {% for system_id, system in configured_systems.items() %}
     {% set system_derived = system.get('derived', {}) %}
-    <div class="col-12 col-md-6 col-xl-4" data-system-card="{{ system_id }}">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-system">
+    {% set system_trend = dashboard_trends.get('system-' ~ system_id, []) %}
+    {% set system_trend_max = system_trend | map(attribute='watts') | max if system_trend else 0 %}
+    <div class="{% if system_count == 1 %}col-12{% else %}col-12 col-xl-6{% endif %}" data-dashboard-system-card="{{ system_id }}">
+      <article class="metric-card dashboard-scope-card app-card card-shell card-type-data sensor-type-system">
         {% call card_header('fa-house-signal', system.get('name', system_id), system.get('location_name', system.get('location_id', '')) ) %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-          <div class="metric-value" data-system-generation-watts="{{ system_id }}">{{ (system.get('solar', {}).get('watts', 0) + system.get('wind', {}).get('watts', 0))|round(2) }}</div>
-          <div class="metric-subline">Generation (W)</div>
-          <div class="metric-small">
-            Solar: <span data-system-solar-watts="{{ system_id }}">{{ system.get('solar', {}).get('watts', 0) }}</span> W |
-            Wind: <span data-system-wind-watts="{{ system_id }}">{{ system.get('wind', {}).get('watts', 0) }}</span> W |
-            System Power: <span data-system-overall-watts="{{ system_id }}">{{ system.get('overall', {}).get('watts', 0) }}</span> W
+        <div class="app-card-content card-content-live view-type-data dashboard-scope-content">
+          <div class="dashboard-scope-grid dashboard-scope-grid--system">
+            <section class="dashboard-stat-tile sensor-type-total">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-bolt"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Total Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-system-total="{{ system_id }}">{{ system.get('overall', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-system-total-voltage="{{ system_id }}">{{ system.get('overall', {}).get('voltage', 0) }}</span> | A <span data-dashboard-system-total-current="{{ system_id }}">{{ system.get('overall', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-solar">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-solar-panel"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Solar Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-system-solar="{{ system_id }}">{{ system.get('solar', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-system-solar-voltage="{{ system_id }}">{{ system.get('solar', {}).get('voltage', 0) }}</span> | A <span data-dashboard-system-solar-current="{{ system_id }}">{{ system.get('solar', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-wind">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-wind"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Wind Power</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-system-wind="{{ system_id }}">{{ system.get('wind', {}).get('watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta">V <span data-dashboard-system-wind-voltage="{{ system_id }}">{{ system.get('wind', {}).get('voltage', 0) }}</span> | A <span data-dashboard-system-wind-current="{{ system_id }}">{{ system.get('wind', {}).get('current', 0) }}</span></div>
+              </div>
+            </section>
+
+            <section class="dashboard-stat-tile sensor-type-battery dashboard-stat-tile--battery">
+              <div class="dashboard-stat-icon"><i class="fa-solid fa-battery-full"></i></div>
+              <div class="dashboard-stat-body">
+                <div class="dashboard-stat-label">Battery Bank</div>
+                <div class="dashboard-stat-value-row"><span class="dashboard-stat-value" data-dashboard-system-battery="{{ system_id }}">{{ system_derived.get('battery_bank_watts', 0) }}</span><span class="dashboard-stat-unit">W</span></div>
+                <div class="dashboard-stat-meta dashboard-stat-meta--stacked">
+                  <span>V <span data-dashboard-system-battery-voltage="{{ system_id }}">{{ system_derived.get('battery_bank_voltage', 0) }}</span></span>
+                  <span>A <span data-dashboard-system-battery-current="{{ system_id }}">{{ system_derived.get('battery_bank_current', 0) }}</span></span>
+                  <span>SoC <span data-dashboard-system-battery-soc="{{ system_id }}">{{ system_derived.get('battery_bank_soc', 0) }}</span>%</span>
+                  <span data-dashboard-system-battery-state="{{ system_id }}">{{ system_derived.get('battery_bank_state', 'idle')|title }}</span>
+                </div>
+              </div>
+            </section>
           </div>
-          <div class="metric-small">
-            Bank: <span data-system-voltage="{{ system_id }}">{{ system_derived.get('battery_bank_voltage', 0) }}</span> V |
-            <span data-system-current="{{ system_id }}">{{ system_derived.get('battery_bank_current', 0) }}</span> A |
-            SoC <span data-system-soc="{{ system_id }}">{{ system_derived.get('battery_bank_soc', 0) }}</span>% |
-            <span data-system-battery-flow="{{ system_id }}">{{ system_derived.get('battery_bank_watts', 0) }}</span> W
+
+          <div class="trend-strip dashboard-trend-strip" data-trend-series="system-{{ system_id }}">
+            {% for point in system_trend %}
+            <span class="trend-bar" style="height: {{ ((point.watts / system_trend_max) * 100) if system_trend_max else 0 }}%"></span>
+            {% endfor %}
           </div>
-          <div class="metric-footer">State: <span data-system-state="{{ system_id }}">{{ system_derived.get('battery_bank_state', 'idle')|title }}</span> | Sensors: <span data-system-count="{{ system_id }}">{{ system.get('overall', {}).get('sensor_count', 0) }}</span></div>
+
+          <div class="metric-footer dashboard-scope-footer">
+            Sensors: <span data-dashboard-system-sensors="{{ system_id }}">{{ system.get('overall', {}).get('sensor_count', 0) }}</span>
+            | State: <span data-dashboard-system-state="{{ system_id }}">{{ system_derived.get('battery_bank_state', 'idle')|title }}</span>
+          </div>
         </div>
       </article>
+    </div>
+    {% else %}
+    <div class="col-12">
+      <div class="text-secondary">No systems configured.</div>
     </div>
     {% endfor %}
-  </div>
-
-  <div class="row g-3 dashboard-card-grid card-layout-grid">
-    <div class="col-12 col-md-3">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
-        {% call card_header('fa-bolt', 'Total Power', 'Live aggregate output') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-value" data-aggregate-watts="overall">{{ status.aggregate_totals.get('overall', {}).get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="overall">{{ status.aggregate_totals.get('overall', {}).get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="overall">{{ status.aggregate_totals.get('overall', {}).get('current', 0) }}</span>
-        </div>
-        {% set overall_trend = dashboard_trends.get('overall', []) %}
-        {% set overall_max = overall_trend | map(attribute='watts') | max if overall_trend else 0 %}
-        <div class="trend-strip" data-trend-series="overall">
-          {% for point in overall_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / overall_max) * 100) if overall_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Sensors: <span data-aggregate-count="overall">{{ status.aggregate_totals.get('overall', {}).get('sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
-
-    {% set solar = status.aggregate_totals.get('solar', {}) %}
-    <div class="col-12 col-md-3">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-solar">
-        {% call card_header('fa-solar-panel', 'Solar Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-value" data-aggregate-watts="solar">{{ solar.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="solar">{{ solar.get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="solar">{{ solar.get('current', 0) }}</span>
-        </div>
-        {% set solar_trend = dashboard_trends.get('solar', []) %}
-        {% set solar_max = solar_trend | map(attribute='watts') | max if solar_trend else 0 %}
-        <div class="trend-strip" data-trend-series="solar">
-          {% for point in solar_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / solar_max) * 100) if solar_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Sensors: <span data-aggregate-count="solar">{{ solar.get('sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
-
-    {% set wind = status.aggregate_totals.get('wind', {}) %}
-    <div class="col-12 col-md-3">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-wind">
-        {% call card_header('fa-wind', 'Wind Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-value" data-aggregate-watts="wind">{{ wind.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="wind">{{ wind.get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="wind">{{ wind.get('current', 0) }}</span>
-        </div>
-        {% set wind_trend = dashboard_trends.get('wind', []) %}
-        {% set wind_max = wind_trend | map(attribute='watts') | max if wind_trend else 0 %}
-        <div class="trend-strip" data-trend-series="wind">
-          {% for point in wind_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / wind_max) * 100) if wind_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Sensors: <span data-aggregate-count="wind">{{ wind.get('sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
-
-    {% set battery = status.aggregate_totals.get('battery', {}) %}
-    <div class="col-12 col-md-3">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-battery">
-        {% call card_header('fa-battery-full', 'Battery Power', 'Live module output') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-value" data-aggregate-watts="battery">{{ battery.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="battery">{{ battery.get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="battery">{{ battery.get('current', 0) }}</span>
-        </div>
-        {% set battery_trend = dashboard_trends.get('battery', []) %}
-        {% set battery_max = battery_trend | map(attribute='watts') | max if battery_trend else 0 %}
-        <div class="trend-strip" data-trend-series="battery">
-          {% for point in battery_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / battery_max) * 100) if battery_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Sensors: <span data-aggregate-count="battery">{{ battery.get('sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
-
-    {% set charger = status.aggregate_totals.get('charger', {}) %}
-    <div class="col-12 col-md-3 {% if charger.get('connected_count', 0) == 0 %}hidden{% endif %}" data-dashboard-charger-slot>
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-charger" data-dashboard-charger-card>
-        {% call card_header('fa-charging-station', 'Battery Charger', 'Only shown while connected') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-value" data-aggregate-watts="charger">{{ charger.get('watts', 0) }}</div>
-        <div class="metric-subline">Watts</div>
-        <div class="metric-small">
-          V <span data-aggregate-voltage="charger">{{ charger.get('voltage', 0) }}</span> |
-          A <span data-aggregate-current="charger">{{ charger.get('current', 0) }}</span>
-        </div>
-        {% set charger_trend = dashboard_trends.get('charger', []) %}
-        {% set charger_max = charger_trend | map(attribute='watts') | max if charger_trend else 0 %}
-        <div class="trend-strip" data-trend-series="charger">
-          {% for point in charger_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / charger_max) * 100) if charger_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Sensors: <span data-aggregate-count="charger">{{ charger.get('sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
-
-    {% set derived = status.aggregate_totals.get('derived', {}) %}
-    <div class="col-12 col-md-3">
-      <article class="metric-card dashboard-overview-card app-card card-shell card-type-data sensor-type-total">
-        {% call card_header('fa-right-left', 'System Flow', 'Charge, discharge, and estimated load') %}{% endcall %}
-        <div class="app-card-content card-content-live view-type-data">
-        <div class="metric-small">
-          Charge In: <span data-derived-watts="battery-charge">{{ derived.get('battery_charge_watts', 0) }}</span> W
-        </div>
-        <div class="metric-small">
-          Discharge Out: <span data-derived-watts="battery-discharge">{{ derived.get('battery_discharge_watts', 0) }}</span> W
-        </div>
-        <div class="metric-small">
-          Battery Bank: <span data-derived-battery-voltage>{{ derived.get('battery_bank_voltage', 0) }}</span> V |
-          <span data-derived-battery-current>{{ derived.get('battery_bank_current', 0) }}</span> A |
-          SoC <span data-derived-battery-soc>{{ derived.get('battery_bank_soc', 0) }}</span>% |
-          <span data-derived-battery-state>{{ derived.get('battery_bank_state', 'idle')|title }}</span>
-        </div>
-        <div class="metric-value" data-derived-watts="estimated-load">{{ derived.get('estimated_load_watts', 0) }}</div>
-        <div class="metric-subline">Estimated Load (W)</div>
-        {% set flow_trend = dashboard_trends.get('estimated_load', []) %}
-        {% set flow_max = flow_trend | map(attribute='watts') | max if flow_trend else 0 %}
-        <div class="trend-strip" data-trend-series="estimated_load">
-          {% for point in flow_trend %}
-          <span class="trend-bar" style="height: {{ ((point.watts / flow_max) * 100) if flow_max else 0 }}%"></span>
-          {% endfor %}
-        </div>
-        <div class="metric-footer">Source: <span data-derived-sensor-type>{{ derived.get('flow_sensor_type', 'battery')|title }}</span> | Current sensors: <span data-derived-count="battery-current-sensors">{{ derived.get('battery_current_sensor_count', 0) }}</span> | Voltage sensors: <span data-derived-count="battery-voltage-sensors">{{ derived.get('battery_voltage_sensor_count', 0) }}</span></div>
-        </div>
-      </article>
-    </div>
   </div>
 </section>
 {% endblock %}
