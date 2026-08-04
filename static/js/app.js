@@ -170,6 +170,15 @@
     return String(value).trim();
   }
 
+  function escapeHtml(value) {
+    return String(value || "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#39;");
+  }
+
   function findModuleDevice(snapshot, sensor) {
     const moduleConfig = snapshot && typeof snapshot === "object" ? snapshot.module_config : null;
     const devices = moduleConfig && Array.isArray(moduleConfig.devices) ? moduleConfig.devices : [];
@@ -1131,8 +1140,10 @@
       await request("/api/config", { method: "PUT", body: JSON.stringify(payload) });
       showMessage(message, "Core configuration saved.");
       await refreshAll();
+      return true;
     } catch (err) {
       showMessage(message, err.message, true);
+      return false;
     }
   }
 
@@ -1779,6 +1790,230 @@
     return Math.max(...indexes) + 1;
   }
 
+  function toSystemSlug(value, fallback) {
+    const normalized = String(value || "")
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    return normalized || fallback;
+  }
+
+  function getSystemsCardElements() {
+    return {
+      card: document.getElementById("system-group-settings-card"),
+      inputs: document.getElementById("systems-inputs"),
+      listPanel: document.getElementById("systems-list-panel"),
+      addPanel: document.getElementById("systems-add-panel"),
+      editPanel: document.getElementById("systems-edit-panel"),
+      feedbackPanel: document.getElementById("systems-feedback-panel"),
+      list: document.getElementById("systems-list"),
+      addName: document.getElementById("systems-add-name"),
+      editName: document.getElementById("systems-edit-name"),
+      editIndex: document.getElementById("systems-edit-index"),
+      feedbackMessage: document.getElementById("systems-feedback-message"),
+      addBtn: document.getElementById("systems-add-btn"),
+      saveAddBtn: document.getElementById("systems-save-add-btn"),
+      cancelAddBtn: document.getElementById("systems-cancel-add-btn"),
+      saveEditBtn: document.getElementById("systems-save-edit-btn"),
+      backEditBtn: document.getElementById("systems-back-edit-btn"),
+    };
+  }
+
+  function collectSystemsFromInputs(container) {
+    if (!container) {
+      return [];
+    }
+    const map = new Map();
+    container.querySelectorAll('input[name^="systems["]').forEach((input) => {
+      const match = String(input.name || "").match(/^systems\[(\d+)\]\[(id|location_id|name)\]$/);
+      if (!match) {
+        return;
+      }
+      const index = Number.parseInt(match[1], 10);
+      const key = match[2];
+      const entry = map.get(index) || { id: "", location_id: "", name: "" };
+      entry[key] = String(input.value || "");
+      map.set(index, entry);
+    });
+    return Array.from(map.entries())
+      .sort((a, b) => a[0] - b[0])
+      .map(([, value]) => ({
+        id: String(value.id || "").trim(),
+        location_id: String(value.location_id || "").trim(),
+        name: String(value.name || "").trim(),
+      }))
+      .filter((entry) => entry.id || entry.name);
+  }
+
+  function renderSystemsInputs(container, systems) {
+    if (!container) {
+      return;
+    }
+    container.innerHTML = "";
+    systems.forEach((system, index) => {
+      ["id", "location_id", "name"].forEach((key) => {
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = `systems[${index}][${key}]`;
+        input.value = String(system[key] || "");
+        container.appendChild(input);
+      });
+    });
+  }
+
+  function renderSystemsList(listElement, systems) {
+    if (!listElement) {
+      return;
+    }
+    if (!systems.length) {
+      listElement.innerHTML = "<li>No systems configured.</li>";
+      return;
+    }
+    listElement.innerHTML = systems
+      .map((system, index) => `
+        <li class="settings-entry">
+          <span>${escapeHtml(String(system.name || `System ${index + 1}`))}</span>
+          <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-systems-edit-index="${index}" title="Edit system">
+            <i class="fa-solid fa-gear"></i>
+          </button>
+        </li>
+      `)
+      .join("");
+  }
+
+  function setSystemsCardMode(elements, mode) {
+    if (!elements.card) {
+      return;
+    }
+    const normalized = ["list", "add", "edit", "feedback"].includes(mode) ? mode : "list";
+    elements.card.setAttribute("data-systems-mode", normalized);
+
+    elements.listPanel?.classList.toggle("hidden", normalized !== "list");
+    elements.addPanel?.classList.toggle("hidden", normalized !== "add");
+    elements.editPanel?.classList.toggle("hidden", normalized !== "edit");
+    elements.feedbackPanel?.classList.toggle("hidden", normalized !== "feedback");
+
+    elements.addBtn?.classList.toggle("hidden", normalized !== "list");
+    elements.saveAddBtn?.classList.toggle("hidden", normalized !== "add");
+    elements.cancelAddBtn?.classList.toggle("hidden", normalized !== "add");
+    elements.saveEditBtn?.classList.toggle("hidden", normalized !== "edit");
+    elements.backEditBtn?.classList.toggle("hidden", normalized !== "edit");
+  }
+
+  function showSystemsFeedback(elements, message, isError = false, returnMode = "list", timeoutMs = 1400) {
+    if (elements.feedbackMessage) {
+      elements.feedbackMessage.textContent = String(message || "");
+      elements.feedbackMessage.classList.toggle("status-disconnected", !!isError);
+      elements.feedbackMessage.classList.toggle("status-connected", !isError);
+    }
+    setSystemsCardMode(elements, "feedback");
+    window.setTimeout(() => {
+      setSystemsCardMode(elements, returnMode);
+    }, timeoutMs);
+  }
+
+  function bindSystemsCard() {
+    const elements = getSystemsCardElements();
+    if (!elements.card || !elements.inputs || !elements.list) {
+      return;
+    }
+    if (elements.card.dataset.bound === "true") {
+      return;
+    }
+
+    const getSystems = () => collectSystemsFromInputs(elements.inputs);
+    const saveSystems = async () => saveCoreSettings();
+
+    renderSystemsList(elements.list, getSystems());
+    setSystemsCardMode(elements, "list");
+
+    elements.addBtn?.addEventListener("click", () => {
+      if (elements.addName) {
+        elements.addName.value = "";
+        elements.addName.focus();
+      }
+      setSystemsCardMode(elements, "add");
+    });
+
+    elements.cancelAddBtn?.addEventListener("click", () => {
+      setSystemsCardMode(elements, "list");
+    });
+
+    elements.saveAddBtn?.addEventListener("click", async () => {
+      const name = String(elements.addName?.value || "").trim();
+      if (!name) {
+        showSystemsFeedback(elements, "System name is required.", true, "add");
+        return;
+      }
+      const systems = getSystems();
+      const baseSlug = toSystemSlug(name, `system-${systems.length + 1}`);
+      let slug = baseSlug;
+      let suffix = 2;
+      const existing = new Set(systems.map((item) => String(item.id || "").trim().toLowerCase()));
+      while (existing.has(slug.toLowerCase())) {
+        slug = `${baseSlug}-${suffix}`;
+        suffix += 1;
+      }
+
+      const locationIdField = document.querySelector('input[name="locations[0][id]"]');
+      const locationId = String(locationIdField && "value" in locationIdField ? locationIdField.value : "home").trim() || "home";
+      systems.push({ id: slug, location_id: locationId, name });
+      renderSystemsInputs(elements.inputs, systems);
+      renderSystemsList(elements.list, systems);
+
+      const ok = await saveSystems();
+      showSystemsFeedback(elements, ok ? "System added." : "Unable to save systems.", !ok, ok ? "list" : "add");
+    });
+
+    elements.list.addEventListener("click", (event) => {
+      const button = event.target instanceof Element ? event.target.closest("button[data-systems-edit-index]") : null;
+      if (!button) {
+        return;
+      }
+      const index = Number.parseInt(String(button.getAttribute("data-systems-edit-index") || ""), 10);
+      const systems = getSystems();
+      const system = Number.isInteger(index) ? systems[index] : null;
+      if (!system) {
+        return;
+      }
+      if (elements.editIndex) {
+        elements.editIndex.value = String(index);
+      }
+      if (elements.editName) {
+        elements.editName.value = String(system.name || "");
+        elements.editName.focus();
+      }
+      setSystemsCardMode(elements, "edit");
+    });
+
+    elements.backEditBtn?.addEventListener("click", () => {
+      setSystemsCardMode(elements, "list");
+    });
+
+    elements.saveEditBtn?.addEventListener("click", async () => {
+      const index = Number.parseInt(String(elements.editIndex?.value || ""), 10);
+      const name = String(elements.editName?.value || "").trim();
+      const systems = getSystems();
+      if (!Number.isInteger(index) || index < 0 || index >= systems.length) {
+        showSystemsFeedback(elements, "Invalid system selection.", true, "list");
+        return;
+      }
+      if (!name) {
+        showSystemsFeedback(elements, "System name is required.", true, "edit");
+        return;
+      }
+      systems[index].name = name;
+      renderSystemsInputs(elements.inputs, systems);
+      renderSystemsList(elements.list, systems);
+
+      const ok = await saveSystems();
+      showSystemsFeedback(elements, ok ? "System updated." : "Unable to save systems.", !ok, ok ? "list" : "edit");
+    });
+
+    elements.card.dataset.bound = "true";
+  }
+
   function bindDashboard() {
     showLoadingScreen("Loading dashboard...");
     setLoadingStepMessage("Step 1/2: Loading live status...");
@@ -1826,6 +2061,7 @@
     document.querySelectorAll('[data-core-action="export"]').forEach((button) => {
       button.addEventListener("click", exportCoreConfig);
     });
+    bindSystemsCard();
     document.querySelectorAll('[data-core-action="mqtt-credentials"]').forEach((button) => {
       button.addEventListener("click", () => setMqttPanelMode("credentials"));
     });
