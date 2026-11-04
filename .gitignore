@@ -24,3 +24,6 @@ victron/backups/
 mppt/backups/
 
 .DS_Store
+
+core.*
+!core.py
