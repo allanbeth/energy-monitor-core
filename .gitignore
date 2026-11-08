@@ -17,6 +17,7 @@ env/
 .mypy_cache/
 
 logs/
+/tests/
 
 monitor_core/backups/
 ina_sensor_monitor/backups/
