@@ -997,46 +997,42 @@
     }
   }
 
-  function toLogText(payload) {
-    if (!payload || typeof payload !== "object") {
-      return "";
-    }
+  const LogRenderer = {
+    formatEntry(logEntry) {
+      const { timestamp = "", level = "INFO", module = "", message = "" } = logEntry;
+      const levelClass = ["error", "warning", "info"].includes(level.toLowerCase())
+        ? `log-entry--${level.toLowerCase()}` : "";
+      const hasData = Object.prototype.hasOwnProperty.call(logEntry, "data");
+      return `
+        <div class="log-entry ${levelClass}">
+          <span class="log-level">${escapeHtml(level.toUpperCase())}</span>
+          <div class="log-meta">
+            ${module ? `<span class="log-module">${escapeHtml(module)}</span>` : ""}
+            <span class="log-timestamp">${escapeHtml(timestamp)}</span>
+          </div>
+          <span class="log-message">${escapeHtml(message)}</span>
+          ${hasData ? '<button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn log-data-button" title="View log data" aria-label="View log data"><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>' : ""}
+        </div>
+      `;
+    },
 
-    if (typeof payload.lines === "string") {
-      return payload.lines;
-    }
-
-    if (Array.isArray(payload.lines)) {
-      return payload.lines.map((line) => String(line || "")).join("\n");
-    }
-
-    const collectRecentEntries = (value, output = []) => {
-      if (!value || typeof value !== "object") {
-        return output;
+    renderEntries(container, entries) {
+      if (!container) return;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        container.innerHTML = '<div class="logs-empty-state"><i class="fa-solid fa-inbox"></i><p>No log entries available.</p></div>';
+        return;
       }
-      if (Array.isArray(value)) {
-        value.forEach((item) => collectRecentEntries(item, output));
-        return output;
-      }
-      if (Array.isArray(value.recent_entries)) {
-        value.recent_entries.forEach((entry) => {
-          const line = String(entry || "").trim();
-          if (line) {
-            output.push(line);
-          }
+      container.innerHTML = entries.map((entry) => this.formatEntry(entry)).join("");
+      container.querySelectorAll(".log-entry").forEach((element, index) => {
+        element.querySelector(".log-data-button")?.addEventListener("click", () => {
+          const dialog = document.getElementById("log-data-dialog");
+          const content = document.getElementById("log-data-content");
+          content.textContent = JSON.stringify(entries[index].data, null, 2);
+          dialog.showModal();
         });
-      }
-      Object.values(value).forEach((child) => collectRecentEntries(child, output));
-      return output;
-    };
-
-    const entries = collectRecentEntries(payload, []);
-    if (entries.length) {
-      return entries.join("\n");
+      });
     }
-
-    return "";
-  }
+  };
 
   async function refreshLogCard(moduleName = "core") {
     const normalizedModule = String(moduleName || "core").trim().toLowerCase();
@@ -1044,35 +1040,35 @@
     const endpoint = isCore
       ? "/api/logs/recent"
       : `/api/logs/recent?module=${encodeURIComponent(normalizedModule)}`;
-    const output = isCore
-      ? document.getElementById("logs-core-output")
-      : document.getElementById(`logs-module-output-${normalizedModule}`);
+    const container = isCore
+      ? document.getElementById("logs-core-container")
+      : document.getElementById(`logs-module-container-${normalizedModule}`);
     const message = isCore
       ? document.getElementById("logs-core-message")
       : document.getElementById(`logs-module-message-${normalizedModule}`);
 
-    if (output) {
-      output.textContent = "Loading logs...";
+    if (container) {
+      container.innerHTML = '<div class="logs-empty-state"><i class="fa-solid fa-spinner fa-spin"></i><p>Loading logs...</p></div>';
     }
 
     try {
       const data = await request(endpoint, { method: "GET" });
-      const rendered = toLogText(data);
-      if (output) {
-        output.textContent = rendered || "No log entries available.";
+      if (!Array.isArray(data.entries)) {
+        throw new Error("Invalid log response: entries are missing.");
       }
+      LogRenderer.renderEntries(container, data.entries);
       showStatusMessage(message, `Updated ${isCore ? "core" : normalizedModule} logs.`, "success");
     } catch (err) {
-      if (output) {
-        output.textContent = "Unable to load logs.";
+      if (container) {
+        container.innerHTML = '<div class="logs-empty-state"><i class="fa-solid fa-exclamation-circle"></i><p>Unable to load logs.</p></div>';
       }
       showStatusMessage(message, err.message || "Failed to refresh logs.", "error");
     }
   }
 
   async function refreshLogs() {
-    const coreOutput = document.getElementById("logs-core-output");
-    if (!coreOutput) {
+    const coreContainer = document.getElementById("logs-core-container");
+    if (!coreContainer) {
       return;
     }
     const tasks = [refreshLogCard("core")];

@@ -16,7 +16,12 @@
       </button>
       {% endcall %}
       <div class="app-card-content card-content-logs view-type-logs">
-        <pre class="logs-output" id="logs-core-output">Loading core logs...</pre>
+        <div class="logs-entries-container" id="logs-core-container">
+          <div class="logs-empty-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Loading core logs...</p>
+          </div>
+        </div>
         <div class="form-text" id="logs-core-message"></div>
       </div>
     </article>
@@ -29,11 +34,27 @@
       </button>
       {% endcall %}
       <div class="app-card-content card-content-logs view-type-logs">
-        <pre class="logs-output" id="logs-module-output-{{ module_name }}">Loading {{ module_name }} logs...</pre>
+        <div class="logs-entries-container" id="logs-module-container-{{ module_name }}">
+          <div class="logs-empty-state">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <p>Loading {{ module_name }} logs...</p>
+          </div>
+        </div>
         <div class="form-text" id="logs-module-message-{{ module_name }}"></div>
       </div>
     </article>
     {% endfor %}
   </div>
 </section>
+<dialog id="log-data-dialog" class="log-data-dialog" aria-labelledby="log-data-title">
+  <div class="card-header d-flex justify-content-between align-items-center gap-2">
+    <h3 id="log-data-title" class="section-title h5 mb-0">Log data</h3>
+    <form method="dialog">
+      <button type="submit" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Close log data" aria-label="Close log data">
+        <i class="fa-solid fa-times" aria-hidden="true"></i>
+      </button>
+    </form>
+  </div>
+  <pre id="log-data-content" class="log-data-content"></pre>
+</dialog>
 {% endblock %}

@@ -1,0 +1,52 @@
+{# Unified card component macros - Global components used across all pages #}
+
+{% macro card_shell(card_id='', card_type='data', data_attrs={}, classes='') -%}
+<article class="app-card card-shell card-type-{{ card_type }} {{ classes }}"
+  {% if card_id %}id="{{ card_id }}"{% endif %}
+  {% for key, value in data_attrs.items() %}data-{{ key }}="{{ value }}"{% endfor %}>
+  {{ caller() }}
+</article>
+{%- endmacro %}
+
+{% macro card_header(icon, title, subtitle='', eyebrow='') -%}
+<div class="card-header-default app-card-header">
+  <div class="card-header-main app-card-header-main">
+    <div class="card-header-icon app-card-header-icon">
+      <i class="fa-solid {{ icon }}"></i>
+    </div>
+    <div class="card-header-meta app-card-header-meta">
+      {% if eyebrow %}<div class="eyebrow">{{ eyebrow }}</div>{% endif %}
+      <h3 class="card-header-title app-card-title">{{ title }}</h3>
+      {% if subtitle %}<p class="card-header-subtitle app-card-subtitle">{{ subtitle }}</p>{% endif %}
+    </div>
+  </div>
+  <div class="card-header-actions app-card-header-actions">
+    {{ caller() }}
+  </div>
+</div>
+{%- endmacro %}
+
+{% macro card_content(content_type='live') -%}
+<div class="app-card-content card-content-{{ content_type }} view-type-{{ content_type }}">
+  {{ caller() }}
+</div>
+{%- endmacro %}
+
+{% macro card_feedback(message='', tone='success', hidden=true) -%}
+<div class="app-card-content card-content-feedback view-type-feedback{% if hidden %} hidden{% endif %}">
+  <div class="feedback-message feedback-{{ tone }}">{{ message }}</div>
+</div>
+{%- endmacro %}
+
+{% macro card_actions(buttons=[]) -%}
+<div class="action-btns card-action-buttons">
+  {% for button in buttons %}
+  <button type="button" 
+    class="btn btn-{{ button.variant|default('outline-secondary', true) }} btn-sm action-icon-btn"
+    {% if button.data_attr %}data-{{ button.data_attr.key }}="{{ button.data_attr.value }}"{% endif %}
+    {% if button.title %}title="{{ button.title }}"{% endif %}>
+    <i class="fa-solid {{ button.icon }}"></i>
+  </button>
+  {% endfor %}
+</div>
+{%- endmacro %}

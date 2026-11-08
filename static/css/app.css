@@ -27,6 +27,15 @@
   --card-content-gap: 0.42rem;
   --card-row-label-width: 38%;
   --card-row-input-width: 62%;
+  --status-connected-color: #10b981;
+  --status-connected-bg: rgba(16, 185, 129, 0.1);
+  --status-partial-color: #f59e0b;
+  --status-partial-bg: rgba(245, 158, 11, 0.1);
+  --status-disconnected-color: #ef4444;
+  --status-disconnected-bg: rgba(239, 68, 68, 0.1);
+  --card-content-live-max-height: 500px;
+  --card-content-form-max-height: 600px;
+  --card-content-logs-max-height: 400px;
 }
 
 * {
@@ -541,26 +550,50 @@ body {
 
 .card-content-live {
   flex: 1 1 auto;
+  max-height: var(--card-content-live-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .app-card-content--live {
   flex: 1 1 auto;
+  max-height: var(--card-content-live-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .card-content-form {
   gap: 0.45rem;
+  max-height: var(--card-content-form-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .app-card-content--form {
   gap: 0.45rem;
+  max-height: var(--card-content-form-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .card-content-logs {
   gap: 0.55rem;
+  max-height: var(--card-content-logs-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .app-card-content--logs {
   gap: 0.55rem;
+  max-height: var(--card-content-logs-max-height);
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 0.5rem;
 }
 
 .card-content-feedback {
@@ -2170,4 +2203,230 @@ input.form-check-input[type="checkbox"]:focus {
     width: 100%;
     max-width: 100%;
   }
+}
+
+/* === Status Color Styling === */
+.status-connected {
+  color: var(--status-connected-color);
+}
+
+.status-partial {
+  color: var(--status-partial-color);
+}
+
+.status-disconnected {
+  color: var(--status-disconnected-color);
+}
+
+/* === Feedback Message Display === */
+.card-content-feedback {
+  padding: 1rem;
+  border-radius: 0.8rem;
+  background: rgba(59, 130, 246, 0.1);
+  border-left: 3px solid #3b82f6;
+}
+
+.feedback-message {
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.feedback-success {
+  background: var(--status-connected-bg);
+  border-left-color: var(--status-connected-color);
+  color: var(--status-connected-color);
+}
+
+.feedback-error {
+  background: var(--status-disconnected-bg);
+  border-left-color: var(--status-disconnected-color);
+  color: var(--status-disconnected-color);
+}
+
+.feedback-warning {
+  background: var(--status-partial-bg);
+  border-left-color: var(--status-partial-color);
+  color: var(--status-partial-color);
+}
+
+/* === Scrollbar Styling (Webkit browsers) === */
+.card-content-live::-webkit-scrollbar,
+.card-content-form::-webkit-scrollbar,
+.card-content-logs::-webkit-scrollbar {
+  width: 0.5rem;
+}
+
+.card-content-live::-webkit-scrollbar-track,
+.card-content-form::-webkit-scrollbar-track,
+.card-content-logs::-webkit-scrollbar-track {
+  background: rgba(121, 134, 156, 0.1);
+  border-radius: 10px;
+}
+
+.card-content-live::-webkit-scrollbar-thumb,
+.card-content-form::-webkit-scrollbar-thumb,
+.card-content-logs::-webkit-scrollbar-thumb {
+  background: rgba(121, 134, 156, 0.4);
+  border-radius: 10px;
+}
+
+.card-content-live::-webkit-scrollbar-thumb:hover,
+.card-content-form::-webkit-scrollbar-thumb:hover,
+.card-content-logs::-webkit-scrollbar-thumb:hover {
+  background: rgba(121, 134, 156, 0.6);
+}
+
+/* === Log Entry Styling === */
+.logs-entries-container {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: 0.6rem;
+  background: rgba(15, 23, 42, 0.3);
+  border-left: 3px solid #64748b;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  transition: background 150ms ease;
+}
+
+.log-entry .log-level {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  align-self: center;
+}
+
+.log-entry .log-meta {
+  grid-column: 2 / 4;
+  grid-row: 1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  min-width: 0;
+}
+
+.log-entry .log-module {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.log-entry .log-message {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+}
+
+.log-entry .log-data-button {
+  grid-column: 3;
+  grid-row: 2;
+  justify-self: end;
+  align-self: start;
+}
+
+
+.log-entry--error {
+  border-left-color: #ef4444;
+  background: rgba(239, 68, 68, 0.05);
+}
+
+.log-entry--warning {
+  border-left-color: #f59e0b;
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.log-entry--info {
+  border-left-color: #3b82f6;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.log-level {
+  font-weight: 700;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.4rem;
+  white-space: nowrap;
+  background: currentColor;
+  color: white;
+}
+
+.log-entry--error .log-level {
+  background: #ef4444;
+}
+
+.log-entry--warning .log-level {
+  background: #f59e0b;
+}
+
+.log-entry--info .log-level {
+  background: #3b82f6;
+}
+
+.log-timestamp {
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+.log-message {
+  color: #64748b;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.log-module {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  background: rgba(148, 163, 184, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.3rem;
+  white-space: nowrap;
+}
+
+.log-data-dialog {
+  width: min(720px, calc(100% - 2rem));
+  max-height: calc(100vh - 2rem);
+  padding: 1rem;
+  border: 1px solid var(--panel-border);
+  border-radius: 0.8rem;
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: var(--shadow);
+}
+
+.log-data-dialog::backdrop {
+  background: rgba(9, 14, 27, 0.34);
+  backdrop-filter: blur(6px);
+}
+
+.log-data-content {
+  margin: 1rem 0 0;
+  max-height: calc(100vh - 8rem);
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Empty state for logs */
+.logs-empty-state {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #64748b;
+}
+
+.logs-empty-state i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  opacity: 0.5;
 }

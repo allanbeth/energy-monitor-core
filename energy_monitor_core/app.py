@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import uuid
 import threading
 import time
@@ -610,8 +611,50 @@ def _register_routes(app: Flask, config_manager: ConfigManager, backup_service: 
     def recent_logs() -> Any:
         module_name = request.args.get("module")
         if module_name:
-            return jsonify({"module": module_name, "lines": _read_recent_log_lines(Path(app.config["APP_ROOT"]) / "logs" / "modules" / f"{module_name}.log", 120)})
-        return jsonify({"module": None, "lines": _read_recent_log_lines(Path(app.config["APP_ROOT"]) / "logs" / "app.log", 120)})
+            path = Path(app.config["APP_ROOT"]) / "logs" / "modules" / f"{module_name}.log"
+        else:
+            path = Path(app.config["APP_ROOT"]) / "logs" / "app.log"
+        lines = _read_recent_log_lines(path, 120)
+        return jsonify({"module": module_name, "lines": lines, "entries": _parse_log_entries(lines)})
+
+
+_LOG_RECORD = re.compile(
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) "
+    r"(?P<level>[A-Z]+) \[(?P<module>[^\]]+)\] (?P<message>.*)$"
+)
+
+
+def _parse_log_entries(text: str) -> list[dict[str, Any]]:
+    entries: list[dict[str, Any]] = []
+    current: Optional[dict[str, Any]] = None
+    for line in text.splitlines():
+        match = _LOG_RECORD.match(line)
+        if match:
+            current = match.groupdict()
+            entries.append(current)
+        elif current is not None:
+            current["message"] += "\n" + line
+        elif line.strip():
+            current = {"timestamp": "", "level": "INFO", "module": "", "message": line}
+            entries.append(current)
+
+    decoder = json.JSONDecoder()
+    for entry in entries:
+        message = entry["message"]
+        for index, character in enumerate(message):
+            if character not in "{[" or (index and not (message[index - 1].isspace() or message[index - 1] == ":")):
+                continue
+            try:
+                value, end = decoder.raw_decode(message, index)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(value, (dict, list)) and not message[end:].strip():
+                entry["message"] = message[:index].rstrip()
+                entry["data"] = value
+                break
+        else:
+            entry["message"] = message.rstrip()
+    return entries
 
 
 def _read_recent_log_lines(path: Path, max_lines: int = 80) -> str:
@@ -620,6 +663,9 @@ def _read_recent_log_lines(path: Path, max_lines: int = 80) -> str:
 
     try:
         lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
-        return "\n".join(lines[-max_lines:])
+        start = max(0, len(lines) - max_lines)
+        while start > 0 and not _LOG_RECORD.match(lines[start]):
+            start -= 1
+        return "\n".join(lines[start:])
     except Exception:
         return "Unable to read log file."
