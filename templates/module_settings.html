@@ -1,17 +1,15 @@
 {% extends "base.html" %}
 {% from "_card_macros.html" import card_header %}
+{% from "_forms_macros.html" import settings_input %}
+{% from "_global_macros.html" import action_button, card_shell %}
 
 {% block page_actions %}
 <button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
 {% endblock %}
 
 {% block content %}
-<section class="section-heading page-layout page-layout-module-settings mb-3 d-flex justify-content-between align-items-center gap-3 flex-wrap">
-  <div>
-    <div class="eyebrow">{{ module_name }}</div>
-    <h2 class="section-title mb-0">{{ module_payload.definitions.get('settings-title', module_name|title ~ ' Settings') }}</h2>
-    <div class="text-secondary small">Detailed configuration for active module runtime and devices.</div>
-  </div>
+{% call card_shell(card_type='data', classes='settings-group-card page-layout-module-settings', card_id='module-settings-group') %}
+  {% call card_header('fa-gear', module_payload.definitions.get('settings-title', module_name|title ~ ' Settings'), 'Detailed configuration for active module runtime and devices.', module_name) %}
   <div class="d-flex gap-2 align-items-center">
     <a class="btn btn-outline-secondary btn-sm action-icon-btn" href="/settings" title="Back to settings">
       <i class="fa-solid fa-arrow-left"></i>
@@ -20,32 +18,28 @@
       <i class="fa-solid fa-wave-square"></i>
     </a>
   </div>
-</section>
-
+  {% endcall %}
+  <div class="app-card-content card-content-live view-type-data settings-group-content">
 <form id="module-core-settings-form-{{ module_name }}" class="module-settings-form" data-module-name="{{ module_name }}">
   <div class="row g-4 module-settings-cards-grid">
     {% if module_name == 'ina' %}
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-clock', 'Polling') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
-          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
-          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
-          <div class="settings-entry"><label>Max log</label><input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}"></div>
+          {{ settings_input('Solar poll interval', 'module_config[poll_intervals][Solar]', module_payload.module_config.poll_intervals.Solar, 'number') }}
+          {{ settings_input('Wind poll interval', 'module_config[poll_intervals][Wind]', module_payload.module_config.poll_intervals.Wind, 'number') }}
+          {{ settings_input('Battery poll interval', 'module_config[poll_intervals][Battery]', module_payload.module_config.poll_intervals.Battery, 'number') }}
+          {{ settings_input('Max log', 'module_config[max_log]', module_payload.module_config.max_log, 'number') }}
         </div>
       </article>
     </div>
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-microchip', 'Devices') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
           <div class="table-responsive">
@@ -82,37 +76,31 @@
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-bluetooth-b', 'Bluetooth') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-          <div class="settings-entry"><label>Bluetooth adapter</label><input class="form-control" type="text" name="module_config[bluetooth][adapter]" value="{{ module_payload.module_config.bluetooth.adapter }}"></div>
-          <div class="settings-entry"><label>Connection timeout</label><input class="form-control" type="number" name="module_config[bluetooth][connection_timeout]" value="{{ module_payload.module_config.bluetooth.connection_timeout }}"></div>
-          <div class="settings-entry"><label>Scan timeout</label><input class="form-control" type="number" name="module_config[bluetooth][scan_timeout]" value="{{ module_payload.module_config.bluetooth.scan_timeout }}"></div>
+          {{ settings_input('Bluetooth adapter', 'module_config[bluetooth][adapter]', module_payload.module_config.bluetooth.adapter) }}
+          {{ settings_input('Connection timeout', 'module_config[bluetooth][connection_timeout]', module_payload.module_config.bluetooth.connection_timeout, 'number') }}
+          {{ settings_input('Scan timeout', 'module_config[bluetooth][scan_timeout]', module_payload.module_config.bluetooth.scan_timeout, 'number') }}
         </div>
       </article>
     </div>
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-clock', 'Polling') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
-          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
-          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
+          {{ settings_input('Battery poll interval', 'module_config[poll_intervals][Battery]', module_payload.module_config.poll_intervals.Battery, 'number') }}
+          {{ settings_input('Solar poll interval', 'module_config[poll_intervals][Solar]', module_payload.module_config.poll_intervals.Solar, 'number') }}
+          {{ settings_input('Wind poll interval', 'module_config[poll_intervals][Wind]', module_payload.module_config.poll_intervals.Wind, 'number') }}
         </div>
       </article>
     </div>
     <div class="col-12">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-microchip', 'Devices') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save all device settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save all device settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
           <div class="form-text mb-3" data-victron-devices-message id="victron-devices-card-message"></div>
@@ -136,14 +124,14 @@
                   <input class="form-check-input" type="checkbox" name="module_config[devices][{{ loop.index0 }}][enabled]" value="true" {% if device.enabled %}checked{% endif %}>
                 </span>
               </div>
-              <div class="settings-entry"><label>Type</label><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][device_type]" value="{{ device.device_type }}"></div>
-              <div class="settings-entry"><label>Name</label><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][name]" value="{{ device.name }}"></div>
-              <div class="settings-entry"><label>MAC</label><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][mac]" value="{{ device.mac }}"></div>
-              <div class="settings-entry"><label>Passcode</label><input class="form-control form-control-sm" type="text" name="module_config[devices][{{ loop.index0 }}][passcode]" value="{{ device.passcode|default('', true) }}"></div>
+              {{ settings_input('Type', 'module_config[devices][' ~ loop.index0 ~ '][device_type]', device.device_type, 'text', 'form-control form-control-sm') }}
+              {{ settings_input('Name', 'module_config[devices][' ~ loop.index0 ~ '][name]', device.name, 'text', 'form-control form-control-sm') }}
+              {{ settings_input('MAC', 'module_config[devices][' ~ loop.index0 ~ '][mac]', device.mac, 'text', 'form-control form-control-sm') }}
+              {{ settings_input('Passcode', 'module_config[devices][' ~ loop.index0 ~ '][passcode]', device.passcode|default('', true), 'text', 'form-control form-control-sm') }}
               <div class="victron-device-actions">
                 <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-victron-device-close="{{ loop.index0 }}" title="Close device editor"><i class="fa-solid fa-xmark"></i></button>
                 <button type="button" class="btn btn-outline-warning btn-sm action-icon-btn" data-victron-device-reconnect="{{ device_identity }}" data-victron-device-message="victron-device-message-{{ loop.index0 }}" title="Pair and reconnect device"><i class="fa-solid fa-rotate"></i></button>
-                <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save device settings"><i class="fa-solid fa-floppy-disk"></i></button>
+                {{ action_button('fa-floppy-disk', 'Save device settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
               </div>
               <div class="form-text" id="victron-device-message-{{ loop.index0 }}"></div>
             </div>
@@ -156,38 +144,32 @@
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-clock', 'Polling') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-          <div class="settings-entry"><label>Solar poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Solar]" value="{{ module_payload.module_config.poll_intervals.Solar }}"></div>
-          <div class="settings-entry"><label>Wind poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Wind]" value="{{ module_payload.module_config.poll_intervals.Wind }}"></div>
-          <div class="settings-entry"><label>Battery poll interval</label><input class="form-control" type="number" name="module_config[poll_intervals][Battery]" value="{{ module_payload.module_config.poll_intervals.Battery }}"></div>
-          <div class="settings-entry"><label>Max log</label><input class="form-control" type="number" name="module_config[max_log]" value="{{ module_payload.module_config.max_log }}"></div>
+          {{ settings_input('Solar poll interval', 'module_config[poll_intervals][Solar]', module_payload.module_config.poll_intervals.Solar, 'number') }}
+          {{ settings_input('Wind poll interval', 'module_config[poll_intervals][Wind]', module_payload.module_config.poll_intervals.Wind, 'number') }}
+          {{ settings_input('Battery poll interval', 'module_config[poll_intervals][Battery]', module_payload.module_config.poll_intervals.Battery, 'number') }}
+          {{ settings_input('Max log', 'module_config[max_log]', module_payload.module_config.max_log, 'number') }}
         </div>
       </article>
     </div>
     <div class="col-12 col-xl-6">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-chart-line', 'Monitoring') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-          <div class="settings-entry"><label>Log interval</label><input class="form-control" type="number" name="module_config[monitoring][log_interval]" value="{{ module_payload.module_config.monitoring.log_interval }}"></div>
-          <div class="settings-entry"><label>Overvoltage threshold</label><input class="form-control" type="number" step="0.1" name="module_config[monitoring][overvoltage_threshold]" value="{{ module_payload.module_config.monitoring.overvoltage_threshold }}"></div>
-          <div class="settings-entry"><label>Undervoltage threshold</label><input class="form-control" type="number" step="0.1" name="module_config[monitoring][undervoltage_threshold]" value="{{ module_payload.module_config.monitoring.undervoltage_threshold }}"></div>
+          {{ settings_input('Log interval', 'module_config[monitoring][log_interval]', module_payload.module_config.monitoring.log_interval, 'number') }}
+          {{ settings_input('Overvoltage threshold', 'module_config[monitoring][overvoltage_threshold]', module_payload.module_config.monitoring.overvoltage_threshold, 'number', step='0.1') }}
+          {{ settings_input('Undervoltage threshold', 'module_config[monitoring][undervoltage_threshold]', module_payload.module_config.monitoring.undervoltage_threshold, 'number', step='0.1') }}
         </div>
       </article>
     </div>
     <div class="col-12">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-microchip', 'Devices') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
           <div class="table-responsive">
@@ -226,9 +208,7 @@
     <div class="col-12">
       <article class="panel card shadow-sm h-100 module-settings-card app-card card-shell card-type-form">
         {% call card_header('fa-gear', 'Module Configuration') %}
-          <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-module-save="{{ module_name }}" title="Save module settings">
-            <i class="fa-solid fa-floppy-disk"></i>
-          </button>
+          {{ action_button('fa-floppy-disk', 'Save module settings', 'outline-primary', attributes={'data-module-save': module_name}) }}
         {% endcall %}
         <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
           <p class="text-secondary small mb-3">
@@ -250,4 +230,6 @@
   </div>
   <div class="form-text mt-3" id="module-core-settings-message-{{ module_name }}"></div>
 </form>
+  </div>
+{% endcall %}
 {% endblock %}

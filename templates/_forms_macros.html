@@ -1,56 +1,18 @@
-{# Form and settings component macros #}
-
-{% macro settings_entry(label, name, type='text', value='', required=false, options=[], help_text='') -%}
-<div class="settings-entry">
-  <label for="form-{{ name }}">{{ label }}</label>
-  {% if type == 'select' %}
-    <select id="form-{{ name }}" class="form-control" name="{{ name }}" {% if required %}required{% endif %}>
-      {% for opt in options %}
-      <option value="{{ opt.value }}" {% if opt.value == value %}selected{% endif %}>{{ opt.label }}</option>
-      {% endfor %}
-    </select>
-  {% elif type == 'checkbox' %}
-    <span class="form-check form-switch m-0">
-      <input type="hidden" name="{{ name }}" value="false">
-      <input id="form-{{ name }}" class="form-check-input" type="checkbox" name="{{ name }}" value="true" {% if value %}checked{% endif %}>
-    </span>
-  {% elif type == 'textarea' %}
-    <textarea id="form-{{ name }}" class="form-control" name="{{ name }}" {% if required %}required{% endif %}></textarea>
-  {% else %}
-    <input id="form-{{ name }}" class="form-control" type="{{ type }}" name="{{ name }}" value="{{ value }}" {% if required %}required{% endif %}>
-  {% endif %}
-  {% if help_text %}<small class="form-text text-muted">{{ help_text }}</small>{% endif %}
+{% macro settings_entry(label, classes='', attributes={}) -%}
+<div class="settings-entry{% if classes %} {{ classes }}{% endif %}"{% for key, value in attributes.items() %} {{ key }}="{{ value }}"{% endfor %}>
+  <label>{{ label }}</label>
+  {{ caller() }}
 </div>
 {%- endmacro %}
 
-{% macro modal_dialog(id, title, form_fields=[], icon='fa-circle-info') -%}
-<div class="dialog-container hidden" id="{{ id }}-overlay" aria-hidden="true">
-  <div class="panel card shadow-sm app-card card-shell card-type-form modal-card">
-    <div class="card-header d-flex justify-content-between align-items-center gap-2">
-      <h3 class="section-title h5 mb-0"><i class="fa-solid {{ icon }}"></i> {{ title }}</h3>
-      <div class="d-flex gap-2 align-items-center">
-        <button type="button" id="{{ id }}-save-btn" class="btn btn-outline-primary btn-sm action-icon-btn" title="Save">
-          <i class="fa-solid fa-save"></i>
-        </button>
-        <button type="button" id="{{ id }}-close-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Close">
-          <i class="fa-solid fa-times"></i>
-        </button>
-      </div>
-    </div>
-    <div class="card-body app-card-content app-card-content--form card-content-form view-type-form modal-content">
-      <form id="{{ id }}-form" class="vstack gap-2" autocomplete="off">
-        {{ caller() }}
-      </form>
-    </div>
-  </div>
-</div>
+{% macro settings_input(label, name, value, type='text', input_class='form-control', id='', step='', placeholder='') -%}
+{% call settings_entry(label) %}
+<input class="{{ input_class }}" type="{{ type }}"{% if name %} name="{{ name }}"{% endif %}{% if id %} id="{{ id }}"{% endif %} value="{{ value }}"{% if step %} step="{{ step }}"{% endif %}{% if placeholder %} placeholder="{{ placeholder }}"{% endif %}>
+{% endcall %}
 {%- endmacro %}
 
-{% macro log_entry(level='info', module='', message='', timestamp='') -%}
-<div class="log-entry log-entry--{{ level|lower }}" data-timestamp="{{ timestamp }}">
-  <span class="log-level">{{ level|upper }}</span>
-  {% if module %}<span class="log-module">{{ module }}</span>{% endif %}
-  <span class="log-message">{{ message }}</span>
-  {% if timestamp %}<span class="log-timestamp">{{ timestamp }}</span>{% endif %}
-</div>
+{% macro settings_toggle(label, name, checked) -%}
+{% call settings_entry(label) %}
+<span class="form-check form-switch m-0"><input type="hidden" name="{{ name }}" value="false"><input class="form-check-input" type="checkbox" name="{{ name }}" value="true" {% if checked %}checked{% endif %}></span>
+{% endcall %}
 {%- endmacro %}

@@ -1,18 +1,23 @@
 {% extends "base.html" %}
 {% from "_card_macros.html" import card_header %}
+{% from "_forms_macros.html" import settings_input, settings_toggle %}
+{% from "_global_macros.html" import action_button, card_shell %}
 
 {% block page_actions %}
 <button id="logout-btn" class="btn btn-outline-danger btn-sm action-icon-btn" title="Logout"><i class="fa-solid fa-right-from-bracket"></i></button>
 {% endblock %}
 
 {% block content %}
+{% call card_shell(card_type='data', classes='settings-group-card', card_id='core-settings-group') %}
+  {% call card_header('fa-gear', 'Core Settings', 'Core and active module configuration') %}{% endcall %}
+  <div class="app-card-content card-content-live view-type-data settings-group-content">
 <form id="core-settings-form" class="vstack gap-4">
   <section class="settings-cards-grid">
     <article class="panel card shadow-sm settings-card app-card card-shell card-type-form system-overview" id="system-overview-card">
       {% call card_header('fa-tachometer-alt', 'System Overview', 'Current operational information') %}
       <div class="settings-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="overview-toggle" id="system-overview-toggle-btn" title="Edit Modules"><i class="fa-solid fa-cog"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Changes"><i class="fa-solid fa-save"></i></button>
+        {{ action_button('fa-cog', 'Edit Modules', 'outline-secondary', id='system-overview-toggle-btn', attributes={'data-core-action': 'overview-toggle'}) }}
+        {{ action_button('fa-save', 'Save Changes', 'outline-primary', attributes={'data-core-action': 'save'}) }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
@@ -38,30 +43,30 @@
     <article class="panel card shadow-sm settings-card app-card card-shell card-type-form general-settings" id="general-settings-card">
       {% call card_header('fa-sliders', 'General Settings', 'Core runtime preferences and storage path') %}
       <div class="settings-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="export" title="Export Config"><i class="fa-solid fa-file-arrow-down"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save General Settings"><i class="fa-solid fa-save"></i></button>
+        {{ action_button('fa-file-arrow-down', 'Export Config', 'outline-secondary', attributes={'data-core-action': 'export'}) }}
+        {{ action_button('fa-save', 'Save General Settings', 'outline-primary', attributes={'data-core-action': 'save'}) }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
         {% set single_location = (location_options[0] if location_options and (location_options|length) > 0 else {'id': 'home', 'name': 'Home'}) %}
         <input type="hidden" name="locations[0][id]" value="{{ single_location.id|default('home', true) }}">
         <input type="hidden" name="locations[0][is_default]" value="true">
-        <div class="settings-entry"><label>Location</label><input class="form-control" type="text" name="locations[0][name]" value="{{ single_location.name|default('Home', true) }}"></div>
-        <div class="settings-entry"><label>Auto backup frequency</label><input class="form-control" type="text" name="general[auto_backup_frequency]" value="{{ core_config.general.auto_backup_frequency }}"></div>
-        <div class="settings-entry"><label>Max backup files</label><input class="form-control" type="number" name="general[max_backup_files]" value="{{ core_config.general.max_backup_files }}"></div>
-        <div class="settings-entry"><label>Log size</label><input class="form-control" type="number" name="logs[max_size]" value="{{ core_config.logs.max_size }}"></div>
-        <div class="settings-entry"><label>Auto backup enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="general[auto_backup_enabled]" value="false"><input class="form-check-input" type="checkbox" name="general[auto_backup_enabled]" value="true" {% if core_config.general.auto_backup_enabled %}checked{% endif %}></span></div>
+        {{ settings_input('Location', 'locations[0][name]', single_location.name|default('Home', true)) }}
+        {{ settings_input('Auto backup frequency', 'general[auto_backup_frequency]', core_config.general.auto_backup_frequency) }}
+        {{ settings_input('Max backup files', 'general[max_backup_files]', core_config.general.max_backup_files, 'number') }}
+        {{ settings_input('Log size', 'logs[max_size]', core_config.logs.max_size, 'number') }}
+        {{ settings_toggle('Auto backup enabled', 'general[auto_backup_enabled]', core_config.general.auto_backup_enabled) }}
       </div>
     </article>
 
     <article class="panel card shadow-sm settings-card app-card card-shell card-type-form system-group-settings" id="system-group-settings-card" data-systems-mode="list">
       {% call card_header('fa-layer-group', 'Systems', 'Configured off-grid systems') %}
       <div class="settings-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" id="systems-add-btn" title="Add system"><i class="fa-solid fa-plus"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="systems-save-add-btn" title="Save new system"><i class="fa-solid fa-save"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="systems-cancel-add-btn" title="Cancel add"><i class="fa-solid fa-xmark"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="systems-save-edit-btn" title="Save system"><i class="fa-solid fa-save"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="systems-back-edit-btn" title="Back"><i class="fa-solid fa-arrow-left"></i></button>
+        {{ action_button('fa-plus', 'Add system', 'outline-secondary', id='systems-add-btn') }}
+        {{ action_button('fa-save', 'Save new system', 'outline-primary', id='systems-save-add-btn', classes='hidden') }}
+        {{ action_button('fa-xmark', 'Cancel add', 'outline-secondary', id='systems-cancel-add-btn', classes='hidden') }}
+        {{ action_button('fa-save', 'Save system', 'outline-primary', id='systems-save-edit-btn', classes='hidden') }}
+        {{ action_button('fa-arrow-left', 'Back', 'outline-secondary', id='systems-back-edit-btn', classes='hidden') }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
@@ -102,32 +107,32 @@
       {% call card_header('fa-network-wired', 'MQTT Configuration', 'Message broker connectivity') %}
       <div class="settings-actions">
         <span class="status-value {{ mqtt_connection_class }}">{{ mqtt_connection_state }}</span>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" id="mqtt-save-btn" data-core-action="mqtt-save-main" title="Save MQTT Settings"><i class="fa-solid fa-save"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" id="mqtt-edit-credentials-btn" data-core-action="mqtt-credentials" title="Edit MQTT Credentials"><i class="fa-solid fa-key"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" id="mqtt-edit-advanced-btn" data-core-action="mqtt-advanced" title="Edit MQTT Advanced Settings"><i class="fa-solid fa-gear"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="mqtt-cancel-credentials-btn" data-core-action="mqtt-main" title="Cancel MQTT Credentials Edit"><i class="fa-solid fa-times"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="mqtt-save-credentials-btn" data-core-action="mqtt-save-credentials" title="Save MQTT Credentials"><i class="fa-solid fa-save"></i></button>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn hidden" id="mqtt-cancel-advanced-btn" data-core-action="mqtt-main" title="Cancel MQTT Advanced Settings Edit"><i class="fa-solid fa-times"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn hidden" id="mqtt-save-advanced-btn" data-core-action="mqtt-save-advanced" title="Save MQTT Advanced Settings"><i class="fa-solid fa-save"></i></button>
+        {{ action_button('fa-save', 'Save MQTT Settings', 'outline-primary', id='mqtt-save-btn', attributes={'data-core-action': 'mqtt-save-main'}) }}
+        {{ action_button('fa-key', 'Edit MQTT Credentials', 'outline-secondary', id='mqtt-edit-credentials-btn', attributes={'data-core-action': 'mqtt-credentials'}) }}
+        {{ action_button('fa-gear', 'Edit MQTT Advanced Settings', 'outline-secondary', id='mqtt-edit-advanced-btn', attributes={'data-core-action': 'mqtt-advanced'}) }}
+        {{ action_button('fa-times', 'Cancel MQTT Credentials Edit', 'outline-secondary', id='mqtt-cancel-credentials-btn', attributes={'data-core-action': 'mqtt-main'}, classes='hidden') }}
+        {{ action_button('fa-save', 'Save MQTT Credentials', 'outline-primary', id='mqtt-save-credentials-btn', attributes={'data-core-action': 'mqtt-save-credentials'}, classes='hidden') }}
+        {{ action_button('fa-times', 'Cancel MQTT Advanced Settings Edit', 'outline-secondary', id='mqtt-cancel-advanced-btn', attributes={'data-core-action': 'mqtt-main'}, classes='hidden') }}
+        {{ action_button('fa-save', 'Save MQTT Advanced Settings', 'outline-primary', id='mqtt-save-advanced-btn', attributes={'data-core-action': 'mqtt-save-advanced'}, classes='hidden') }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
         <div id="mqtt-main-panel" class="settings-entries">
-          <div class="settings-entry"><label>MQTT enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[enabled]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[enabled]" value="true" {% if core_config.mqtt.enabled %}checked{% endif %}></span></div>
-          <div class="settings-entry"><label>Broker</label><input class="form-control" type="text" name="mqtt[broker]" value="{{ core_config.mqtt.broker }}"></div>
-          <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="mqtt[port]" value="{{ core_config.mqtt.port }}"></div>
+          {{ settings_toggle('MQTT enabled', 'mqtt[enabled]', core_config.mqtt.enabled) }}
+          {{ settings_input('Broker', 'mqtt[broker]', core_config.mqtt.broker) }}
+          {{ settings_input('Port', 'mqtt[port]', core_config.mqtt.port, 'number') }}
         </div>
         <div id="mqtt-credentials-panel" class="settings-edit hidden">
-          <div class="settings-entry"><label>MQTT username</label><input class="form-control" type="text" name="mqtt[username]" value="{{ core_config.mqtt.username }}"></div>
-          <div class="settings-entry"><label>MQTT password</label><input class="form-control" type="password" name="mqtt[password]" value="{{ core_config.mqtt.password }}"></div>
-          <div class="settings-entry"><label>Confirm password</label><input class="form-control" type="password" id="mqtt-password-confirm" value="{{ core_config.mqtt.password }}"></div>
+          {{ settings_input('MQTT username', 'mqtt[username]', core_config.mqtt.username) }}
+          {{ settings_input('MQTT password', 'mqtt[password]', core_config.mqtt.password, 'password') }}
+          {{ settings_input('Confirm password', '', core_config.mqtt.password, 'password', id='mqtt-password-confirm') }}
         </div>
         <div id="mqtt-advanced-panel" class="settings-edit hidden">
-          <div class="settings-entry"><label>Client ID</label><input class="form-control" type="text" name="mqtt[client_id]" value="{{ core_config.mqtt.client_id }}"></div>
-          <div class="settings-entry"><label>Base topic</label><input class="form-control" type="text" name="mqtt[base_topic]" value="{{ core_config.mqtt.base_topic }}"></div>
-          <div class="settings-entry"><label>Discovery prefix</label><input class="form-control" type="text" name="mqtt[discovery_prefix]" value="{{ core_config.mqtt.discovery_prefix }}"></div>
-          <div class="settings-entry"><label>One-time broker sweep</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[one_time_broker_sweep]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep]" value="true" {% if core_config.mqtt.one_time_broker_sweep %}checked{% endif %}></span></div>
-          <div class="settings-entry"><label>Aggressive sweep</label><span class="form-check form-switch m-0"><input type="hidden" name="mqtt[one_time_broker_sweep_aggressive]" value="false"><input class="form-check-input" type="checkbox" name="mqtt[one_time_broker_sweep_aggressive]" value="true" {% if core_config.mqtt.one_time_broker_sweep_aggressive %}checked{% endif %}></span></div>
+          {{ settings_input('Client ID', 'mqtt[client_id]', core_config.mqtt.client_id) }}
+          {{ settings_input('Base topic', 'mqtt[base_topic]', core_config.mqtt.base_topic) }}
+          {{ settings_input('Discovery prefix', 'mqtt[discovery_prefix]', core_config.mqtt.discovery_prefix) }}
+          {{ settings_toggle('One-time broker sweep', 'mqtt[one_time_broker_sweep]', core_config.mqtt.one_time_broker_sweep) }}
+          {{ settings_toggle('Aggressive sweep', 'mqtt[one_time_broker_sweep_aggressive]', core_config.mqtt.one_time_broker_sweep_aggressive) }}
         </div>
       </div>
     </article>
@@ -136,23 +141,23 @@
       {% call card_header('fa-server', 'Web Server', 'Webserver configuration') %}
       <div class="settings-actions">
         <span class="status-value {{ webserver_connection_class }}">{{ webserver_connection_state }}</span>
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="credentials" title="Update Login Credentials"><i class="fa-solid fa-key"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Web Server Settings"><i class="fa-solid fa-save"></i></button>
+        {{ action_button('fa-key', 'Update Login Credentials', 'outline-secondary', attributes={'data-core-action': 'credentials'}) }}
+        {{ action_button('fa-save', 'Save Web Server Settings', 'outline-primary', attributes={'data-core-action': 'save'}) }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
-        <div class="settings-entry"><label>Webserver enabled</label><span class="form-check form-switch m-0"><input type="hidden" name="webserver[enabled]" value="false"><input class="form-check-input" type="checkbox" name="webserver[enabled]" value="true" {% if core_config.webserver.enabled %}checked{% endif %}></span></div>
-        <div class="settings-entry"><label>Host</label><input class="form-control" type="text" name="webserver[host]" value="{{ core_config.webserver.host }}"></div>
-        <div class="settings-entry"><label>Port</label><input class="form-control" type="number" name="webserver[port]" value="{{ core_config.webserver.port }}"></div>
+        {{ settings_toggle('Webserver enabled', 'webserver[enabled]', core_config.webserver.enabled) }}
+        {{ settings_input('Host', 'webserver[host]', core_config.webserver.host) }}
+        {{ settings_input('Port', 'webserver[port]', core_config.webserver.port, 'number') }}
       </div>
     </article>
 
     <article class="panel card shadow-sm settings-card app-card card-shell card-type-form core-backup-settings" id="core-backup-settings-card">
       {% call card_header('fa-floppy-disk', 'Configuration Backup', 'Backup selected core and module configuration files') %}
       <div class="settings-actions">
-        <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-core-action="backup" title="Backup Selected Config Files"><i class="fa-solid fa-download"></i></button>
+        {{ action_button('fa-download', 'Backup Selected Config Files', 'outline-secondary', attributes={'data-core-action': 'backup'}) }}
         <button type="button" id="refresh-core-backups-btn" class="btn btn-outline-secondary btn-sm action-icon-btn" title="Browse Core Backups"><i class="fa-solid fa-folder-open"></i></button>
-        <button type="button" class="btn btn-outline-primary btn-sm action-icon-btn" data-core-action="save" title="Save Core Settings"><i class="fa-solid fa-save"></i></button>
+        {{ action_button('fa-save', 'Save Core Settings', 'outline-primary', attributes={'data-core-action': 'save'}) }}
       </div>
       {% endcall %}
       <div class="card-body app-card-content card-content-form view-type-form settings-card-content">
@@ -180,4 +185,6 @@
     {% endfor %}
   </section>
 </form>
+  </div>
+{% endcall %}
 {% endblock %}

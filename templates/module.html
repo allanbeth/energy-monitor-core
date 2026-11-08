@@ -1,5 +1,7 @@
 {% extends "base.html" %}
 {% from "_card_macros.html" import card_header %}
+{% from "_global_macros.html" import card_shell %}
+{% from "_forms_macros.html" import settings_input %}
 
 {% block head %}
 <script>
@@ -24,23 +26,21 @@
 {% endblock %}
 
 {% block content %}
-<section class="section-heading d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <div>
-    <h2 class="section-title mb-0">Live Sensor Cards</h2>
-  </div>
-  <div class="d-flex align-items-center gap-3 text-secondary small">
+{% call card_shell(card_type='data', classes='module-sensors-card') %}
+  {% call card_header('fa-microchip', 'Live Sensor Cards', 'Module sensor readings') %}
+  <div class="module-sensors-controls">
     <div class="d-flex align-items-center gap-2">
       <i class="fa-solid fa-microchip"></i>
-      <span>Sensors: <span id="sensor-count">{{ module_snapshot.connected_sensor_count or module_snapshot.sensor_count }}</span></span>
+      <span>Sensors: <span id="sensor-count">{{ module_snapshot.sensor_count }}</span></span>
     </div>
     <div class="sensor-visibility-toggle">
       <label for="show-unconnected-sensors">Show unconnected sensors</label>
-      <input id="show-unconnected-sensors" class="form-check-input" type="checkbox" aria-label="Show unconnected sensors">
+      <input id="show-unconnected-sensors" class="form-check-input" type="checkbox" aria-label="Show unconnected sensors" checked>
     </div>
   </div>
-</section>
-
-<section class="sensor-grid card-layout-grid" id="live-sensor-grid">
+  {% endcall %}
+  <div class="app-card-content card-content-live view-type-data module-sensors-content">
+  <section class="sensor-grid card-layout-grid" id="live-sensor-grid">
   {% for row in module_snapshot.sensor_rows %}
   {% set sensor_cfg = module_snapshot.sensor_config[loop.index0] if loop.index0 < (module_snapshot.sensor_config|length) else {} %}
   {% set sensor_device = namespace(name=row.name) %}
@@ -56,7 +56,7 @@
   {% if row.type|lower == 'charger' %}{% set sensor_icon = 'fa-charging-station' %}{% endif %}
   {% if row.type|lower == 'system' %}{% set sensor_icon = 'fa-right-left' %}{% endif %}
   {% set connection_subtitle %}<span class="sensor-connection" data-field="connection-state"><i class="fa-solid fa-network-wired {% if row.connected %}status-connected{% else %}status-disconnected{% endif %}" data-field="connection-icon"></i><span data-field="connection-text">{{ sensor_device.name }} - {% if row.connected %}Connected{% else %}Disconnected{% endif %}</span></span>{% endset %}
-  <article class="sensor-grid-card app-card card-shell card-type-data sensor-type-{{ row.type|lower }}" data-sensor-row="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}" data-sensor-connected="{{ 1 if row.connected else 0 }}" data-card-mode="view">
+  {% call card_shell(card_type='data', classes='sensor-grid-card sensor-reading-card sensor-type-' ~ (row.type|lower), data_attrs={'sensor-row': loop.index0, 'sensor-name': row.name, 'sensor-type': row.type|lower, 'sensor-connected': 1 if row.connected else 0, 'card-mode': 'view'}) %}
     {% call card_header(sensor_icon, row.name, connection_subtitle, '', true) %}
     <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-{{ loop.index0 }}">
       <button type="button" class="sensor-action-btn" data-sensor-card-action="edit" data-sensor-index="{{ loop.index0 }}" title="Edit sensor"><i class="fa-solid fa-gear"></i></button>
@@ -67,7 +67,7 @@
     <div class="app-card-content card-content-live view-type-data sensor-card-view" id="sensor-card-view-{{ loop.index0 }}">
       {% if row.type|lower == 'charger' %}
       <div class="sensor-main-value-wrap sensor-charge-state-wrap">
-        <div class="text-secondary">State</div>
+        <div class="card-content-label">State</div>
         <div class="sensor-main-value sensor-charge-state" data-field="charge-state">{{ (row.charging_state or row.charge_mode or ("Connected" if row.connected else "Disconnected"))|replace('_', ' ')|title }}</div>
       </div>
       <div class="sensor-live-rows sensor-charge-rows">
@@ -107,7 +107,7 @@
       </div>
       {% else %}
       <div class="sensor-main-value-wrap">
-        <div class="text-secondary">Watts</div>
+        <div class="card-content-label">Watts</div>
         <div class="sensor-main-value" data-field="watts">{{ row.watts }}</div>
       </div>
       <div class="sensor-live-rows">
@@ -147,10 +147,7 @@
     </div>
     <div class="app-card-content card-content-form view-type-form sensor-card-config hidden" id="sensor-card-config-{{ loop.index0 }}">
       <form class="sensor-config-form mt-2" data-sensor-index="{{ loop.index0 }}" data-sensor-name="{{ row.name }}" data-sensor-type="{{ row.type|lower }}">
-        <div class="settings-entry">
-          <label>Name</label>
-          <input class="form-control form-control-sm" type="text" name="name" value="{{ sensor_cfg.name|default(row.name, true) }}">
-        </div>
+        {{ settings_input('Name', 'name', sensor_cfg.name|default(row.name, true), input_class='form-control form-control-sm') }}
         <div class="settings-entry">
           <label>Type</label>
           <select class="form-select form-select-sm" name="type">
@@ -188,14 +185,8 @@
           </select>
         </div>
           {% else %}
-        <div class="settings-entry">
-          <label>Address</label>
-          <input class="form-control form-control-sm" type="text" name="address" value="{{ sensor_cfg.address|default(row.address, true) }}">
-        </div>
-        <div class="settings-entry">
-          <label>Device ID</label>
-          <input class="form-control form-control-sm" type="text" name="device_id" value="{{ sensor_cfg.device_id|default(row.device_id, true) }}">
-        </div>
+        {{ settings_input('Address', 'address', sensor_cfg.address|default(row.address, true), input_class='form-control form-control-sm') }}
+        {{ settings_input('Device ID', 'device_id', sensor_cfg.device_id|default(row.device_id, true), input_class='form-control form-control-sm') }}
           {% endif %}
         <div class="settings-entry">
           <label>Variant</label>
@@ -233,14 +224,8 @@
           </select>
         </div>
         {% endif %}
-        <div class="settings-entry">
-          <label>Max power</label>
-          <input class="form-control form-control-sm" type="number" step="0.1" name="max_power" value="{{ sensor_cfg.max_power|default(row.max_power, true) }}">
-        </div>
-        <div class="settings-entry">
-          <label>Rating</label>
-          <input class="form-control form-control-sm" type="number" step="0.1" name="rating" value="{{ sensor_cfg.rating|default(row.rating, true) }}">
-        </div>
+        {{ settings_input('Max power', 'max_power', sensor_cfg.max_power|default(row.max_power, true), 'number', 'form-control form-control-sm', step='0.1') }}
+        {{ settings_input('Rating', 'rating', sensor_cfg.rating|default(row.rating, true), 'number', 'form-control form-control-sm', step='0.1') }}
         <span class="form-text sensor-config-message" id="sensor-config-message-{{ loop.index0 }}"></span>
       </form>
     </div>
@@ -250,11 +235,11 @@
         <div class="text-secondary small">Use the book icon to load recent readings.</div>
       </div>
     </div>
-  </article>
+  {% endcall %}
   {% endfor %}
   {% if module_name == 'ina' %}
   <template id="add-sensor-card-template">
-    <article class="sensor-grid-card app-card card-shell card-type-form sensor-type-battery" data-sensor-row="new" data-sensor-name="new-sensor" data-sensor-type="battery" data-card-mode="config">
+    {% call card_shell(card_type='form', classes='sensor-grid-card sensor-reading-card sensor-type-battery', data_attrs={'sensor-row': 'new', 'sensor-name': 'new-sensor', 'sensor-type': 'battery', 'card-mode': 'config'}) %}
       {% call card_header('fa-plus', 'New Sensor', 'Create a new sensor entry') %}
       <div class="action-btns sensor-actions sensor-card-actions" id="sensor-actions-new">
         <button type="button" class="sensor-action-btn" data-sensor-card-action="save" data-sensor-index="new" title="Save sensor"><i class="fa-solid fa-floppy-disk"></i></button>
@@ -264,10 +249,7 @@
       <div class="sensor-card-feedback app-card-content card-content-feedback view-type-feedback hidden" id="sensor-feedback-new"></div>
       <div class="app-card-content card-content-form view-type-form sensor-card-config" id="sensor-card-config-new">
         <form class="sensor-config-form mt-2" data-sensor-index="new" data-sensor-name="new-sensor" data-sensor-type="battery">
-          <div class="settings-entry">
-            <label>Name</label>
-            <input class="form-control form-control-sm" type="text" name="name" value="">
-          </div>
+          {{ settings_input('Name', 'name', '', input_class='form-control form-control-sm') }}
           <div class="settings-entry">
             <label>Type</label>
             <select class="form-select form-select-sm" name="type">
@@ -338,19 +320,15 @@
               {% endfor %}
             </select>
           </div>
-          <div class="settings-entry">
-            <label>Max power</label>
-            <input class="form-control form-control-sm" type="number" step="0.1" name="max_power" value="">
-          </div>
-          <div class="settings-entry">
-            <label>Rating</label>
-            <input class="form-control form-control-sm" type="number" step="0.1" name="rating" value="">
-          </div>
+          {{ settings_input('Max power', 'max_power', '', 'number', 'form-control form-control-sm', step='0.1') }}
+          {{ settings_input('Rating', 'rating', '', 'number', 'form-control form-control-sm', step='0.1') }}
           <span class="form-text sensor-config-message" id="sensor-config-message-new"></span>
         </form>
       </div>
-    </article>
+    {% endcall %}
   </template>
   {% endif %}
-</section>
+  </section>
+  </div>
+{% endcall %}
 {% endblock %}

@@ -1,27 +1,49 @@
-{# Dashboard-specific component macros #}
-
-{% macro stat_tile(icon, label, value, unit, meta=[], sensor_type='') -%}
-<section class="dashboard-stat-tile {% if sensor_type %}sensor-type-{{ sensor_type }}{% endif %}">
-  <div class="dashboard-stat-icon"><i class="fa-solid {{ icon }}"></i></div>
-  <div class="dashboard-stat-body">
+{% macro stat_tiles(totals, derived, scope, system_id='') -%}
+{% for key, icon, label, source in [
+  ('total', 'fa-bolt', 'Total Power', 'overall'),
+  ('solar', 'fa-solar-panel', 'Solar Power', 'solar'),
+  ('wind', 'fa-wind', 'Wind Power', 'wind')
+] %}
+{% set values = totals.get(source, {}) %}
+<section class="dashboard-stat-tile sensor-type-{{ key }}">
+  <div class="dashboard-reading-header">
+    <div class="dashboard-stat-icon"><i class="fa-solid {{ icon }}"></i></div>
     <div class="dashboard-stat-label">{{ label }}</div>
-    <div class="dashboard-stat-value-row">
-      <span class="dashboard-stat-value">{{ value }}</span>
-      <span class="dashboard-stat-unit">{{ unit }}</span>
+  </div>
+  <div class="dashboard-stat-body">
+    <div class="sensor-main-value-wrap">
+      <div class="card-content-label">Watts</div>
+      <div class="dashboard-stat-value" data-dashboard-{{ scope }}-{{ key }}{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ values.get('watts', 0) }}</div>
     </div>
-    {% if meta %}
-    <div class="dashboard-stat-meta">
-      {% if meta is string %}{{ meta }}{% else %}
-        {% for item in meta %}<span>{{ item }}</span>{% endfor %}
-      {% endif %}
+    <div class="sensor-live-rows">
+      <div class="settings-entry"><label>Voltage</label><span class="status-value" data-dashboard-{{ scope }}-{{ key }}-voltage{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ values.get('voltage', 0) }}</span></div>
+      <div class="settings-entry"><label>Current</label><span class="status-value" data-dashboard-{{ scope }}-{{ key }}-current{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ values.get('current', 0) }}</span></div>
     </div>
-    {% endif %}
+  </div>
+</section>
+{% endfor %}
+<section class="dashboard-stat-tile sensor-type-battery dashboard-stat-tile--battery">
+  <div class="dashboard-reading-header">
+    <div class="dashboard-stat-icon"><i class="fa-solid fa-battery-full"></i></div>
+    <div class="dashboard-stat-label">Battery Bank</div>
+  </div>
+  <div class="dashboard-stat-body">
+    <div class="sensor-main-value-wrap">
+      <div class="card-content-label">Watts</div>
+      <div class="dashboard-stat-value" data-dashboard-{{ scope }}-battery{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ derived.get('battery_bank_watts', 0) }}</div>
+    </div>
+    <div class="sensor-live-rows">
+      <div class="settings-entry"><label>Voltage</label><span class="status-value" data-dashboard-{{ scope }}-battery-voltage{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ derived.get('battery_bank_voltage', 0) }}</span></div>
+      <div class="settings-entry"><label>Current</label><span class="status-value" data-dashboard-{{ scope }}-battery-current{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ derived.get('battery_bank_current', 0) }}</span></div>
+      <div class="settings-entry"><label>SoC</label><span class="status-value"><span data-dashboard-{{ scope }}-battery-soc{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ derived.get('battery_bank_soc', 0) }}</span>%</span></div>
+      <div class="settings-entry"><label>State</label><span class="status-value" data-dashboard-{{ scope }}-battery-state{% if scope == 'system' %}="{{ system_id }}"{% endif %}>{{ derived.get('battery_bank_state', 'idle')|title }}</span></div>
+    </div>
   </div>
 </section>
 {%- endmacro %}
 
-{% macro trend_strip(trend_data, max_value) -%}
-<div class="trend-strip dashboard-trend-strip">
+{% macro trend_strip(trend_data, max_value, series) -%}
+<div class="trend-strip dashboard-trend-strip" data-trend-series="{{ series }}">
   {% for point in trend_data %}
   <span class="trend-bar" style="height: {{ ((point.watts / max_value) * 100) if max_value else 0 }}%"></span>
   {% endfor %}

@@ -2176,10 +2176,9 @@
     document.querySelectorAll("[data-sensor-filter]").forEach((button) => {
       button.addEventListener("click", () => applyModuleFilter(button.getAttribute("data-sensor-filter")));
     });
-    window.EM_SHOW_UNCONNECTED = false;
     const showUnconnectedToggle = document.getElementById("show-unconnected-sensors");
+    window.EM_SHOW_UNCONNECTED = showUnconnectedToggle ? showUnconnectedToggle.checked : true;
     if (showUnconnectedToggle) {
-      showUnconnectedToggle.checked = false;
       showUnconnectedToggle.addEventListener("change", () => {
         window.EM_SHOW_UNCONNECTED = !!showUnconnectedToggle.checked;
         applyModuleFilter(window.EM_MODULE_FILTER || null);

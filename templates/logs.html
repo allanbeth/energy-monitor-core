@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_card_macros.html" import card_header %}
+{% from "_global_macros.html" import action_button %}
 
 {% block page_actions %}
 <button id="refresh-logs-btn" class="btn btn-outline-primary btn-sm action-icon-btn" title="Refresh all logs"><i class="fa-solid fa-rotate"></i></button>
@@ -11,9 +12,7 @@
   <div class="card-layout-grid logs-card-grid" id="logs-cards-grid">
     <article class="app-card card-shell card-type-log log-card-core">
       {% call card_header('fa-server', 'Core Logs', 'Application runtime events') %}
-      <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-logs-refresh="core" title="Refresh core logs">
-        <i class="fa-solid fa-rotate"></i>
-      </button>
+      {{ action_button('fa-rotate', 'Refresh core logs', attributes={'data-logs-refresh': 'core'}) }}
       {% endcall %}
       <div class="app-card-content card-content-logs view-type-logs">
         <div class="logs-entries-container" id="logs-core-container">
@@ -29,9 +28,7 @@
     {% for module_name in active_log_modules or [] %}
     <article class="app-card card-shell card-type-log module-log-card module-{{ module_name }}">
       {% call card_header('fa-microchip', module_name|title ~ ' Logs', 'Active module log stream') %}
-      <button type="button" class="btn btn-outline-secondary btn-sm action-icon-btn" data-logs-refresh="{{ module_name }}" title="Refresh {{ module_name|title }} logs">
-        <i class="fa-solid fa-rotate"></i>
-      </button>
+      {{ action_button('fa-rotate', 'Refresh ' ~ (module_name|title) ~ ' logs', attributes={'data-logs-refresh': module_name}) }}
       {% endcall %}
       <div class="app-card-content card-content-logs view-type-logs">
         <div class="logs-entries-container" id="logs-module-container-{{ module_name }}">

@@ -8,22 +8,10 @@
 </article>
 {%- endmacro %}
 
-{% macro card_header(icon, title, subtitle='', eyebrow='') -%}
-<div class="card-header-default app-card-header">
-  <div class="card-header-main app-card-header-main">
-    <div class="card-header-icon app-card-header-icon">
-      <i class="fa-solid {{ icon }}"></i>
-    </div>
-    <div class="card-header-meta app-card-header-meta">
-      {% if eyebrow %}<div class="eyebrow">{{ eyebrow }}</div>{% endif %}
-      <h3 class="card-header-title app-card-title">{{ title }}</h3>
-      {% if subtitle %}<p class="card-header-subtitle app-card-subtitle">{{ subtitle }}</p>{% endif %}
-    </div>
-  </div>
-  <div class="card-header-actions app-card-header-actions">
-    {{ caller() }}
-  </div>
-</div>
+{% from "_card_macros.html" import card_header %}
+
+{% macro action_button(icon, title, variant='outline-secondary', id='', attributes={}, classes='') -%}
+<button type="button" class="btn btn-{{ variant }} btn-sm action-icon-btn{% if classes %} {{ classes }}{% endif %}"{% if id %} id="{{ id }}"{% endif %}{% for key, value in attributes.items() %} {{ key }}="{{ value }}"{% endfor %} title="{{ title }}"><i class="fa-solid {{ icon }}"></i></button>
 {%- endmacro %}
 
 {% macro card_content(content_type='live') -%}
